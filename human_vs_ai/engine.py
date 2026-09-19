@@ -55,7 +55,7 @@ class Rule:
     id: str
     name: str
     tier: str  # lexical / syntactic / structural / statistical
-    scope: str  # sentence / doc
+    scope: str  # sentence / shape / doc / lexicon（只供密度词表，不产生命中）
     severity: str  # high / medium / low
     patterns: list[re.Pattern] = field(default_factory=list)
     explanation: str = ""
@@ -67,6 +67,7 @@ class Rule:
     doc_compare: str = ""  # below / above
     doc_threshold: float = math.nan
     doc_tiers: list = field(default_factory=list)  # [[chars上限, 阈值], ...] 按文本长度分档；None 上限=兜底档
+    min_sentences: int = 8  # doc 统计判定的最小句数——短文本统计无意义，宁可不判
     human_ref: str = ""  # 人类基线的可读描述，进报告
 
 
@@ -147,22 +148,31 @@ def load_rules(profile: str) -> list[Rule]:
                 doc_compare=item.get("doc_compare", ""),
                 doc_threshold=float(item.get("doc_threshold", "nan")),
                 doc_tiers=[(t[0], float(t[1])) for t in item.get("doc_tiers", [])],
+                min_sentences=int(item.get("min_sentences", 8)),
                 human_ref=_cn_quotes(item.get("human_ref", "")),
             )
         )
     return rules
 
 
+_DENSITY_PREFIXES = ("L-CONN", "O-STK")  # 词表规则同时供全文密度统计的前缀
+
+
 def connective_lexicon(rules: list[Rule]) -> set[str]:
-    """从词表规则里抽出"纯连接词"集合，喂给统计口径——保持单一来源。"""
+    """从词表规则里抽出"纯词"集合喂给密度统计——保持单一来源。
+
+    official profile 的 O-STK（强化副词）也走 conn_density 通道：
+    那个字段在公文语境下的语义就是"工作副词密度"。
+    """
     lex = set()
     for r in rules:
-        if r.id.startswith("L-CONN"):
-            for p in r.patterns:
-                if len(p.pattern) <= 8 and not any(
-                    c in p.pattern for c in "[](){}*+?.|\\"
-                ):
-                    lex.add(p.pattern)
+        if not r.id.startswith(tuple(_DENSITY_PREFIXES)):
+            continue
+        for p in r.patterns:
+            if len(p.pattern) <= 8 and not any(
+                c in p.pattern for c in "[](){}*+?.|\\"
+            ):
+                lex.add(p.pattern)
     return lex
 
 
@@ -246,6 +256,8 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
         # TTR 阈值按词级口径标定；没装 jieba 时是字级 2-gram 口径，数值不可比，跳过不判
         if rule.doc_metric == "ttr" and not stats._HAS_JIEBA:
             continue
+        if result.doc_stats.n_sentences < rule.min_sentences:
+            continue  # 短文本统计无意义——宁可不判
         value = getattr(result.doc_stats, rule.doc_metric, math.nan)
         if value != value:  # NaN：样本太少，不判
             continue

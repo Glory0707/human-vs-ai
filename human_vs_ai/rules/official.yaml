@@ -1,0 +1,185 @@
+# human-vs-ai 公文场景规则库
+# ============================
+# 适用：通知、意见、实施方案、行动方案等机关公文与公务文书。
+# 校准语料：中国政府网公开公文（tools/fetch_gov_corpus.py，官方文件不受
+# 著作权保护）15 篇 + 构造 AI 公文样本 4 篇（tests/data/ai_official.txt）。
+#
+# 与 academic/general 的根本不同：公文体本身就是"工整、模板化、排比"
+# 的文体——"为了…根据…现将…通知如下""特此通知""一、(一)1."编号、
+# "深入贯彻/落实/加强"都是公文正体，标了就是误伤。本库只抓两类东西：
+# 1) AI 相对真人密度异常的成分（强化副词堆叠、递进排比）
+# 2) 公文语域里不该出现的残留（演讲腔收尾、感叹号、空洞颂扬收束）
+#
+# 校准记录：2026-09 首轮，验收线 = 真公文误报率 < 20%（plan.md T4.2）
+
+meta:
+  name: official
+  description: 公文/公务文书场景——通知、意见、实施方案的模板化写作检测
+
+rules:
+  # ============ 词表层 ============
+
+  - id: O-STK-01
+    name: 强化副词堆叠
+    tier: lexical
+    scope: lexicon   # 只供 D-STKD 密度统计的词表——这些词个个都是公文正常词,
+                     # 逐句命中必然 100% 误报(首轮评测实证),密度才是信号
+    patterns:
+      - 切实
+      - 扎实
+      - 进一步
+      - 持续
+      - 不断
+      - 深入
+      - 全面
+      - 有力
+      - 有效
+      - 扎实推进
+      - 大力
+      - 着力
+    explanation: >
+      "切实/扎实/进一步/不断"是公文的基本工作动词修饰，真人篇篇在用，
+      单次出现绝无问题。AI 的问题是密度：真人公文里它们集中在工作要求
+      部分，AI 则均匀撒满全篇——每段都有三五个。是否"副词病"看全文
+      密度（D-STKD），本规则只负责逐句定位供 D-STKD 计数。
+    suggestion: 密度过高时逐段清理：保留真正需要强调的动词修饰，其余直陈动作。
+    example_before: "切实加强组织领导，扎实推进任务落实，持续强化督查考核，不断深化机制建设。"
+    example_after: "组织领导、任务落实、督查考核与机制建设分别明确到责任人。"
+
+  - id: O-INFL-01
+    name: 空洞拔高
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - 迈上.{0,4}新台阶
+      - 谱写.{0,6}新篇章
+      - 取得.{0,4}历史性(成就|突破|变革)
+      - 站在新的?历史起点
+      - (重要|重大)而深远(的)?意义
+      - 具有重要(的)?(意义|价值|作用)
+      - 为.{2,16}打下(了)?坚实基础
+      - 注入(了)?强劲动力
+      - 提供(了)?(坚强|有力)(的)?保障
+      - 凝聚(了)?强大合力
+      - 展现(了|出)?新的?(气象|作为|担当)
+    explanation: >
+      拔高套话在真人公文中也偶有出现（总结报告体），但 AI 把它当默认
+      收束件：每个工作领域配一句"为…打下坚实基础""注入强劲动力"。
+      这类句子删除后文件一个字不少。真人密度约每千字 0-1 处，AI 密度
+      数倍于此。首轮按 medium 校准，真人误报超标则降级或收窄词表。
+    suggestion: 删掉收束套话；确需表态的部分给出可考核的具体目标。
+    example_before: "为全面推进乡村振兴、加快农业农村现代化打下坚实基础。"
+    example_after: "2026 年底前完成全市 60% 行政村的生活污水治理设施建设。"
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: O-PARA-01
+    name: 递进排比堆砌
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - '更[高大强快严实优][、和与]?更[高大强快严实优]'
+      - '以更高.{2,24}更[严实快]'
+      - '新的?[、,].{0,2}新的?'
+      - '(获得|幸福感|满意度)[、和](幸福|获得|安全感)感?[、和](安全感|幸福感)'
+    explanation: >
+      "更高标准、更严要求、更实举措"式递进排比：把一个要求拆成三个
+      形容词变体，形式递进而内容不递增。真人公文在标题对仗时也用，
+      但 AI 把它当万能修辞，正文每段来一组。判别：排比的每一项能否
+      落到不同的具体措施上——落不到就是装饰。
+    suggestion: 三个变体保留信息量最大的那个，落到具体措施；其余删除。
+    example_before: "以更高标准、更严要求、更实举措推动各项工作落地见效。"
+    example_after: "整治标准从「三清一改」升级为「五清三化」，考核细则随文印发。"
+
+  - id: O-TAIL-01
+    name: 演讲腔收尾
+    tier: lexical
+    scope: sentence
+    severity: high
+    patterns:
+      - 相信在.{2,16}的(共同|携手)努力下
+      - 让我们(以更加|携手|共同|以)
+      - (使命|任务)光荣、?责任重大
+      - 奋力开创新局面
+      - 奋力谱写
+      - 以优异成绩
+    explanation: >
+      动员演讲腔混进部署文件：真人通知/意见的收尾是"特此通知"或最后
+      一条具体要求，不会有面向听众的号召——号召是领导讲话稿的文体，
+      写进通知反而是 AI 把"政府文体"混成一锅的典型症状（训练语料里
+      讲话稿与通知高度混杂）。中英社区鉴 AI 共识 + 维基清单 D 类的
+      公文变体。
+    suggestion: 通知以要求或"特此通知"收尾；确需动员表述，那是讲话稿的事，换文体写。
+    example_before: "相信在各级各部门的共同努力下，我们一定能够开创工作新局面！"
+    example_after: 「以最后一条工作要求收尾，或『特此通知』。」
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: O-EXCL-01
+    name: 公文感叹号
+    tier: syntactic
+    scope: sentence
+    severity: high
+    patterns:
+      - '[!！]'
+    explanation: >
+      真人公文正文（通知/意见/方案）几乎不用感叹号——感叹是情绪符号，
+      公文靠职级与效力生效，不靠语气。AI 生成的"公文"常带演讲式感叹
+      （"…而奋斗！"），一出现即异常。法规办法中的"！"同样异常。
+    suggestion: 感叹号改句号；语气强度不该由标点承担。
+    example_before: "让我们凝心聚力、真抓实干，为建设美丽家园而努力奋斗！"
+    example_after: "（删除该段，或改为具体工作安排。）"
+
+  # ============ 统计层（分档阈值见 docs/rules.md §5） ============
+
+  - id: D-STKD-01
+    name: 强化副词密度过高
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: conn_density
+    doc_compare: above
+    doc_threshold: 0.55
+    human_ref: 待校准——本规则复用连接词密度统计，词表为 O-STK-01 强化副词；真人公文基线首轮实测后回填
+    explanation: >
+      每句平均出现的强化副词（O-STK-01 词表）超过 0.55 条。真人公文
+      的强化副词集中在部署要求段落，AI 则均匀铺满——"每段都有三个
+      进一步"是 AI 公文的直观印象在统计上的样子。阈值首轮按真人公文
+      分布实测校准。
+    suggestion: 按"动词 + 宾语"直陈改写，强化词只留给真正需要加压的要求句。
+
+  - id: D-PARA-01
+    name: 段落长度一致
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: para_len_cv
+    doc_compare: below
+    doc_threshold: 0.25
+    human_ref: 待校准——公文体段落由条款结构决定，方差特征待首轮实测
+    explanation: >
+      各段长度过于接近（段长变异系数 < 0.25）意味着段落是按固定模板
+      切的。注意公文的条款结构天然带来一定均匀性，此阈值按公文真人
+      语料实测后放宽或收紧。
+    suggestion: 按内容单元重新分段：一个要求一个条，要求多寡决定段落长短。
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: D-DASH-01
+    name: 破折号高频
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: dash_density
+    doc_compare: above
+    doc_threshold: 0.15
+    human_ref: 真人公文正文几乎不用破折号，基线接近 0；受 min_sentences 保护，短通知不判
+    explanation: >
+      平均每句超过 0.15 个破折号。公文正文用括号或"即"引出解释，
+      破折号是行文散文化的信号——AI 把散文化的标点习惯带进了公文。
+    suggestion: 破折号换成括号或"即"。
+    references:
+      - https://github.com/blader/humanizer
+

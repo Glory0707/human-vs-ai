@@ -169,11 +169,17 @@
     return repeated / total;
   }
 
+  var DENSITY_PREFIXES = ["L-CONN", "O-STK"]; /* 与 Python _DENSITY_PREFIXES 同步 */
+
   function connectiveLexicon(rules) {
     var lex = {};
     for (var i = 0; i < rules.length; i++) {
       var r = rules[i];
-      if (r.id.indexOf("L-CONN") !== 0) continue;
+      var hitPrefix = false;
+      for (var pi = 0; pi < DENSITY_PREFIXES.length; pi++) {
+        if (r.id.indexOf(DENSITY_PREFIXES[pi]) === 0) { hitPrefix = true; break; }
+      }
+      if (!hitPrefix) continue;
       var pats = r.patterns || [];
       for (var j = 0; j < pats.length; j++) {
         var p = pats[j];
@@ -240,6 +246,7 @@
       out.doc_tiers = (r.doc_tiers || []).map(function (t) {
         return [t[0] == null ? null : t[0], t[1]];
       });
+      out.min_sentences = r.min_sentences == null ? 8 : r.min_sentences;
       return out;
     });
   }
@@ -307,6 +314,7 @@
       if (drule.scope !== "doc" || !drule.doc_metric) continue;
       var value = stats[drule.doc_metric];
       if (typeof value !== "number" || isNaN(value)) continue;
+      if (stats.n_sentences < drule.min_sentences) continue; /* 短文本统计不判 */
       /* 分档阈值：与 Python _doc_threshold 同构——按 n_chars 依次匹配
          chars<上限，未命中用兜底阈值 */
       var thr = drule.doc_threshold;
