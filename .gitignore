@@ -17,3 +17,6 @@ venv/
 # 编辑器
 .vscode/
 .idea/
+_qa/_web_*.js
+_qa/_web_*.json
+_qa/_mini*.js

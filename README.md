@@ -25,6 +25,8 @@ human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
 human-vs-ai profiles                 # academic（学术/论文）· general（问答/自媒体）
 ```
 
+**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，14 项语料逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
+
 ## 功能总览（全部已实现并实测）
 
 ### 分析引擎

@@ -40,7 +40,7 @@
 
 ## 4. 排队事项（按需启动）
 
-- **P2**：公文 profile（天然工整文体，需独立基线防误报，待公文体语料）· 完整论文正文阈值分档（摘要/正文分开）· VS Code / Obsidian 插件 · 纯前端网页版
+- **P2**：公文 profile（天然工整文体，需独立基线防误报，待公文体语料）· 完整论文正文阈值分档（摘要/正文分开）· VS Code / Obsidian 插件 · general profile 当代语料校准（收集 2025-2026 自媒体语料，量化互动尾巴/万能开场）
 - **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移）· 句级困惑度（Qwen 本地小模型，可选插件不进默认依赖）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）· general profile 当代语料校准（互动尾巴/万能开场在 2023 语料测不到，待收集 2025-2026 自媒体语料）
 
 ## 5. 架构（已验证）
@@ -52,13 +52,16 @@ CLI（argparse，四个子命令：check / stats / explain / profiles）
         │
    ┌────┴─────────┬──────────────┐
 切分 segment   规则库 YAML      统计 stats
-（MD 清洗/     （17 条，分层     （句长CV/MATTR/
- 分段/分句）    分severity）     连接词密度/4gram）
+（MD 清洗/     （academic 17 条  （句长CV/MATTR/
+ 分段/分句）    + general 10 条） 连接词密度/4gram）
         │
 报告 report（terminal ANSI / markdown / json，同一份内容三种出口）
+
+网页版：web/index.html（单文件，engine.js 同构实现 + 规则 JSON 注入，
+tools/build_web.py 构建，tools/check_web_consistency.py 守护两端一致）
 ```
 
-工程纪律：零网络调用；jieba 是可选增强不是依赖（缺位时降级并明示口径）；规则阈值全部放 YAML 不进代码（校准只改数据）；报告渲染与引擎解耦（JSON 是唯一事实源，terminal/md 都是它的投影）。
+工程纪律：零网络调用；jieba 是可选增强不是依赖（缺位时降级并明示口径）；规则阈值全部放 YAML 不进代码（校准只改数据）；报告渲染与引擎解耦（JSON 是唯一事实源，terminal/md 都是它的投影）；双实现不许独立演化（一致性测试是网页版的发布门）。
 
 ## 6. 验证基线（实测记录）
 

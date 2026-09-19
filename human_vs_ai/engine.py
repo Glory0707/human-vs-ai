@@ -26,6 +26,30 @@ RULES_DIR = Path(__file__).parent / "rules"
 SEVERITY_ORDER = {"high": 3, "medium": 2, "low": 1, "hint": 0}
 
 
+def _cn_quotes(text: str) -> str:
+    """prose 里的 ASCII 直引号按行配对换成中文引号——中文排版不用直引号。
+
+    只处理引号数为偶数的行(奇数行说明有未配对用法,保留原样不猜)。
+    """
+    if '"' not in text:
+        return text
+    out = []
+    for line in text.split("\n"):
+        if line.count('"') % 2 == 0:
+            buf = []
+            open_q = True
+            for ch in line:
+                if ch == '"':
+                    buf.append("“" if open_q else "”")
+                    open_q = not open_q
+                else:
+                    buf.append(ch)
+            out.append("".join(buf))
+        else:
+            out.append(line)
+    return "\n".join(out)
+
+
 @dataclass
 class Rule:
     id: str
@@ -108,20 +132,20 @@ def load_rules(profile: str) -> list[Rule]:
         rules.append(
             Rule(
                 id=item["id"],
-                name=item["name"],
+                name=_cn_quotes(item["name"]),
                 tier=item.get("tier", "lexical"),
                 scope=item.get("scope", "sentence"),
                 severity=item.get("severity", "medium"),
                 patterns=patterns,
-                explanation=item.get("explanation", "").strip(),
-                suggestion=item.get("suggestion", "").strip(),
-                example_before=item.get("example_before", ""),
-                example_after=item.get("example_after", ""),
+                explanation=_cn_quotes(item.get("explanation", "")).strip(),
+                suggestion=_cn_quotes(item.get("suggestion", "")).strip(),
+                example_before=_cn_quotes(item.get("example_before", "")),
+                example_after=_cn_quotes(item.get("example_after", "")),
                 references=item.get("references", []),
                 doc_metric=item.get("doc_metric", ""),
                 doc_compare=item.get("doc_compare", ""),
                 doc_threshold=float(item.get("doc_threshold", "nan")),
-                human_ref=item.get("human_ref", ""),
+                human_ref=_cn_quotes(item.get("human_ref", "")),
             )
         )
     return rules
