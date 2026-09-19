@@ -77,10 +77,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--per-domain", type=int, default=60)
     ap.add_argument("--out", default="_qa/eval-hc3")
+    ap.add_argument("--profile", default="academic", help="评测的 profile（general 用本脚本+HC3 校准）")
     args = ap.parse_args()
 
     samples = load_samples(args.per_domain)
-    rules = engine.load_rules("academic")
+    rules = engine.load_rules(args.profile)
     rule_ids = [r.id for r in rules if r.scope in ("sentence", "shape")]
 
     rows = []

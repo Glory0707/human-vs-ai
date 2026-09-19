@@ -1,0 +1,245 @@
+# human-vs-ai 通用/问答/自媒体场景规则库
+# ============================
+# 适用：知乎回答、公众号文章、科普内容、问答社区、博客。
+# 校准语料：HC3-Chinese（medicine + baike，真人 120 vs ChatGPT 120）。
+# 与 academic 的分界是文体的不是平台的：一篇论文请用 academic，
+# 一篇知乎科普用 general。
+#
+# 校准记录（2026-09 首轮，详见 docs/rules.md）：
+#   - academic 词表在问答文体 AUROC 仅 0.558——词表规则不跨文体复用的实证
+#   - 三连排比在问答文体 +0.22 有效（学术摘要是真人方法列举，方向相反），
+#     从 academic 移入本库复活
+#   - 模板连接词密度在问答文体反向（真人医疗回答 0.030 > AI 0.010，
+#     "首先/其次"是百度知道的答题模板）——D-CONN 不进本库
+
+meta:
+  name: general
+  description: 通用/问答/自媒体场景——知乎、公众号、科普内容与博客的模板化写作检测
+
+rules:
+  # ============ 词表层 ============
+
+  - id: G-OPEN-01
+    name: 万能开场白
+    tier: lexical
+    scope: sentence
+    severity: high
+    patterns:
+      - 在这个(信息爆炸|快节奏|数字化|互联网|发展迅速|日新月异)?(的)?时代
+      - 随着科技(的)?(发展|进步)
+      - 随着社会(的)?(发展|进步)
+      - 相信很多(人|朋友|读者)
+      - 你有没有(发现|想过|遇到)
+      - 说起.{2,12}(，)?相信
+      - 不知道你有没有
+      - '^(好的|没问题|当然)[，,!！]'
+      - '^(好的|没问题)[，,]?(关于|针对|就)'
+      - 以下是(关于|一些建议|针对|详细)
+      - 针对(您|你)的(问题|情况|需求)
+    explanation: >
+      自媒体/问答体的万能开场：先立一个谁都同意的大背景，再滑入正题。
+      与学术版（L-FORM-01）同源，但词表不同——自媒体的开场更"亲昵"
+      （"相信很多朋友""你有没有想过"），学术论文里则不会这么说。
+      人大编码研究中模板开场是"AI 感"笔记命中率最高的单项。
+      校准注（2026-09）：HC3 2023 语料中本规则各表达频率 <0.2%（该代
+      模型不这么说话），量化数字待当代语料；规则依据为人大编码研究
+      与社区共识，面向当代模型与自媒体文本。
+    suggestion: 开头直接给信息增量：一个具体事实、一个反常识结论、或一个真实场景。
+    example_before: "在这个信息爆炸的时代，很多人都面临着注意力分散的困扰。"
+    example_after: "我删掉了手机上 6 个 App 之后，每天多出 90 分钟。"
+    references:
+      - https://www.huxiu.com/article/4784376.html
+
+  - id: G-INTERACT-01
+    name: 互动尾巴与聊天残留
+    tier: lexical
+    scope: sentence
+    severity: high
+    patterns:
+      - 欢迎在评论区
+      - (点赞|收藏|转发|关注)(加|\+|、)?(收藏|转发|关注|走起)?
+      - 希望这篇(文章|内容)?(对你)?(有所|有)?帮助
+      - 对你有所?帮助
+      - 希望能(帮助|帮到)(到)?(你|大家)
+      - 如果(您|你)还有(其他|别的|任何)?(问题|疑问)
+      - (祝|祝愿)你(生活愉快|学习进步|工作顺利|使用愉快)
+      - 以上就是(关于|本次|全部)?
+      - 我们下期(再见|见)
+      - 希望对你有所(启发|帮助)
+      - 让我们(一起|共同)?(期待|学习|进步)
+      - 如果你有(什么)?(问题|想法|不同意见)
+      - 你们的(支持|点赞)就是
+    explanation: >
+      维基清单 D 类（协作式对话残留）的自媒体形态：给读者的舞台指示
+      和运营话术混在正文里。"以上就是…希望对你有帮助"既可以贴在
+      任何一篇文章末尾，也可以出现在 AI 生成的任何回答末尾——正因为
+      万能，才暴露生成痕迹。真人作者的收尾更多是内容的一部分
+      （一个总结性观点、一个开放问题），而不是对读者的操作指令。
+      校准注（2026-09）：HC3 2023 语料中此类表达频率 <0.1%（模仿百度
+      知道答题风格），量化数字待当代语料；规则依据为维基清单 D 类
+      （协作式对话残留）。
+    suggestion: 尾巴要么是内容（收束观点、留一个真问题），要么删掉；运营话术放评论区置顶。
+    example_before: "以上就是关于时间管理的全部内容，希望对你有所帮助，我们下期再见！"
+    example_after: "把日历当成待办清单的唯一入口，是我今年做过的最值的系统改动。"
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: G-HYPE-01
+    name: 万金油热词
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - 赋能
+      - 底层逻辑
+      - 顶层设计
+      - 降维打击
+      - (形成|构建|打造|玩转).{0,4}闭环
+      - (重要|主要)?抓手
+      - 天花板(级)?
+      - 满满的?干货
+      - 无脑(冲|选|入)
+      - 吊打
+      - 碾压(级)?
+      - 断层(第一|领先)
+    explanation: >
+      跨平台流浪的高热词：它们的语料密度集中在标题党和营销号文本里，
+      AI 生成"科普"时顺手就撒。问题不在词新，而在它们替代了论证——
+      "降维打击"四个字省掉的正是"到底好在哪"的解释。
+    suggestion: 每个热词替换成具体的比较或数字；替代不出来，说明这句话本来就没有信息。
+    example_before: "这款笔记软件的联动功能直接吊打同类产品，堪称效率天花板。"
+    example_after: "它把笔记、待办和日历放进同一个快捷键，同类产品要开三个窗口。"
+    references:
+      - https://www.huxiu.com/article/4784376.html
+
+  - id: G-SAFE-01
+    name: 保险腔对冲
+    tier: lexical
+    scope: sentence
+    severity: low   # 真人自媒体也常用，共现才报
+    patterns:
+      - 不得不说
+      - 不可否认
+      - 毋庸置疑
+      - 众所周知
+      - 总的来说
+      - 总体而言
+      - 总之
+      - 综上所述
+    explanation: >
+      "不得不说/总的来说/总之"这类收束词的功能是宣布"下面这句不需要
+      论证"。真人偶尔用，AI 系统性地用——HC3 医疗问答上"总之"在 AI
+      回答的出现率是真人回答的 17 倍（5.1% vs 0.3%）。单次出现只是
+      提示，多处出现说明行文在靠保险腔推进。
+      注：互动尾巴类表达（"希望对你有所帮助"等，见 G-INTERACT-01）
+      在本校准语料（2023 ChatGPT）中几乎不存在（<0.1%），那些规则的
+      依据是维基清单 D 类与社区共识，量化数字待当代语料补充。
+    suggestion: 删掉保险腔直接说结论；说不出口，说明论据不够，补论据而不是补对冲。
+    example_before: "不得不说，这款键盘的手感确实非常出色。"
+    example_after: "大键帽 + Gasket 结构，敲起来像踩在软木上。"
+
+  # ============ 句式层 ============
+
+  - id: G-TRIAD-01
+    name: 三连排比
+    tier: syntactic
+    scope: sentence
+    severity: low   # 人类也凑过三个；共现才报
+    patterns:
+      - '[\u4e00-\u9fa5]{2,8}[、][\u4e00-\u9fa5]{2,8}[、][\u4e00-\u9fa5]{2,8}(?!等)'
+    explanation: >
+      humanizer §6（Forced triads）：内容凑成三项一组，为了"显得完整"
+      而不是因为真有三条。HC3 校准中它是问答文体区分度最好的句式规则
+      （AI 43% vs 人类 22%）；注意它在学术摘要里方向相反（真人方法列举），
+      所以本规则只在 general 库。
+    suggestion: 逐项检查：能合并的合并，能展开的展开成句，凑数的删掉。
+    example_before: "这个方法高效、便捷、智能，值得一试。"
+    example_after: "这个方法把三步操作合成一步，平均每天省 20 分钟。"
+    references:
+      - https://github.com/blader/humanizer
+
+  - id: G-CLOS-01
+    name: 独句总结段
+    tier: structural
+    scope: shape
+    severity: low
+    doc_metric: one_liner
+    explanation: >
+      整段只有一句不超过 40 字的话，通常是"给上文盖章"——
+      "这就是坚持的意义。"自媒体把它当节奏器用，AI 把它当默认收束。
+      与 G-INTERACT-01 叠加出现时，"模板腔收尾"的信号很强。
+    suggestion: 独句段承载新事实就并回上文；只是总结腔调就整段删掉。
+    example_before: "……（正文）。\n\n这就是自律改变人生的秘密。"
+    example_after: "……（正文，末句直接收束）。"
+    references:
+      - https://github.com/blader/humanizer
+
+  # ============ 统计层（共用底盘，阈值按问答文体校准） ============
+
+  - id: D-UNIF-01
+    name: 句长节奏均匀
+    tier: statistical
+    scope: doc
+    severity: medium
+    doc_metric: sentence_cv
+    doc_compare: below
+    doc_threshold: 0.35
+    human_ref: HC3-Chinese 校准（2026-09）：人类回答 CV 均值 0.526，ChatGPT 回答 0.337（单指标 AUROC 0.763）
+    explanation: >
+      全文句长的变异系数（标准差/均值）低于 0.35，说明句子长度高度
+      均匀——"每句都差不多长"。问答文体的真人差距比学术更大
+      （0.526 vs 0.337）：真人回答短句多、语气起伏大。跨文体最稳的
+      单一指标。
+    suggestion: 检查每段：论据句可以更长更密，结论句可以极短。把连续等长的句子合并或拆分。
+    references:
+      - https://textpulse.ai/research/textpulse-burstiness-sentence-length-2026.pdf
+
+  - id: D-PARA-01
+    name: 段落长度一致
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: para_len_cv
+    doc_compare: below
+    doc_threshold: 0.25
+    human_ref: 待校准——问答文本段落由"答什么"决定，方差天然更大
+    explanation: >
+      各段长度过于接近（段长变异系数 < 0.25）意味着段落是按固定模板
+      切的，而不是按内容自然分段。
+    suggestion: 按内容单元重新分段：一个意思一个段。
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: D-NGRAM-01
+    name: 4-gram 高频复现
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: ngram_repeat
+    doc_compare: above
+    doc_threshold: 0.15
+    human_ref: 待校准——学术摘要走查显示真人可达 0.10+（术语重复），阈值保守
+    explanation: >
+      正文中重复出现的四字片段占比偏高。AI 的重复是短语级套路复用，
+      人类的重复更多是专名与术语复现。只报数值供参照，具体复现了
+      什么看词表规则的逐条命中。
+    suggestion: 找出重复 3 次以上的非术语短语，逐个替换或删除。
+    references:
+      - https://arxiv.org/pdf/2510.15061v2
+
+  - id: D-DASH-01
+    name: 破折号高频
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: dash_density
+    doc_compare: above
+    doc_threshold: 0.15
+    human_ref: 待校准——英文基准约为人类 3.2/千词 vs GPT-4 时代 10.6/千词（slopdetector 2025）
+    explanation: >
+      平均每句超过 0.15 个破折号——破折号让作者免于说明两个分句的
+      逻辑关系，AI 因此到处用。注意：单独几个破折号完全正常
+      （很多作者有此习惯），这条只在密度异常时提示。
+    suggestion: 破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。
+    references:
+      - https://github.com/blader/humanizer

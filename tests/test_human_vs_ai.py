@@ -69,13 +69,28 @@ class TestStats:
 
 class TestEngine:
     def test_profiles_available(self):
-        assert "academic" in engine.available_profiles()
+        profiles = engine.available_profiles()
+        assert "academic" in profiles and "general" in profiles
 
     def test_load_rules(self):
         rules = engine.load_rules("academic")
         assert len(rules) >= 15
         ids = {r.id for r in rules}
         assert "L-INFL-01" in ids and "D-UNIF-01" in ids
+
+    def test_general_profile_loads(self):
+        rules = engine.load_rules("general")
+        ids = {r.id for r in rules}
+        # 三连排比从 academic 证伪后移入 general 复活
+        assert "G-TRIAD-01" in ids and "S-TRIAD-01" not in ids
+        # 问答文体连接词密度反向（真人医疗模板更高），D-CONN 不进 general
+        assert "D-CONN-01" not in ids
+
+    def test_general_hits(self):
+        r = engine.analyze("好的，以下是关于时间管理的一些建议。\n\n希望对你有所帮助！", "general")
+        ids = {f.rule_id for f in r.findings + r.hints}
+        assert "G-OPEN-01" in ids
+        assert "G-INTERACT-01" in ids
 
     def test_bad_profile(self):
         with pytest.raises(FileNotFoundError):
