@@ -237,6 +237,9 @@
         return new RegExp(p);
       });
       out.doc_threshold = r.doc_threshold == null ? NaN : r.doc_threshold;
+      out.doc_tiers = (r.doc_tiers || []).map(function (t) {
+        return [t[0] == null ? null : t[0], t[1]];
+      });
       return out;
     });
   }
@@ -304,12 +307,19 @@
       if (drule.scope !== "doc" || !drule.doc_metric) continue;
       var value = stats[drule.doc_metric];
       if (typeof value !== "number" || isNaN(value)) continue;
-      var hit = drule.doc_compare === "below" ? value < drule.doc_threshold : value > drule.doc_threshold;
+      /* 分档阈值：与 Python _doc_threshold 同构——按 n_chars 依次匹配
+         chars<上限，未命中用兜底阈值 */
+      var thr = drule.doc_threshold;
+      for (var ti = 0; ti < drule.doc_tiers.length; ti++) {
+        var lim = drule.doc_tiers[ti][0];
+        if (lim === null || stats.n_chars < lim) { thr = drule.doc_tiers[ti][1]; break; }
+      }
+      var hit = drule.doc_compare === "below" ? value < thr : value > thr;
       if (hit) {
         findings.push({
           rule_id: drule.id, rule_name: drule.name, severity: drule.severity,
           tier: drule.tier, para: -1, sentence: "",
-          matches: [drule.doc_metric + "=" + value.toFixed(3)],
+          matches: [drule.doc_metric + "=" + value.toFixed(3) + "（阈值 " + thr.toFixed(2) + "）"],
           explanation: drule.explanation || "", suggestion: drule.suggestion || "",
         });
       }

@@ -59,6 +59,9 @@ def rules_to_json(profile: str) -> list[dict]:
             "doc_compare": r.doc_compare,
             # JSON 不认 NaN;无阈值规则传 null
             "doc_threshold": None if r.doc_threshold != r.doc_threshold else r.doc_threshold,
+            "doc_tiers": [
+                [None if lim is None else lim, thr] for lim, thr in r.doc_tiers
+            ],
         }
         for r in rules
     ]

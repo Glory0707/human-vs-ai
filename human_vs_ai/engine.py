@@ -66,6 +66,7 @@ class Rule:
     doc_metric: str = ""  # scope=doc 时对应的 DocStats 字段
     doc_compare: str = ""  # below / above
     doc_threshold: float = math.nan
+    doc_tiers: list = field(default_factory=list)  # [[chars上限, 阈值], ...] 按文本长度分档；None 上限=兜底档
     human_ref: str = ""  # 人类基线的可读描述，进报告
 
 
@@ -145,6 +146,7 @@ def load_rules(profile: str) -> list[Rule]:
                 doc_metric=item.get("doc_metric", ""),
                 doc_compare=item.get("doc_compare", ""),
                 doc_threshold=float(item.get("doc_threshold", "nan")),
+                doc_tiers=[(t[0], float(t[1])) for t in item.get("doc_tiers", [])],
                 human_ref=_cn_quotes(item.get("human_ref", "")),
             )
         )
@@ -162,6 +164,18 @@ def connective_lexicon(rules: list[Rule]) -> set[str]:
                 ):
                     lex.add(p.pattern)
     return lex
+
+
+def _doc_threshold(rule: Rule, n_chars: int) -> float:
+    """按文本长度选阈值：doc_tiers 依次匹配 chars<上限，未命中用 doc_threshold。
+
+    真人 CV 基线随文本变长系统性上移（T4.3 分档分析），单一阈值
+    在短文本档误伤、长文本档过松，所以允许按长度分档。
+    """
+    for limit, thr in rule.doc_tiers:
+        if limit is None or n_chars < limit:
+            return thr
+    return rule.doc_threshold
 
 
 def analyze(text: str, profile: str = "academic") -> AnalysisResult:
@@ -235,10 +249,11 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
         value = getattr(result.doc_stats, rule.doc_metric, math.nan)
         if value != value:  # NaN：样本太少，不判
             continue
+        threshold = _doc_threshold(rule, result.doc_stats.n_chars)
         hit = (
-            value < rule.doc_threshold
+            value < threshold
             if rule.doc_compare == "below"
-            else value > rule.doc_threshold
+            else value > threshold
         )
         if hit:
             result.findings.append(
@@ -249,7 +264,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                     tier=rule.tier,
                     para=-1,
                     sentence="",
-                    matches=[f"{rule.doc_metric}={value:.3f}"],
+                    matches=[f"{rule.doc_metric}={value:.3f}（阈值 {threshold:.2f}）"],
                     explanation=rule.explanation,
                     suggestion=rule.suggestion,
                 )
