@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+
+# 下载的第三方语料（版权与体积，不入库；获取方式见 docs/rules.md）
+_qa/corpus/
+_qa/walk_*.txt
+
+# 本地环境
+.venv/
+venv/
+
+# 编辑器
+.vscode/
+.idea/

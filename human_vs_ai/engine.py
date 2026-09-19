@@ -1,0 +1,237 @@
+"""分析引擎：规则加载、逐句匹配、共现加权、全文统计判定。
+
+两条铁律贯穿设计：
+
+1. 推断不是判定。命中只说明"这句话出现了某种高频写作模式"，
+   报告措辞永远是风格提示，不是 AI 判决——维基 Signs of AI writing
+   开篇第一句就是"任何单一迹象都不能证明 AI 写作"。
+2. 弱规则必须共现。真人也会写"首先…其次…"、也会用破折号；
+   单独一次命中不是证据。标为 low 的规则只有当全文命中 ≥2 处
+   才升格为正式发现，否则只作 hint 附在报告末尾——这是 linter
+   与"误判机器"的分界线（Newby v. Adelphi：以单一分数定罪 lacks reason）。
+"""
+from __future__ import annotations
+
+import math
+import re
+from dataclasses import dataclass, field
+from pathlib import Path
+
+import yaml
+
+from . import segment, stats
+
+RULES_DIR = Path(__file__).parent / "rules"
+
+SEVERITY_ORDER = {"high": 3, "medium": 2, "low": 1, "hint": 0}
+
+
+@dataclass
+class Rule:
+    id: str
+    name: str
+    tier: str  # lexical / syntactic / structural / statistical
+    scope: str  # sentence / doc
+    severity: str  # high / medium / low
+    patterns: list[re.Pattern] = field(default_factory=list)
+    explanation: str = ""
+    suggestion: str = ""
+    example_before: str = ""
+    example_after: str = ""
+    references: list[str] = field(default_factory=list)
+    doc_metric: str = ""  # scope=doc 时对应的 DocStats 字段
+    doc_compare: str = ""  # below / above
+    doc_threshold: float = math.nan
+    human_ref: str = ""  # 人类基线的可读描述，进报告
+
+
+@dataclass
+class Finding:
+    rule_id: str
+    rule_name: str
+    severity: str
+    tier: str
+    para: int  # 段号，doc 级为 -1
+    sentence: str  # 命中原句；doc 级为空
+    matches: list[str]  # 命中的模式文本
+    explanation: str
+    suggestion: str
+
+    def to_dict(self) -> dict:
+        return {
+            "rule_id": self.rule_id,
+            "rule_name": self.rule_name,
+            "severity": self.severity,
+            "tier": self.tier,
+            "para": self.para,
+            "sentence": self.sentence,
+            "matches": self.matches,
+            "explanation": self.explanation,
+            "suggestion": self.suggestion,
+        }
+
+
+@dataclass
+class AnalysisResult:
+    findings: list[Finding] = field(default_factory=list)
+    hints: list[Finding] = field(default_factory=list)  # 弱规则孤立命中，仅供参考
+    doc_stats: stats.DocStats = field(default_factory=stats.DocStats)
+    profile: str = ""
+
+    @property
+    def n_high(self) -> int:
+        return sum(1 for f in self.findings if f.severity == "high")
+
+    @property
+    def n_medium(self) -> int:
+        return sum(1 for f in self.findings if f.severity == "medium")
+
+    @property
+    def n_low(self) -> int:
+        return sum(1 for f in self.findings if f.severity == "low")
+
+
+def available_profiles() -> list[str]:
+    return sorted(p.stem for p in RULES_DIR.glob("*.yaml"))
+
+
+def load_rules(profile: str) -> list[Rule]:
+    path = RULES_DIR / f"{profile}.yaml"
+    if not path.exists():
+        raise FileNotFoundError(
+            f"profile '{profile}' 不存在。可用：{', '.join(available_profiles())}"
+        )
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    rules: list[Rule] = []
+    for item in data["rules"]:
+        patterns = [re.compile(p) for p in item.get("patterns", [])]
+        rules.append(
+            Rule(
+                id=item["id"],
+                name=item["name"],
+                tier=item.get("tier", "lexical"),
+                scope=item.get("scope", "sentence"),
+                severity=item.get("severity", "medium"),
+                patterns=patterns,
+                explanation=item.get("explanation", "").strip(),
+                suggestion=item.get("suggestion", "").strip(),
+                example_before=item.get("example_before", ""),
+                example_after=item.get("example_after", ""),
+                references=item.get("references", []),
+                doc_metric=item.get("doc_metric", ""),
+                doc_compare=item.get("doc_compare", ""),
+                doc_threshold=float(item.get("doc_threshold", "nan")),
+                human_ref=item.get("human_ref", ""),
+            )
+        )
+    return rules
+
+
+def connective_lexicon(rules: list[Rule]) -> set[str]:
+    """从词表规则里抽出"纯连接词"集合，喂给统计口径——保持单一来源。"""
+    lex = set()
+    for r in rules:
+        if r.id.startswith("L-CONN"):
+            for p in r.patterns:
+                if len(p.pattern) <= 8 and not any(
+                    c in p.pattern for c in "[](){}*+?.|\\"
+                ):
+                    lex.add(p.pattern)
+    return lex
+
+
+def analyze(text: str, profile: str = "academic") -> AnalysisResult:
+    rules = load_rules(profile)
+    doc = segment.split_document(text)
+    para_texts = [[s.text for s in para] for para in doc]
+    result = AnalysisResult(profile=profile)
+
+    raw_hits: dict[str, list[Finding]] = {}
+
+    # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
+    for pi, para in enumerate(doc):
+        for sent in para:
+            for rule in rules:
+                if rule.scope != "sentence":
+                    continue
+                matches: list[str] = []
+                for pat in rule.patterns:
+                    m = pat.search(sent.text)
+                    if m:
+                        matches.append(m.group(0))
+                if matches:
+                    f = Finding(
+                        rule_id=rule.id,
+                        rule_name=rule.name,
+                        severity=rule.severity,
+                        tier=rule.tier,
+                        para=pi,
+                        sentence=sent.text,
+                        matches=matches,
+                        explanation=rule.explanation,
+                        suggestion=rule.suggestion,
+                    )
+                    raw_hits.setdefault(rule.id, []).append(f)
+        for rule in rules:
+            if rule.scope != "shape":
+                continue
+            if rule.doc_metric == "one_liner" and len(para) == 1 and len(para[0].text) <= 40:
+                raw_hits.setdefault(rule.id, []).append(
+                    Finding(
+                        rule_id=rule.id,
+                        rule_name=rule.name,
+                        severity=rule.severity,
+                        tier=rule.tier,
+                        para=pi,
+                        sentence=para[0].text,
+                        matches=[f"独句段（{len(para[0].text)} 字）"],
+                        explanation=rule.explanation,
+                        suggestion=rule.suggestion,
+                    )
+                )
+
+    # 共现加权：low 规则全文 <2 处命中 → 降为 hint
+    for rid, hits in raw_hits.items():
+        rule_sev = hits[0].severity
+        if rule_sev == "low" and len(hits) < 2:
+            result.hints.extend(hits)
+        else:
+            result.findings.extend(hits)
+
+    # 全文统计 + doc 级规则
+    result.doc_stats = stats.compute_doc_stats(
+        para_texts, connective_lexicon=connective_lexicon(rules)
+    )
+    for rule in rules:
+        if rule.scope != "doc" or not rule.doc_metric:
+            continue
+        # TTR 阈值按词级口径标定；没装 jieba 时是字级 2-gram 口径，数值不可比，跳过不判
+        if rule.doc_metric == "ttr" and not stats._HAS_JIEBA:
+            continue
+        value = getattr(result.doc_stats, rule.doc_metric, math.nan)
+        if value != value:  # NaN：样本太少，不判
+            continue
+        hit = (
+            value < rule.doc_threshold
+            if rule.doc_compare == "below"
+            else value > rule.doc_threshold
+        )
+        if hit:
+            result.findings.append(
+                Finding(
+                    rule_id=rule.id,
+                    rule_name=rule.name,
+                    severity=rule.severity,
+                    tier=rule.tier,
+                    para=-1,
+                    sentence="",
+                    matches=[f"{rule.doc_metric}={value:.3f}"],
+                    explanation=rule.explanation,
+                    suggestion=rule.suggestion,
+                )
+            )
+
+    result.findings.sort(
+        key=lambda f: (-SEVERITY_ORDER.get(f.severity, 0), f.para)
+    )
+    return result

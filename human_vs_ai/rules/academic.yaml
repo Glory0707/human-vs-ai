@@ -1,0 +1,404 @@
+# human-vs-ai 学术场景规则库
+# ============================
+# 适用：学位论文、期刊论文（含摘要）、实验报告、开题/结题、学术综述。
+# 每条规则的解释、例句与出处都可以用 `human-vs-ai explain <ID>` 查看。
+#
+# 字段约定：
+#   severity: high  单次出现即值得改（AI 特征密度极高，人类极少刻意为之）
+#              medium 单次出现提示，多次出现强烈暗示模板化写作
+#              low    弱规则——人类正常写作也会出现，全文命中 ≥2 处才正式报告
+#                     （共现机制，对齐维基 Signs of AI writing 的"单一迹象不构成证据"）
+#   scope:    sentence 逐句匹配 / shape 段落形状 / doc 全文统计
+#
+# 校准记录（docs/rules.md 有完整表）：
+#   2026-09 首轮校准，语料 = C-ReD paper 域（真实论文摘要，真人 80 vs 四模型 320）
+#   + HC3-Chinese（问答文体，各 120）。
+#   - 句长 CV 是跨文体主力信号：真人 0.491 vs 四模型 0.275–0.392（AUROC 0.80）
+#   - 词表规则在学术文体区分度全部为正（L-COPO +0.39 / L-CONN +0.24 / L-INFL +0.23），
+#     在问答文体接近零——所以词表规则必须按 profile 组织，不跨文体复用
+#   - 已删（评测证伪，防复活）：S-TRIAD-01 三连排比（学术摘要是真人方法列举，
+#     区分度 -0.17；问答文体 +0.22 有效，移入 general）、L-SAFE-01 万金油对冲
+#     （±0.00）、D-TTR-01 词汇丰富度（学术摘要方向反转：AI 0.715 > 真人 0.649，
+#     真人术语重复是精确性不是套路；TTR 仍进报告统计行，只展示不判定）
+
+meta:
+  name: academic
+  description: 学术/论文场景——针对学位论文、期刊论文与实验报告的模板化写作检测
+
+rules:
+  # ============ 词表层：AI 高频词汇与公式化表达 ============
+
+  - id: L-CONN-01
+    name: 模板连接词
+    tier: lexical
+    scope: sentence
+    severity: low   # 单个连接词人人会用；密度问题由 D-CONN-01 全文判定
+    patterns:
+      - 首先
+      - 其次
+      - 再者
+      - 此外
+      - 与此同时
+      - 不仅如此
+      - 值得注意的是
+      - 值得一提的是
+      - 由此可见
+      - 不难看出
+      - 综上所述
+      - 总而言之
+      - 一言以蔽之
+      - 换言之
+      - 更重要的是
+      - 尤为重要的是
+      - 众所周知
+    explanation: >
+      这批词本身没有错，问题是密度：AI 把逻辑衔接当作每段必备的仪式，
+      人类只在真需要转折/递进时才用。社科院语言所把"'首先其次总之'式虚假
+      逻辑衔接"列为中文 AI 味的核心特征之一——衔接词在，但衔接的内容
+      之间并没有真正的推导关系。单次出现只是提示，本文是否"衔接词病"
+      看全文密度统计（D-CONN-01）。
+    suggestion: 删掉读一遍——句子之间的逻辑如果本来就通，连接词就是赘余；如果删掉就不通，说明缺的是论证不是连接词。
+    example_before: "首先，制备了前驱体。其次，进行了煅烧。综上所述，工艺可行。"
+    example_after: "前驱体经煅烧后相纯度达标，工艺路线成立。"
+    references:
+      - http://ling.cass.cn/news/xuejie/202607/t20260703_6057568.html
+
+  - id: L-CONN-02
+    name: 首先…其次 固定套路
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - '首先[，,].{2,60}[。；;]?\s*其次'
+      - '^首先[，,]'
+    explanation: >
+      "首先…其次…"是 AI 组织段落的默认骨架，也是维基清单与中文社区
+      鉴定共识的重叠区。真人学术写作更常用"（1）（2）"编号或直接分节，
+      因为编号便于审稿人引用；散落的"首先其次"反而难定位。
+      注：C-ReD 摘要语料测不到（摘要太短展不开），规则面向完整论文正文。
+    suggestion: 换成编号列表或小节标题，或者干脆按实验/论证的自然顺序直陈。
+    example_before: "首先，我们合成样品；其次，我们表征结构；最后，测试了性能。"
+    example_after: "样品合成后经 XRD 与 SEM 表征，随后测试其电化学性能。"
+
+  - id: L-INFL-01
+    name: 意义拔高
+    tier: lexical
+    scope: sentence
+    severity: high
+    patterns:
+      - 标志着
+      - 里程碑
+      - 分水岭
+      - 划时代
+      - 历史性(突破|意义|时刻)
+      - 具有重要(的)?(意义|价值|作用)
+      - 具有深远(的)?(影响|意义)
+      - 扮演着.{0,8}(关键|重要)
+      - 发挥着.{0,8}(重要|关键)(的)?(作用|角色)
+      - 揭示了.{0,16}(本质|规律|机制)
+      - 谱写.{0,6}新篇章
+    explanation: >
+      把一个具体结果包装成历史节点、范式转移或"重要意义"，是维基清单
+      第一条（对意义/遗产的过度拔高）的中文变体：陈述一个事实，再挂
+      一句它"标志着/揭示了/为…提供了新思路"。拔高句不增加任何信息——
+      删掉后论文一个字不少，审稿人却少了一个皱眉的理由。
+      高严重级：学位论文里出现一次就值得删。
+      走查校准（2026-09）：医学摘要结尾的"为…提供新的思路"是体裁常规，
+      真人高频使用，已拆出降为 medium（归 L-TAIL-01）；本规则 high 档只留
+      "人类极少刻意为之"的标志性拔高。
+    suggestion: 只留事实和数字。"为…提供了新思路"改为具体说明新在哪：跟哪个已知方法的差别是什么。
+    example_before: "该项目的完成标志着我校在钙钛矿领域迈上新台阶，为后续研究奠定了坚实基础。"
+    example_after: "该项目把钙钛矿组件效率从 21.3% 提到 23.1%。"
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+      - https://github.com/blader/humanizer
+
+  - id: L-COPO-01
+    name: 无证据强化词
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - 显著(提升|提高|增强|改善|降低|减少|优于)
+      - 有效(提升|提高|改善|解决|缓解|避免|抑制|降低)
+      - 充分(利用|发挥|证明|表明|说明|体现|考虑)
+      - 深入(探讨|分析|研究|剖析|挖掘|讨论)
+      - 全面(分析|阐述|梳理|揭示|总结|考察|评估)
+      - 极大(地)?(提升|提高|丰富|拓展|促进)
+      - 在一定程度上(促进|推动|改善|提升|缓解)
+    explanation: >
+      "显著/有效/充分/深入/全面"这类强化副词本该有统计检验或对照数据
+      背书。AI 的用法是系统性地、无证据地撒——"显著提升"旁边没有一个
+      p 值。学术规则库里区分度最高的一条（C-ReD：AI 命中率 48% vs 真人
+      9%）；在论文里它还有实际代价：审稿人会追问"显著到什么程度"。
+    suggestion: 每个强化词二选一：给出证据（数字、检验、对照），或删掉降为中性陈述。
+    example_before: "该方法显著提升了催化效率，充分证明了其优越性。"
+    example_after: "该方法将转化率从 62% 提到 78%（n=3，p<0.05）。"
+
+  - id: L-FORM-01
+    name: 公式化开头
+    tier: lexical
+    scope: sentence
+    severity: high
+    patterns:
+      - 随着.{2,24}的(快速|不断|迅速|日益|持续)?(发展|进步|推进|深入|普及|提高)
+      - 随着科技(的)?发展
+      - 在当今(这个)?(快速发展的|信息化|数字化|全球化的?)?时代
+      - 在.{2,12}的(背景|大背景|浪潮)下
+      - 近年来[，,].{0,40}(受到|获得|引起)(了)?(广泛|越来越多|持续|极大)
+      - 日新月异
+    explanation: >
+      "随着…的快速发展"是中文 AI 生成文本的第一开场白——人大编码研究
+      里 142 条被标记"AI 感"的小红书笔记中，模板开场是命中率最高的单项。
+      它放在论文引言里的问题是双重的：既不提供文献综述信息，又立刻让
+      评阅人想到"这段是 AI 写的"。
+    suggestion: 开头直接进研究缺口：谁的问题、卡在哪、本文接哪一棒。
+    example_before: "随着人工智能的快速发展，图像识别技术在各个领域得到了广泛应用。"
+    example_after: "低光照场景下现有检测器的召回率骤降至 40% 以下，是落地的主要障碍。"
+    references:
+      - https://www.huxiu.com/article/4784376.html
+
+  - id: L-TAIL-01
+    name: 公式化展望尾
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - 有望(在|为|推动|应用|实现)
+      - (具有|蕴含|展现|展示)(了)?(广阔|巨大|重要|深远|良好)(的)?(应用|研究|发展|理论|市场)(前景|价值|潜力|意义)
+      - 值得(进一步|深入)(研究|探讨|探索|关注)
+      - 为.{2,20}(提供了|开辟了|指明了)(新的?|明确)?(思路|视角|方法|途径|范式|框架|方向|道路|路径|基础)
+      - 奠定(了)?(坚实|重要|良好)(的)?基础
+      - (打下了|奠定)(了)?(坚实|良好|牢固)(的)?(基础|根基)
+    explanation: >
+      对应维基清单的"大纲式挑战与展望"与 humanizer §13（Inflated
+      significance）：在结论段把普通结果推向想象中的未来。中文 AI 的
+      固定口径是"有望…""具有广阔应用前景""为…指明了方向"——三句
+      可以原样贴到任何领域的任何论文末尾，这正是它们暴露 AI 的原因：
+      展望与本文工作没有可核对的具体联系。
+      走查校准（2026-09）：吸收自 L-INFL-01——"为…提供新的思路"在真人
+      学术写作（尤其医学摘要结尾）同样高频，配 medium 提示"说清新在哪"
+      而不是 high 判定。
+    suggestion: 展望只写有具体理由的方向：哪个已知限制准备怎么解决，或哪个结果暗示了哪条路。
+    example_before: "本研究为钙钛矿太阳能电池的产业化奠定了坚实基础，有望在新能源领域发挥重要作用。"
+    example_after: "界面复合是当前效率损失的主因，下一轮实验将用 ALD 缓冲层验证抑制效果。"
+
+  - id: L-HYPE-01
+    name: 政策腔大词
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - 赋能
+      - (重要|主要)?抓手
+      - (形成|构建|打造).{0,6}闭环
+      - 底层逻辑
+      - 顶层设计
+      - (降维打击|护城河|组合拳|快车道|新引擎|定海神针|压舱石)
+      - 深度融(合|入)
+      - 有力(支撑|保障|助推)
+    explanation: >
+      公文/自媒体的高热度词混进学术文本，是 AI 在错误语域生成的典型
+      症状（它的训练语料里"赋能"高频出现在所有文体，所以顺手就用在
+      论文里）。学术文本有术语体系，这类词既不是术语也没有操作性定义。
+      注：C-ReD 摘要语料命中极少，规则面向正文与开题/结题报告。
+    suggestion: 换成领域术语或具体动作。"AI 赋能实验教学"→"AI 用于预判滴定终点，减少 30% 重做率"。
+    references:
+      - https://www.huxiu.com/article/4784376.html
+
+  - id: L-NEGA-01
+    name: 否定式排比
+    tier: lexical
+    scope: sentence
+    severity: low   # 真人也会用，共现才正式报
+    patterns:
+      - '不仅.{2,24}(，|、)?(而且|更是|还|甚至|也)'
+      - '不是.{2,24}(，|、)?而是'
+      - '并非.{2,24}(，|、)?(而是|只是)'
+      - '既.{2,16}(，|、)?又.{2,16}(，|、)?更'
+    explanation: >
+      "不仅仅是 X，更是 Y"在 humanizer 里排 §1（Not X but Y）：否定
+      半句没有人主张过，正半句因此显得更宏大——加了分量，没加信息。
+      维基清单与中英社区鉴 AI 攻略的三方共识，也是被玩到"PTSD"级别的
+      句式。真人偶尔用它修正一个真实存在的误解，AI 用它给平淡内容
+      镀金。C-ReD：AI 命中率 25% vs 真人 3%。
+    suggestion: 砍掉否定半句，直接说 Y；如果 Y 确实反驳了某个常见误解，把那个误解明确写出来。
+    example_before: "这不仅是一种表征手段，更是理解材料失效机制的钥匙。"
+    example_after: "原位 XRD 能捕捉到失效前 10 分钟内的相变序列。"
+    references:
+      - https://github.com/blader/humanizer
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: L-EVADE-01
+    name: 系动词回避
+    tier: lexical
+    scope: sentence
+    severity: low
+    patterns:
+      - 扮演着
+      - 充当.{0,10}(的)?(角色|作用|桥梁|媒介)
+      - 作为.{2,16}(的)?(重要|关键|核心)(组成|载体|途径|手段|工具|环节)
+    explanation: >
+      humanizer §18（Avoiding is/are/has）：AI 不喜欢"是/有"这种朴素
+      动词，觉得太简单，非要换成"扮演/充当/占据着…地位"。实证上，
+      英文学术文本 2023 年后 is/are 使用率 measurable 下降。中文对应
+      是"该材料扮演着核心角色"而不是"该材料很关键"。
+      C-ReD：AI 命中率 20% vs 真人 4%。
+      走查校准（2026-09）：删去"具有/占据…重要地位"类模式——与
+      L-INFL-01 词表重叠造成同处双计，拔高归 L-INFL，本规则只管动词回避。
+    suggestion: 换回"是/有/在…中很关键"。朴素的动词不是水平低，是自信。
+    example_before: "表面缺陷在该反应中扮演着至关重要的角色。"
+    example_after: "表面缺陷主导该反应的速率。"
+    references:
+      - https://github.com/blader/humanizer
+
+  - id: L-PAD-01
+    name: 「进行X」填充句
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - 进行(了|着)(全面|系统|深入|详细|细致|广泛)(的)?(分析|研究|探讨|阐述|论述|考察|梳理|总结)
+      - 做出(了)?(重要|巨大|突出)(的)?贡献
+      - 取得(了)?(显著|重要|长足)(的)?(进展|成效|成果|突破)
+      - 开展(了)?(系统|深入|全面)(的)?(研究|分析|实验)
+    explanation: >
+      "对 X 进行了深入分析"比"分析了 X"多七个字，少一分信息——动名词
+      填充是中文学术 AI 味的高频特征。它源于模型的两个默认倾向：凑
+      字数、以及把"做过什么"说得比实际更隆重。
+    suggestion: 动词直接上。"对三组样品进行了系统的表征分析"→"表征了三组样品"。
+    example_before: "本文对影响产率的各种因素进行了全面的考察与分析。"
+    example_after: "本文考察了温度、浓度与搅拌速率对产率的影响。"
+
+  # ============ 句式层：句子与段落的形状 ============
+
+  - id: S-OPEN-01
+    name: 讲稿腔开场
+    tier: syntactic
+    scope: sentence
+    severity: high
+    patterns:
+      - 让我们(一起|共同|先|首先|来)
+      - 接下来(，)?(我们)?(将|来)?(介绍|探讨|分析|看看)
+      - 下面(将|我)?(介绍|分析|探讨|开始)
+      - 本文将(带|带领)大家
+    explanation: >
+      聊天助手的讲稿残留（维基清单 D 类：协作式对话残留）：模型习惯
+      以"向听众做汇报"的口吻组织文本，"让我们""接下来我们将"是幻灯片
+      演讲腔，不是论文腔。论文的正文化约定是零舞台指示——直接陈述。
+    suggestion: 删掉舞台指示，让内容自己开场。
+    example_before: "接下来，让我们一起深入了解该方法的三个核心步骤。"
+    example_after: "该方法分三步：合成、修饰、组装。"
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: S-CLOS-01
+    name: 独句总结段
+    tier: structural
+    scope: shape
+    severity: low
+    doc_metric: one_liner
+    explanation: >
+      整段只有一句不超过 40 字的话，通常功能是"给上文盖章"——
+      "由此可见，该方法可行。"维基清单与 humanizer §2（one-line
+      closer）都把"复述式收束"列为高频 AI 迹象；段落形状层面它表现
+      为散布的独句段。真人只在真正需要强调新事实时写独句段。
+    suggestion: 独句段承载新事实就并回上文；只是总结腔调就整段删掉。
+    example_before: "……（前段论证）。\n\n综上所述，本文方法具有重要的理论与实践意义。"
+    example_after: "……（前段论证，末句直接收束）。"
+    references:
+      - https://github.com/blader/humanizer
+
+  # ============ 统计层：全文指标 ============
+  # 校准语料：C-ReD paper 域（真实论文摘要）+ HC3-Chinese，2026-09 首轮。
+
+  - id: D-UNIF-01
+    name: 句长节奏均匀
+    tier: statistical
+    scope: doc
+    severity: medium
+    doc_metric: sentence_cv
+    doc_compare: below
+    doc_threshold: 0.35
+    human_ref: C-ReD 论文摘要校准（2026-09）：真人 CV 均值 0.491，deepseek-v3/qwen-3/gpt-4o/r1 为 0.313/0.358/0.275/0.392，四模型全部低于真人（单指标 AUROC 0.80，跨文体最稳的信号）
+    explanation: >
+      全文句长的变异系数（标准差/均值）低于 0.35，说明句子长度高度
+      均匀——"每句都差不多长"。真人写作长短句交错（长句铺论据、短句
+      下结论），这是检测器共识特征 burstiness 的直读版本，也是最难的
+      "手洗"特征：逐句改写时几乎不会有人主动调整句长节奏。
+      C-ReD 校准中它是对四个模型一致有效的唯一指标，推理模型
+      （deepseek-r1，CV 0.392）最接近真人、最难检。
+    suggestion: 检查每段：论据句可以更长更密，结论句可以极短。把连续等长的句子合并或拆分。
+    references:
+      - https://textpulse.ai/research/textpulse-burstiness-sentence-length-2026.pdf
+      - https://github.com/HeraldofLight/C-ReD
+
+  - id: D-CONN-01
+    name: 连接词密度过高
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: conn_density
+    doc_compare: above
+    doc_threshold: 0.08
+    human_ref: C-ReD 论文摘要校准（2026-09）：真人 0.015 条/句，四模型 0.023–0.067；gpt-4o 最高（真人的 4.5 倍）
+    explanation: >
+      每句平均出现的模板连接词（L-CONN-01 词表）超过 0.08 条。社科院
+      语言所描述的"虚假逻辑衔接"在统计上的样子：衔接词密度与论证
+      密度脱钩——词在，推导不在。阈值按摘要语料从宽校准（完整论文
+      正文的基线更高，后续按文体细分）。
+    suggestion: 按段清理：先删所有连接词读一遍，补不回逻辑的地方才补词。
+    references:
+      - http://ling.cass.cn/news/xuejie/202607/t20260703_6057568.html
+
+  - id: D-PARA-01
+    name: 段落长度一致
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: para_len_cv
+    doc_compare: below
+    doc_threshold: 0.25
+    human_ref: 待校准——人类文本段落长短由论证结构决定，方差天然更大
+    explanation: >
+      各段长度过于接近（段长变异系数 < 0.25）意味着段落是按固定模板
+      切的，而不是按论证的自然单元——AI 生成文本倾向每段装差不多
+      分量的内容。人类论文的段落犬牙交错：方法段长、转折段短。
+    suggestion: 按论证单元重新切段：一个主张一个段，主张弱段落就短，不用凑。
+    references:
+      - https://en.wikipedia.org/wiki/Wikipedia:Signs_of_AI_writing
+
+  - id: D-NGRAM-01
+    name: 4-gram 高频复现
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: ngram_repeat
+    doc_compare: above
+    doc_threshold: 0.15
+    human_ref: 走查校准（2026-09）：真人医学摘要 4-gram 重复可达 0.10+（术语重复是精确性），与 AI（约 0.09）区分度弱，阈值保守取 0.15 防误伤；此指标暂列观察期
+    explanation: >
+      正文中重复出现的四字片段占比偏高。AI 的重复是短语级套路复用
+      （"提供了新的思路""发挥了重要作用"反复出现），人类的重复更多
+      是术语复现（术语重复是精确性，不是套路）。此规则只报数值，
+      具体复现了什么看词表规则的逐条命中。
+    suggestion: 找出重复 3 次以上的非术语短语，逐个替换或删除。
+    references:
+      - https://arxiv.org/pdf/2510.15061v2
+
+  - id: D-DASH-01
+    name: 破折号高频
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: dash_density
+    doc_compare: above
+    doc_threshold: 0.15
+    human_ref: 待校准——英文基准约为人类 3.2/千词 vs GPT-4 时代 10.6/千词（slopdetector 2025）
+    explanation: >
+      平均每句超过 0.15 个破折号——破折号让作者免于说明两个分句的
+      逻辑关系，AI 因此到处用（humanizer §8）。注意：单独几个破折号
+      完全正常（很多作者有此习惯），这条只在密度异常时提示。
+    suggestion: 破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。
+    references:
+      - https://github.com/blader/humanizer
