@@ -1,0 +1,138 @@
+/* human-vs-ai VS Code 扩展：对当前文档一键分析 + Webview 报告面板。
+ *
+ * 与 CLI/网页版的关系：引擎直接复用 web/engine.js（与 Python 引擎由
+ * tools/check_web_consistency.py 守护逐字段一致），规则 JSON 由
+ * tools/build_vscode.py 从同一 YAML 源注入——三端（CLI/网页/插件）
+ * 同一事实源，插件端不允许独立演化。
+ *
+ * 纯本地：无任何网络调用。
+ * vscode 模块延迟到使用处 require——让报告渲染逻辑可被 node 冒烟测试
+ * 直接加载（smoke-test.js），不为可测性引入构建步骤。
+ */
+const path = require("path");
+const HvA = require("./engine.js");
+const RULES = require("./rules.json");
+
+const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E", hint: "#8A8A86" };
+const SEV_LABEL = { high: "高", medium: "中", low: "低", hint: "弱" };
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function fmt(v) {
+  return typeof v !== "number" || isNaN(v) ? "—" : v.toFixed(2);
+}
+
+/* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
+   样式对齐网页版（纯白纸、发丝线、severity 色点）。 */
+function renderReportHtml(fileName, profile, result, nonce) {
+  const s = result.stats;
+  const parts = [];
+
+  parts.push(`<div class="stats">
+    <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
+    <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类约 0.45，越低越"平"） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
+    <div class="row">词汇：连接词密度 <b>${fmt(s.conn_density)}</b> 条/句 · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
+  </div>`);
+
+  const F = result.findings;
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处` : "未发现明显的模板化写作模式。"}</div>`);
+
+  const bySev = { high: [], medium: [], low: [] };
+  F.forEach(f => bySev[f.severity].push(f));
+  ["high", "medium", "low"].forEach(sev => {
+    bySev[sev].sort((a, b) => a.para - b.para).forEach(f => {
+      const sent = f.sentence.length > 66 ? f.sentence.slice(0, 63) + "…" : f.sentence;
+      const loc = f.para >= 0 ? `¶${f.para + 1}` : "全文";
+      parts.push(`<div class="found">
+        <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${SEV_LABEL[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
+        ${f.sentence ? `<blockquote>${esc(sent)}</blockquote>` : ""}
+        ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
+        <div class="why">${esc(f.explanation.trim())}</div>
+        ${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}
+      </div>`);
+    });
+  });
+
+  if (result.hints.length) {
+    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中（未达共现阈值，仅供参考）</div>` +
+      result.hints.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
+      `</div>`);
+  }
+
+  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。场景：${esc(profile)}。</div>`);
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<style>
+body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; color: #1A1A18;
+       font-size: 13px; line-height: 1.6; background: #FFFFFF; padding: 12px 18px 24px; }
+b { font-variant-numeric: tabular-nums; }
+.stats { padding-bottom: 12px; border-bottom: 1px solid #E5E5E3; }
+.stats .row { font-size: 12px; color: #6E6E6A; }
+.stats .row + .row { margin-top: 2px; }
+.stats b { color: #1A1A18; }
+.summary { padding: 12px 0 4px; font-weight: 600; }
+.found { padding: 10px 0; border-bottom: 1px solid #E5E5E3; }
+.found .head { font-weight: 600; }
+.found .head .loc { color: #8A8A86; font-weight: 400; font-size: 10.5px; margin-left: 8px; }
+blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid #E5E5E3; color: #6E6E6A; }
+.match { font-size: 12px; color: #8A8A86; margin: 2px 0 6px; }
+.match code { background: #F4F4F2; padding: 0 4px; border-radius: 2px; }
+.why { margin: 3px 0; }
+.tip { color: #0F766E; margin-top: 3px; }
+.hints { margin-top: 14px; padding-top: 10px; border-top: 1px solid #E5E5E3; }
+.hints .t { font-size: 12px; color: #8A8A86; font-weight: 600; margin-bottom: 4px; }
+.hints .h { font-size: 12px; color: #8A8A86; }
+.disclaimer { margin-top: 18px; padding: 10px 14px; background: #FAFAF8; font-size: 10.5px;
+              color: #8A8A86; border-radius: 3px; }
+.docname { font-size: 10.5px; color: #8A8A86; padding-bottom: 8px; }
+</style></head>
+<body><div class="docname">${esc(fileName)} · ${esc(profile)} profile</div>${parts.join("")}</body></html>`;
+}
+
+function analyzeActive() {
+  const vscode = require("vscode");
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showInformationMessage("human-vs-ai：先打开一个文本文件。");
+    return;
+  }
+  const profile = vscode.workspace.getConfiguration("human-vs-ai").get("profile", "academic");
+  const rules = RULES[profile];
+  if (!rules) {
+    vscode.window.showErrorMessage(`human-vs-ai：未知场景 ${profile}（可用：${Object.keys(RULES).join("、")}）`);
+    return;
+  }
+  const text = editor.document.getText();
+  const result = HvA.analyze(text, rules);
+  const fileName = path.basename(editor.document.fileName);
+
+  const panel = vscode.window.createWebviewPanel(
+    "humanVsAiReport",
+    `human-vs-ai · ${fileName}`,
+    vscode.ViewColumn.Beside,
+    { enableScripts: false }
+  );
+  const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+  panel.webview.html = renderReportHtml(fileName, profile, result, nonce);
+
+  const n = result.findings.length;
+  vscode.window.setStatusBarMessage(
+    n ? `human-vs-ai：${fileName} 发现 ${n} 处` : `human-vs-ai：${fileName} 未发现明显模板化写作模式`,
+    8000
+  );
+}
+
+function activate(context) {
+  context.subscriptions.push(
+    vscode.commands.registerCommand("human-vs-ai.analyze", analyzeActive)
+  );
+}
+
+function deactivate() {}
+
+module.exports = { activate, deactivate, renderReportHtml };

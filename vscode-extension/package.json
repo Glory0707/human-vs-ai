@@ -1,0 +1,54 @@
+{
+  "name": "human-vs-ai",
+  "displayName": "human-vs-ai · 中文 AI 味分析",
+  "description": "可解释的中文 AI 味分析器：逐句指出哪里像模板、为什么、怎么改。纯本地，不判 AI 概率。",
+  "version": "0.6.0",
+  "publisher": "glory0707",
+  "license": "MIT",
+  "icon": "icon.png",
+  "engines": {
+    "vscode": "^1.75.0"
+  },
+  "categories": [
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "chinese",
+    "writing",
+    "ai-flavor"
+  ],
+  "activationEvents": [
+    "onCommand:human-vs-ai.analyze"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "human-vs-ai.analyze",
+        "title": "human-vs-ai: 分析当前文档",
+        "category": "human-vs-ai"
+      }
+    ],
+    "configuration": {
+      "title": "human-vs-ai",
+      "properties": {
+        "human-vs-ai.profile": {
+          "type": "string",
+          "enum": [
+            "academic",
+            "general",
+            "official"
+          ],
+          "enumDescriptions": [
+            "学术/论文（学位论文、期刊论文、实验报告）",
+            "通用/问答/自媒体（知乎、公众号、科普、博客）",
+            "公文/公务文书（通知、意见、实施方案）"
+          ],
+          "default": "academic",
+          "description": "分析场景——词表规则按文体分治，选错场景会误报。"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<style>
+body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; color: #1A1A18;
+       font-size: 13px; line-height: 1.6; background: #FFFFFF; padding: 12px 18px 24px; }
+b { font-variant-numeric: tabular-nums; }
+.stats { padding-bottom: 12px; border-bottom: 1px solid #E5E5E3; }
+.stats .row { font-size: 12px; color: #6E6E6A; }
+.stats .row + .row { margin-top: 2px; }
+.stats b { color: #1A1A18; }
+.summary { padding: 12px 0 4px; font-weight: 600; }
+.found { padding: 10px 0; border-bottom: 1px solid #E5E5E3; }
+.found .head { font-weight: 600; }
+.found .head .loc { color: #8A8A86; font-weight: 400; font-size: 10.5px; margin-left: 8px; }
+blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid #E5E5E3; color: #6E6E6A; }
+.match { font-size: 12px; color: #8A8A86; margin: 2px 0 6px; }
+.match code { background: #F4F4F2; padding: 0 4px; border-radius: 2px; }
+.why { margin: 3px 0; }
+.tip { color: #0F766E; margin-top: 3px; }
+.hints { margin-top: 14px; padding-top: 10px; border-top: 1px solid #E5E5E3; }
+.hints .t { font-size: 12px; color: #8A8A86; font-weight: 600; margin-bottom: 4px; }
+.hints .h { font-size: 12px; color: #8A8A86; }
+.disclaimer { margin-top: 18px; padding: 10px 14px; background: #FAFAF8; font-size: 10.5px;
+              color: #8A8A86; border-radius: 3px; }
+.docname { font-size: 10.5px; color: #8A8A86; padding-bottom: 8px; }
+</style></head>
+<body><div class="docname">ai_official.txt · official profile</div><div class="stats">
+    <div class="row">规模：<b>14</b> 段 · <b>23</b> 句 · <b>1109</b> 字</div>
+    <div class="row">节奏：句长 CV <b>0.33</b>（人类约 0.45，越低越"平"） · 段长 CV <b>0.33</b></div>
+    <div class="row">词汇：连接词密度 <b>0.78</b> 条/句 · 4-gram 重复率 <b>0.04</b></div>
+  </div><div class="summary">发现 7 处</div><div class="found">
+        <div class="head"><span class="dot" style="background:#B3261E"></span>高 · O-TAIL-01 演讲腔收尾<span class="loc">¶4</span></div>
+        <blockquote>相信在各级各部门的共同努力下，我们一定能够开创农村人居环境整治工作新局面，谱写乡村全面振兴新篇章。</blockquote>
+        <div class="match">命中：<code>相信在各级各部门的共同努力下</code></div>
+        <div class="why">动员演讲腔混进部署文件：真人通知/意见的收尾是“特此通知”或最后 一条具体要求，不会有面向听众的号召——号召是领导讲话稿的文体， 写进通知反而是 AI 把“政府文体”混成一锅的典型症状（训练语料里 讲话稿与通知高度混杂）。中英社区鉴 AI 共识 + 维基清单 D 类的 公文变体。</div>
+        <div class="tip">→ 通知以要求或“特此通知”收尾；确需动员表述，那是讲话稿的事，换文体写。</div>
+      </div><div class="found">
+        <div class="head"><span class="dot" style="background:#B3261E"></span>高 · O-TAIL-01 演讲腔收尾<span class="loc">¶8</span></div>
+        <blockquote>数字政府建设使命光荣、责任重大。</blockquote>
+        <div class="match">命中：<code>使命光荣、责任重大</code></div>
+        <div class="why">动员演讲腔混进部署文件：真人通知/意见的收尾是“特此通知”或最后 一条具体要求，不会有面向听众的号召——号召是领导讲话稿的文体， 写进通知反而是 AI 把“政府文体”混成一锅的典型症状（训练语料里 讲话稿与通知高度混杂）。中英社区鉴 AI 共识 + 维基清单 D 类的 公文变体。</div>
+        <div class="tip">→ 通知以要求或“特此通知”收尾；确需动员表述，那是讲话稿的事，换文体写。</div>
+      </div><div class="found">
+        <div class="head"><span class="dot" style="background:#B3261E"></span>高 · O-TAIL-01 演讲腔收尾<span class="loc">¶8</span></div>
+        <blockquote>让我们以更加饱满的热情、更加务实的作风、更加有力的举措，奋力开创数字政府建设新局面。</blockquote>
+        <div class="match">命中：<code>让我们以更加</code></div>
+        <div class="why">动员演讲腔混进部署文件：真人通知/意见的收尾是“特此通知”或最后 一条具体要求，不会有面向听众的号召——号召是领导讲话稿的文体， 写进通知反而是 AI 把“政府文体”混成一锅的典型症状（训练语料里 讲话稿与通知高度混杂）。中英社区鉴 AI 共识 + 维基清单 D 类的 公文变体。</div>
+        <div class="tip">→ 通知以要求或“特此通知”收尾；确需动员表述，那是讲话稿的事，换文体写。</div>
+      </div><div class="found">
+        <div class="head"><span class="dot" style="background:#9A6B00"></span>中 · O-PARA-01 递进排比堆砌<span class="loc">¶2</span></div>
+        <blockquote>各区县要充分认识做好农村人居环境整治工作的重要意义，切实增强责任感和紧迫感，以更高标准、更严要求、更实举措推动各项工作落地见效。</blockquote>
+        <div class="match">命中：<code>以更高标准、更严要求、更实</code></div>
+        <div class="why">“更高标准、更严要求、更实举措”式递进排比：把一个要求拆成三个 形容词变体，形式递进而内容不递增。真人公文在标题对仗时也用， 但 AI 把它当万能修辞，正文每段来一组。判别：排比的每一项能否 落到不同的具体措施上——落不到就是装饰。</div>
+        <div class="tip">→ 三个变体保留信息量最大的那个，落到具体措施；其余删除。</div>
+      </div><div class="found">
+        <div class="head"><span class="dot" style="background:#9A6B00"></span>中 · O-INFL-01 空洞拔高<span class="loc">¶3</span></div>
+        <blockquote>三要加强组织领导，压实工作责任，强化督查考核，为全面推进乡村振兴打下坚实基础。</blockquote>
+        <div class="match">命中：<code>为全面推进乡村振兴打下坚实基础</code></div>
+        <div class="why">拔高套话在真人公文中也偶有出现（总结报告体），但 AI 把它当默认 收束件：每个工作领域配一句“为…打下坚实基础”“注入强劲动力”。 这类句子删除后文件一个字不少。真人密度约每千字 0-1 处，AI 密度 数倍于此。首轮按 medium 校准，真人误报超标则降级或收窄词表。</div>
+        <div class="tip">→ 删掉收束套话；确需表态的部分给出可考核的具体目标。</div>
+      </div><div class="found">
+        <div class="head"><span class="dot" style="background:#9A6B00"></span>中 · O-INFL-01 空洞拔高<span class="loc">¶4</span></div>
+        <blockquote>相信在各级各部门的共同努力下，我们一定能够开创农村人居环境整治工作新局面，谱写乡村全面振兴新篇章。</blockquote>
+        <div class="match">命中：<code>谱写乡村全面振兴新篇章</code></div>
+        <div class="why">拔高套话在真人公文中也偶有出现（总结报告体），但 AI 把它当默认 收束件：每个工作领域配一句“为…打下坚实基础”“注入强劲动力”。 这类句子删除后文件一个字不少。真人密度约每千字 0-1 处，AI 密度 数倍于此。首轮按 medium 校准，真人误报超标则降级或收窄词表。</div>
+        <div class="tip">→ 删掉收束套话；确需表态的部分给出可考核的具体目标。</div>
+      </div><div class="found">
+        <div class="head"><span class="dot" style="background:#0F766E"></span>低 · D-STKD-01 强化副词密度过高<span class="loc">全文</span></div>
+        
+        <div class="match">命中：<code>conn_density=0.783（阈值 0.55）</code></div>
+        <div class="why">每句平均出现的强化副词（O-STK-01 词表）超过 0.55 条。真人公文 的强化副词集中在部署要求段落，AI 则均匀铺满——“每段都有三个 进一步”是 AI 公文的直观印象在统计上的样子。阈值首轮按真人公文 分布实测校准。</div>
+        <div class="tip">→ 按“动词 + 宾语”直陈改写，强化词只留给真正需要加压的要求句。</div>
+      </div><div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。场景：official。</div></body></html>

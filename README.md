@@ -25,7 +25,9 @@ human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
 human-vs-ai profiles                 # academic（学术）· general（问答/自媒体）· official（公文）
 ```
 
-**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，14 项语料逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
+**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，21 项语料逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
+
+**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景）。构建产物（engine.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
 ## 功能总览（全部已实现并实测）
 
@@ -75,9 +77,11 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q          # 20 项单元+区分度测试
+python -m pytest tests/ -q          # 31 项单元+边界+区分度测试
 python tools/evaluate_cred.py       # C-ReD 学术语料评测（语料下载见 docs/rules.md）
 python tools/evaluate.py            # HC3-Chinese 问答语料评测
+python tools/evaluate_official.py   # 公文语料评测（误报率验收）
+node vscode-extension/smoke-test.js # VS Code 扩展冒烟测试
 ```
 
 设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）。
