@@ -6,8 +6,8 @@
  * 同一事实源，插件端不允许独立演化。
  *
  * 纯本地：无任何网络调用。
- * vscode 模块延迟到使用处 require——让报告渲染逻辑可被 node 冒烟测试
- * 直接加载（smoke-test.js），不为可测性引入构建步骤。
+ * vscode 模块延迟到使用处 require——让报告渲染与"发现→文档定位"逻辑
+ * 可被 node 冒烟测试直接加载（smoke-test.js），不为可测性引入构建步骤。
  */
 const path = require("path");
 const HvA = require("./engine.js");
@@ -21,6 +21,8 @@ const PROFILE_LABEL = {
 
 const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E", hint: "#8A8A86" };
 const SEV_LABEL = { high: "高", medium: "中", low: "低", hint: "弱" };
+/* 弱命中只是参考信息，长文里全量列出会淹没正文发现（与 CLI/网页同口径） */
+const HINTS_MAX = 12;
 
 function esc(s) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -30,8 +32,38 @@ function fmt(v) {
   return typeof v !== "number" || isNaN(v) ? "—" : v.toFixed(2);
 }
 
+/* 原句命中区间高亮：按索引切原文再统一转义，杜绝"先转义后拼串"
+   被 mark 字样命中词撞上标签的注人问题（与网页版同一算法） */
+function hiSentence(sent, matches) {
+  const spans = [];
+  (matches || []).forEach(m => {
+    if (!m) return;
+    let from = 0, idx;
+    while ((idx = sent.indexOf(m, from)) >= 0) {
+      spans.push([idx, idx + m.length]);
+      from = idx + m.length;
+    }
+  });
+  if (!spans.length) return esc(sent);
+  spans.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
+  const merged = [];
+  let last = spans[0].slice();
+  for (let i = 1; i < spans.length; i++) {
+    if (spans[i][0] <= last[1]) last[1] = Math.max(last[1], spans[i][1]);
+    else { merged.push(last); last = spans[i].slice(); }
+  }
+  merged.push(last);
+  let out = "", pos = 0;
+  merged.forEach(r => {
+    out += esc(sent.slice(pos, r[0])) + "<mark>" + esc(sent.slice(r[0], r[1])) + "</mark>";
+    pos = r[1];
+  });
+  return out + esc(sent.slice(pos));
+}
+
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
-   样式对齐网页版（纯白纸、发丝线、severity 色点）。 */
+   样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
+   挂 vscode-light / vscode-dark 类），暗色主题下不再白底刺眼。 */
 function renderReportHtml(fileName, profile, result) {
   const s = result.stats;
   const parts = [];
@@ -53,23 +85,26 @@ function renderReportHtml(fileName, profile, result) {
   const explained = new Set();
   ["high", "medium", "low"].forEach(sev => {
     bySev[sev].sort((a, b) => a.para - b.para).forEach(f => {
-      const sent = f.sentence.length > 66 ? f.sentence.slice(0, 63) + "…" : f.sentence;
       const loc = f.para >= 0 ? `¶${f.para + 1}` : "全文";
       // 同一规则的解释全文只讲一次——与 CLI/网页版口径一致
       const showWhy = !explained.has(f.rule_id);
       if (showWhy) explained.add(f.rule_id);
+      const matchArr = [...new Set(f.matches)];
       parts.push(`<div class="found">
         <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${sevName[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
-        ${f.sentence ? `<blockquote>${esc(sent)}</blockquote>` : ""}
-        ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
+        ${f.sentence ? `<blockquote>${hiSentence(f.sentence, matchArr)}</blockquote>` : ""}
+        ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${showWhy ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
     });
   });
 
   if (result.hints.length) {
-    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中，仅供参考</div>` +
-      result.hints.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
+    const shown = result.hints.slice(0, HINTS_MAX);
+    const more = result.hints.length - shown.length;
+    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中，仅供参考${more ? `（列前 ${shown.length} 处）` : ""}</div>` +
+      shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
+      (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
       `</div>`);
   }
 
@@ -80,28 +115,47 @@ function renderReportHtml(fileName, profile, result) {
 <head><meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
 <style>
-body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; color: #1A1A18;
-       font-size: 13px; line-height: 1.6; background: #FFFFFF; padding: 12px 18px 24px; }
+body {
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 13px; line-height: 1.6;
+  background: var(--vscode-editor-background, #FFFFFF);
+  color: var(--vscode-editor-foreground, #1A1A18);
+  padding: 12px 18px 24px;
+  --hairline: var(--vscode-editorWidget-border, #E5E5E3);
+  --ink-2: var(--vscode-descriptionForeground, #6E6E6A);
+  --ink-3: var(--vscode-descriptionForeground, #8A8A86);
+  --chip: var(--vscode-textCodeBlock-background, #F4F4F2);
+  --soft: var(--vscode-textBlockQuote-background, #FAFAF8);
+  --mark: rgba(154, 107, 0, 0.20);
+  overflow-wrap: anywhere;
+}
+body.vscode-dark, body.vscode-high-contrast {
+  --sev-high: #E5706A;
+  --sev-medium: #D0A238;
+  --sev-low: #45B8A8;
+  --mark: rgba(208, 162, 56, 0.30);
+}
 b { font-variant-numeric: tabular-nums; }
-.stats { padding-bottom: 12px; border-bottom: 1px solid #E5E5E3; }
-.stats .row { font-size: 12px; color: #6E6E6A; }
+.stats { padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
+.stats .row { font-size: 12px; color: var(--ink-2); }
 .stats .row + .row { margin-top: 2px; }
-.stats b { color: #1A1A18; }
+.stats b { color: inherit; }
 .summary { padding: 12px 0 4px; font-weight: 600; }
-.found { padding: 10px 0; border-bottom: 1px solid #E5E5E3; }
+.found { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .found .head { font-weight: 600; }
-.found .head .loc { color: #8A8A86; font-weight: 400; font-size: 10.5px; margin-left: 8px; }
-blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid #E5E5E3; color: #6E6E6A; }
-.match { font-size: 12px; color: #8A8A86; margin: 2px 0 6px; }
-.match code { background: #F4F4F2; padding: 0 4px; border-radius: 2px; }
+.found .head .loc { color: var(--ink-3); font-weight: 400; font-size: 10.5px; margin-left: 8px; }
+blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid var(--hairline); color: var(--ink-2); }
+.match { font-size: 12px; color: var(--ink-3); margin: 2px 0 6px; }
+.match code { background: var(--chip); padding: 0 4px; border-radius: 2px; }
 .why { margin: 3px 0; }
-.tip { color: #0F766E; margin-top: 3px; }
-.hints { margin-top: 14px; padding-top: 10px; border-top: 1px solid #E5E5E3; }
-.hints .t { font-size: 12px; color: #8A8A86; font-weight: 600; margin-bottom: 4px; }
-.hints .h { font-size: 12px; color: #8A8A86; }
-.disclaimer { margin-top: 18px; padding: 10px 14px; background: #FAFAF8; font-size: 10.5px;
-              color: #8A8A86; border-radius: 3px; }
-.docname { font-size: 10.5px; color: #8A8A86; padding-bottom: 8px; }
+.tip { color: var(--sev-low); margin-top: 3px; }
+mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+.hints { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--hairline); }
+.hints .t { font-size: 12px; color: var(--ink-3); font-weight: 600; margin-bottom: 4px; }
+.hints .h { font-size: 12px; color: var(--ink-3); }
+.disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
+              color: var(--ink-3); border-radius: 3px; }
+.docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
 </style></head>
 <body><div class="docname">${esc(fileName)} · ${esc(PROFILE_LABEL[profile] || profile)}</div>${parts.join("")}</body></html>`;
 }
@@ -129,25 +183,96 @@ function renderAdviceHtml(fileName, result) {
 <head><meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
 <style>
-body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; color: #1A1A18;
-       font-size: 13px; line-height: 1.6; background: #FFFFFF; padding: 12px 18px 24px; }
+body {
+  font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+  font-size: 13px; line-height: 1.6;
+  background: var(--vscode-editor-background, #FFFFFF);
+  color: var(--vscode-editor-foreground, #1A1A18);
+  padding: 12px 18px 24px;
+  --hairline: var(--vscode-editorWidget-border, #E5E5E3);
+  --ink-2: var(--vscode-descriptionForeground, #6E6E6A);
+  --ink-3: var(--vscode-descriptionForeground, #8A8A86);
+  --soft: var(--vscode-textBlockQuote-background, #FAFAF8);
+  overflow-wrap: anywhere;
+}
+body.vscode-dark, body.vscode-high-contrast {
+  --sev-high: #E5706A;
+  --sev-medium: #D0A238;
+  --sev-low: #45B8A8;
+}
 b { font-variant-numeric: tabular-nums; }
-.docname { font-size: 10.5px; color: #8A8A86; padding-bottom: 8px; }
-.counts { padding: 6px 0 12px; font-size: 12px; color: #6E6E6A; border-bottom: 1px solid #E5E5E3; }
-.advice { padding: 10px 0; border-bottom: 1px solid #E5E5E3; }
+.docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
+.counts { padding: 6px 0 12px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--hairline); }
+.advice { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .tag { display: inline-block; min-width: 18px; text-align: center; font-size: 10.5px; font-weight: 600;
-       border-radius: 2px; padding: 1px 5px; margin-right: 8px; background: #F4F4F2; color: #6E6E6A; }
-.advice.del .tag { background: #FBE9E7; color: #B3261E; }
-.advice.chg .tag { background: #FFF4E0; color: #9A6B00; }
-.advice.keep .tag { background: #E6F4F2; color: #0F766E; }
-.taste { font-size: 10.5px; color: #8A8A86; margin-left: 6px; }
-.why { color: #6E6E6A; margin: 4px 0 0 26px; }
-.cand { color: #0F766E; margin: 3px 0 0 26px; }
-.dir { color: #8A8A86; margin: 3px 0 0 26px; font-size: 12px; }
-.disclaimer { margin-top: 18px; padding: 10px 14px; background: #FAFAF8; font-size: 10.5px;
-              color: #8A8A86; border-radius: 3px; }
+       border-radius: 2px; padding: 1px 5px; margin-right: 8px;
+       background: var(--vscode-textCodeBlock-background, #F4F4F2); color: var(--ink-2); }
+.advice.del .tag { background: rgba(179, 38, 30, 0.14); color: var(--sev-high); }
+.advice.chg .tag { background: rgba(154, 107, 0, 0.14); color: var(--sev-medium); }
+.advice.keep .tag { background: rgba(15, 118, 110, 0.12); color: var(--sev-low); }
+.taste { font-size: 10.5px; color: var(--ink-3); margin-left: 6px; }
+.why { color: var(--ink-2); margin: 4px 0 0 26px; }
+.cand { color: var(--sev-low); margin: 3px 0 0 26px; }
+.dir { color: var(--ink-3); margin: 3px 0 0 26px; font-size: 12px; }
+.disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
+              color: var(--ink-3); border-radius: 3px; }
 </style></head>
 <body><div class="docname">${esc(fileName)} · personal（我的口味）</div>${counts}${rows}${footer}</body></html>`;
+}
+
+/* 发现 → 文档偏移：句子级发现按段落序在原文里顺序定位（报告按严重级排序，
+   文档序才反映真实位置）。清洗过的句子若在原文找不到（Markdown 剥离、
+   星号强调等），退化为前 10 字前缀定位；再找不到就跳过——装饰是锦上添花，
+   绝不能因为它报错。node 冒烟直测本函数。 */
+function locateFindings(docText, findings) {
+  const out = [];
+  let from = 0;
+  findings
+    .filter(f => f.para >= 0 && f.sentence)
+    .slice()
+    .sort((a, b) => a.para - b.para)
+    .forEach(f => {
+      const probes = [f.sentence];
+      if (f.sentence.length > 10) probes.push(f.sentence.slice(0, 10));
+      for (const base of [from, 0]) {
+        for (const probe of probes) {
+          const idx = docText.indexOf(probe, base);
+          if (idx >= 0) {
+            out.push({ start: idx, end: idx + probe.length, severity: f.severity });
+            from = idx + probe.length;
+            return;
+          }
+        }
+      }
+    });
+  return out;
+}
+
+/* 装饰句柄跟随命令重建：上一次的先 dispose，重复运行不泄漏 */
+let activeDecorationTypes = [];
+
+function applyDecorations(editor, located, colorBy) {
+  try {
+    const vscode = require("vscode");
+    activeDecorationTypes.forEach(t => {
+      try { editor.setDecorations(t, []); t.dispose(); } catch (e) { /* 已释放 */ }
+    });
+    activeDecorationTypes = [];
+    Object.keys(colorBy).forEach(sev => {
+      const ranges = located
+        .filter(l => l.severity === sev)
+        .map(l => new vscode.Range(
+          editor.document.positionAt(l.start), editor.document.positionAt(l.end)));
+      if (!ranges.length) return;
+      const type = vscode.window.createTextEditorDecorationType({
+        textDecoration: "underline wavy " + colorBy[sev],
+        overviewRulerColor: colorBy[sev],
+        overviewRulerLane: vscode.OverviewRulerLane.Right,
+      });
+      activeDecorationTypes.push(type);
+      editor.setDecorations(type, ranges);
+    });
+  } catch (e) { /* 装饰是增强，失败不影响报告面板 */ }
 }
 
 function rewriteActive() {
@@ -169,6 +294,11 @@ function rewriteActive() {
     vscode.ViewColumn.Beside, { enableScripts: false }
   );
   panel.webview.html = renderAdviceHtml(fileName, result);
+  // 删/改条目同步画到编辑器里：红色待删、黄色待改
+  const located = locateFindings(text, result.advices
+    .filter(a => a.action === "删" || a.action === "改")
+    .map((a, i) => ({ para: i, sentence: a.text, severity: a.action === "删" ? "high" : "medium" })));
+  applyDecorations(editor, located, { high: SEV_COLOR.high, medium: SEV_COLOR.medium });
   const nDel = result.advices.filter(a => a.action === "删").length;
   const nChg = result.advices.filter(a => a.action === "改").length;
   vscode.window.setStatusBarMessage(
@@ -200,6 +330,7 @@ function analyzeActive() {
     { enableScripts: false }
   );
   panel.webview.html = renderReportHtml(fileName, profile, result);
+  applyDecorations(editor, locateFindings(text, result.findings), SEV_COLOR);
 
   const n = result.findings.length;
   vscode.window.setStatusBarMessage(
@@ -217,4 +348,4 @@ function activate(context) {
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, renderReportHtml, renderAdviceHtml };
+module.exports = { activate, deactivate, renderReportHtml, renderAdviceHtml, locateFindings };

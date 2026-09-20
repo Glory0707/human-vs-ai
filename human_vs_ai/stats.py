@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import math
 import re
+from collections import Counter
 from dataclasses import dataclass, field
 
 try:
@@ -124,10 +125,22 @@ def mattr(tokens: list[str], window: int = 100) -> float:
         return math.nan
     if len(tokens) <= window:
         return len(set(tokens)) / len(tokens)
-    vals = [
-        len(set(tokens[i : i + window])) / window
-        for i in range(0, len(tokens) - window + 1)
-    ]
+    # 滚动窗口：进出各 O(1)，大文本从 O(n·window) 降到 O(n)。
+    # distinct 计数与"逐窗建 set"逐位一致（等价性有单测钉住）——
+    # 键计数减到 0 时 Counter 仍留键，所以 distinct 必须手工加减
+    counts: Counter = Counter(tokens[:window])
+    distinct = len(counts)
+    vals = [distinct / window]
+    for i in range(window, len(tokens)):
+        out_t = tokens[i - window]
+        counts[out_t] -= 1
+        if counts[out_t] == 0:
+            distinct -= 1
+        in_t = tokens[i]
+        if counts[in_t] == 0:
+            distinct += 1
+        counts[in_t] += 1
+        vals.append(distinct / window)
     return _mean(vals)
 
 

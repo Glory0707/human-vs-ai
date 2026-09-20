@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> None:
     sub = parser.add_subparsers(dest="command", required=True)
 
     p_check = sub.add_parser("check", help="分析文本文件")
-    p_check.add_argument("file", help="txt / md 文件")
+    p_check.add_argument("file", help="txt / md 文件；或 - 从标准输入读")
     p_check.add_argument("-p", "--profile", default="academic", help="场景（默认 academic）")
     p_check.add_argument("-f", "--format", default="terminal", choices=["terminal", "md", "json"])
     p_check.add_argument("-o", "--output", help="写入文件（默认打印）")
@@ -68,7 +68,7 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     p_stats = sub.add_parser("stats", help="只打印全文统计特征（JSON）")
-    p_stats.add_argument("file")
+    p_stats.add_argument("file", help="txt / md 文件；或 - 从标准输入读")
     p_stats.add_argument("-p", "--profile", default="academic")
 
     p_rw = sub.add_parser(
@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     _require_profile(args.profile)
-    text = _read_file(args.file)
+    text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
     result = engine.analyze(text, args.profile)
 
     if args.command == "stats":

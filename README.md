@@ -20,6 +20,7 @@ pip install .            # 唯一硬依赖 PyYAML；装 jieba 可获得词级统
 human-vs-ai check 论文.md            # 终端报告
 human-vs-ai check 论文.md -f md -o 报告.md
 human-vs-ai check 论文.md -f json    # 机器可读（接 CI / 编辑器插件）
+cat 论文.md | human-vs-ai check -    # 管道输入（check/stats/rewrite 均支持）
 human-vs-ai stats 论文.md            # 只看统计特征（JSON）
 human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
 human-vs-ai rewrite 文案.txt         # 按个人口味给逐句改写建议（删/改/保留）
@@ -28,9 +29,9 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 **口味校准层（personal）**：三个公开 profile 校准的是通用 AI 味；`personal` 校准的是**我本人的取舍**——用私人标注链（同一批产品文案，AI 交稿 → 我逐条毙或亲改 → 定稿落盘，被毙 31 条 vs 定稿 37 条）归纳出 12 条口味条目，配套 `rewrite` 子命令给逐句改写建议。规则见 [docs/taste_zhouao.md](docs/taste_zhouao.md)，语料永不入库（`corpus_private/` 在 .gitignore）。
 
-**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，13 段分析语料 + 11 条改写探针 × 4 profile = 96 项逐字段对齐，含列表/表格/裸链接/列表符改写探针）；改了规则后用 `python tools/build_web.py` 重新生成。
+**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，13 段分析语料 + 12 条改写探针 × 4 profile = 100 项逐字段对齐，含列表/表格/裸链接/全角数字探针）；改了规则后用 `python tools/build_web.py` 重新生成。输入即析（长文自动放宽防抖），命中词在原句里高亮，跟随系统暗色模式，报告可一键复制为 Markdown，改写建议按删/改/留过滤。
 
-**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景）；「human-vs-ai: 改写建议（个人口味）」给逐句删/改/留建议。构建产物（engine.js/rewrite.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
+**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景），命中句同时在正文里画上对应严重级的波浪线；「human-vs-ai: 改写建议（个人口味）」给逐句删/改/留建议，待删待改句同步标出。报告面板跟随编辑器主题（暗色不刺眼）。构建产物（engine.js/rewrite.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
 ## 功能总览（全部已实现并实测）
 
@@ -44,8 +45,8 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 ### 报告
 
-- 统计摘要（规模 / 节奏 / 词汇三行）→ 逐句发现（同句多规则聚合为一节，不重复贴原句）→ 孤立弱命中 → 一行免责
-- 三种格式同一份内容：终端（ANSI 彩色）/ Markdown（存档、贴笔记）/ JSON（可编程）
+- 统计摘要（规模 / 节奏 / 词汇三行）→ 逐句发现（同句多规则聚合为一节，不重复贴原句；命中词在原句里高亮）→ 孤立弱命中（长文只列前 12 处）→ 一行免责
+- 三种格式同一份内容：终端（ANSI 彩色）/ Markdown（存档、贴笔记）/ JSON（可编程，事实源永不截断）
 
 ### 实测区分度（校准语料，非宣传数字）
 
@@ -80,7 +81,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q          # 73 项单元+边界+口味+私库回归测试（私库层缺语料自动跳过）
+python -m pytest tests/ -q          # 77 项单元+边界+口味+私库回归测试（私库层缺语料自动跳过）
 python tools/evaluate_cred.py       # C-ReD 学术语料评测（语料下载见 docs/rules.md）
 python tools/evaluate.py            # HC3-Chinese 问答语料评测
 python tools/evaluate_official.py   # 公文语料评测（误报率验收）

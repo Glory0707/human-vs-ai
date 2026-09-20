@@ -221,14 +221,23 @@
       }
       return uniq / tokens.length;
     }
-    var vals = [];
-    for (var s = 0; s + window <= tokens.length; s++) {
-      var seen = {};
-      var u = 0;
-      for (var k = s; k < s + window; k++) {
-        if (!seen[tokens[k]]) { seen[tokens[k]] = 1; u++; }
-      }
-      vals.push(u / window);
+    /* 滚动窗口 O(n)，与 Python 端同构：键计数减到 0 时对象仍留键，
+       distinct 必须手工加减（等价于逐窗建 set，逐位一致） */
+    var counts = {};
+    var distinct = 0;
+    for (var w = 0; w < window; w++) {
+      if (!counts[tokens[w]]) { counts[tokens[w]] = 1; distinct++; }
+      else counts[tokens[w]]++;
+    }
+    var vals = [distinct / window];
+    for (var s = window; s < tokens.length; s++) {
+      var outT = tokens[s - window];
+      counts[outT]--;
+      if (!counts[outT]) distinct--;
+      var inT = tokens[s];
+      if (!counts[inT]) distinct++;
+      counts[inT] = (counts[inT] || 0) + 1;
+      vals.push(distinct / window);
     }
     return mean(vals);
   }
@@ -317,20 +326,30 @@
 
   /* ---------- 引擎 ---------- */
 
+  /* 编译结果按规则数组引用缓存（网页端每次按键都调 analyze，
+     同一份 RULES_BY_PROFILE 反复 new RegExp 纯属浪费；WeakMap 不阻止 GC） */
+  var _compiled = typeof WeakMap !== "undefined" ? new WeakMap() : null;
+
   function compileRules(rules) {
-    return rules.map(function (r) {
-      var out = {};
-      for (var k in r) out[k] = r[k];
-      out._patterns = (r.patterns || []).map(function (p) {
+    if (_compiled) {
+      var cached = _compiled.get(rules);
+      if (cached) return cached;
+    }
+    var out = rules.map(function (r) {
+      var o = {};
+      for (var k in r) o[k] = r[k];
+      o._patterns = (r.patterns || []).map(function (p) {
         return new RegExp(p);
       });
-      out.doc_threshold = r.doc_threshold == null ? NaN : r.doc_threshold;
-      out.doc_tiers = (r.doc_tiers || []).map(function (t) {
+      o.doc_threshold = r.doc_threshold == null ? NaN : r.doc_threshold;
+      o.doc_tiers = (r.doc_tiers || []).map(function (t) {
         return [t[0] == null ? null : t[0], t[1]];
       });
-      out.min_sentences = r.min_sentences == null ? 8 : r.min_sentences;
-      return out;
+      o.min_sentences = r.min_sentences == null ? 8 : r.min_sentences;
+      return o;
     });
+    if (_compiled) _compiled.set(rules, out);
+    return out;
   }
 
   function analyze(text, rules) {

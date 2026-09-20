@@ -19,8 +19,9 @@
 
   var KEEP = "保留", REWRITE = "改", DELETE = "删";
 
-  /* R1 重要内容判据（不含中文数词+量词——文案里的量词不是数据） */
-  var IMPORTANT_RE = /\d|%|％|[一二三四五六七八九十百千万]+(倍|万|亿|人天|分钟)|(结论|结果表明|数据显示|实测|验证|复现|报错|错误码|失败率|通过率|达标|未达标)/;
+  /* R1 重要内容判据（不含中文数词+量词——文案里的量词不是数据；
+     数字显式列 ASCII+全角，与 Python 端字符类完全一致，JS 的 \d 不认全角） */
+  var IMPORTANT_RE = /[0-9０-９]|%|％|[一二三四五六七八九十百千万]+(倍|万|亿|人天|分钟)|(结论|结果表明|数据显示|实测|验证|复现|报错|错误码|失败率|通过率|达标|未达标)/;
   /* R3 具体名词 / 梗 */
   var NOUN_RE = /(DDL|deadline|组会|参考文献|文献|论文|paper|Paper|accept|数据|导师|大佬|咖啡|午饭|午休|书桌|台灯|日历|邮件|报错|日志|版本|分支|草稿|推文|稿子)/;
   var MEME_RE = /(牛马|摸鱼|摆烂|连滚带爬|火葬场|狠人|卷王|躺平)/;
@@ -75,14 +76,24 @@
     return ["", hint, ruleIds.length ? ruleIds[0] : ""];
   }
 
+  /* 编译缓存：改写模式和检测模式一样逐键触发，同一份规则数组
+     反复 new RegExp 是纯浪费（WeakMap 按引用缓存，不阻止 GC） */
+  var _compiled = typeof WeakMap !== "undefined" ? new WeakMap() : null;
+
   function compile(rules) {
-    return rules.map(function (r) {
+    if (_compiled) {
+      var hit = _compiled.get(rules);
+      if (hit) return hit;
+    }
+    var out = rules.map(function (r) {
       return {
         id: r.id, name: r.name, severity: r.severity, taste: r.taste || "",
         explanation: r.explanation || "", scope: r.scope,
         _patterns: (r.patterns || []).map(function (p) { return new RegExp(p); }),
       };
     });
+    if (_compiled) _compiled.set(rules, out);
+    return out;
   }
 
   function classifyLine(text, rules) {

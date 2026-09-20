@@ -98,6 +98,23 @@ class TestStats:
         assert stats._four_gram_repeat("提供了新的思路提供了新的思路提供了新的思路") > 0.5
         assert stats._four_gram_repeat("一二三四五六七八九十甲乙丙丁戊己庚辛") == 0.0
 
+    def test_mattr_rolling_equals_naive(self):
+        # 滚动窗口是 O(n) 优化：distinct 计数必须与"逐窗建 set"逐位一致
+        import random
+        rng = random.Random(42)
+        vocab = [f"词{i}" for i in range(25)]
+        for n in (99, 100, 101, 500, 1237):
+            tokens = [rng.choice(vocab) for _ in range(n)]
+            window = 100
+            if len(tokens) <= window:
+                assert stats.mattr(tokens) == len(set(tokens)) / len(tokens)
+                continue
+            naive = sum(
+                len(set(tokens[i : i + window])) / window
+                for i in range(len(tokens) - window + 1)
+            ) / (len(tokens) - window + 1)
+            assert stats.mattr(tokens) == pytest.approx(naive)
+
 
 # ---------- engine ----------
 
@@ -221,6 +238,42 @@ class TestProseQuality:
         assert set(payload) == {"tool", "version", "profile", "stats"}
         assert "n_sentences" in payload["stats"]
         assert "findings" not in payload
+
+    def test_check_and_stats_read_stdin(self, capsys, monkeypatch):
+        # 管道输入：check/stats 的 "-" 与 rewrite 同口径
+        import io
+        import json as _json
+        from human_vs_ai import cli
+        text = "综上所述，系统显著提升了性能。" * 5
+        monkeypatch.setattr("sys.stdin", io.StringIO(text))
+        cli.main(["check", "-"])
+        assert "human-vs-ai" in capsys.readouterr().out
+        monkeypatch.setattr("sys.stdin", io.StringIO(text))
+        cli.main(["stats", "-"])
+        payload = _json.loads(capsys.readouterr().out)
+        assert payload["stats"]["n_sentences"] >= 1
+
+    def test_hints_capped_in_renders_not_json(self, capsys):
+        # 弱命中超过 12 条只展示 12 条+略注；JSON 是事实源，永不截断
+        import json as _json
+        from human_vs_ai import stats as _stats
+        hint = engine.Finding(
+            rule_id="L-X-01", rule_name="弱规则", severity="low", tier="lexical",
+            para=0, sentence="句", matches=["词"], explanation="解释", suggestion="",
+        )
+        result = engine.AnalysisResult(
+            findings=[], hints=[hint] * 15,
+            doc_stats=_stats.DocStats(n_paragraphs=1, n_sentences=10, n_chars=100),
+            profile="academic",
+        )
+        term = report.render_terminal(result)
+        md = report.render_markdown(result)
+        for out in (term, md):
+            assert "列前 12 处" in out and "15 处" in out
+        assert term.count("  · L-X-01") == 12  # 列表体只列 12 条
+        assert md.count("- L-X-01") == 12
+        payload = _json.loads(report.render_json(result))
+        assert len(payload["hints"]) == 15
 
 
 # ---------- 端到端区分度冒烟 ----------

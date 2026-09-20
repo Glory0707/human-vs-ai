@@ -12,7 +12,7 @@ const path = require("path");
 const EXT = __dirname;
 const ROOT = path.join(EXT, "..");
 const ext = require(path.join(EXT, "extension.js"));
-const { renderReportHtml, renderAdviceHtml } = ext;
+const { renderReportHtml, renderAdviceHtml, locateFindings } = ext;
 const HvA = require(path.join(EXT, "engine.js"));
 const HvARewrite = require(path.join(EXT, "rewrite.js"));
 const RULES = require(path.join(EXT, "rules.json"));
@@ -64,6 +64,38 @@ check("advice has counts", adviceHtml.includes("共 <b>3</b> 条"));
 check("advice has del tag", /class="advice del"/.test(adviceHtml));
 check("advice footer", adviceHtml.includes("梗得人来补"));
 check("advice data kept", adviceHtml.includes("失败率降到 3%"));
+
+// 6. 原句命中高亮：<mark> 包住命中片段，句子不再截断（剥掉标签后应含完整原句）
+check("match highlighted", aiHtml.includes("<mark>"));
+const plain = aiHtml.replace(/<[^>]+>/g, "");
+check("sentence not truncated", aiResult.findings.some(f => f.sentence && plain.includes(f.sentence)));
+
+// 7. 弱命中截断：>12 条只列 12 条并给"略"注
+const mkHint = i => ({ rule_id: `X-${i}`, rule_name: `弱规则${i}`, severity: "low",
+                       para: i, sentence: "", matches: [], explanation: "", suggestion: "", taste: "" });
+const manyHints = { findings: [], hints: Array.from({ length: 15 }, (_, i) => mkHint(i)),
+                    stats: { n_paragraphs: 1, n_sentences: 1, n_chars: 10,
+                             sentence_cv: NaN, para_len_cv: NaN, ttr: NaN,
+                             conn_density: NaN, ngram_repeat: NaN } };
+const capHtml = renderReportHtml("cap.txt", "academic", manyHints);
+check("hints capped at 12", capHtml.includes("列前 12 处") && capHtml.includes("…等 3 处（略）"));
+
+// 8. 主题适配：暗色类钩子与主题变量都在样式里
+check("dark theme hooks", aiHtml.includes("vscode-dark") && aiHtml.includes("--vscode-editor-background"));
+
+// 9. 发现→文档定位：顺序定位、重复句推进第二处、doc 级跳过、找不到的句子跳过
+const doc = "# 报告\n\n首先要明确目标。其次要持续投入。\n\n- 首先要明确目标。\n- 其次要持续投入。\n";
+const fakeFindings = [
+  { para: 0, sentence: "首先要明确目标。", severity: "high" },       // 第一次出现
+  { para: 1, sentence: "首先要明确目标。", severity: "medium" },     // 重复句：定位到第二次出现
+  { para: 1, sentence: "*强调*过的句子被剥离后找不到原文", severity: "low" }, // 原文没有 → 跳过
+  { para: -1, sentence: "全文级不该出现在装饰里", severity: "high" }, // doc 级跳过
+];
+const located = locateFindings(doc, fakeFindings);
+check("locate count", located.length === 2, `got ${located.length}`);
+check("locate first", located[0].start === doc.indexOf("首先要明确目标。") && located[0].severity === "high");
+check("locate duplicates advance", located.length === 2 && located[1].start > located[0].start,
+  JSON.stringify(located));
 
 // 6. 输出预览文件(视觉审查用)
 const previewText = fs.readFileSync(path.join(ROOT, "tests/data/ai_official.txt"), "utf-8");

@@ -23,3 +23,7 @@ _qa/_mini*.js
 
 # 私人语料（口味校准层）——永不入库
 corpus_private/
+
+# 视觉验收截图（本地产物，不入库）
+_qa/*.png
+.playwright-mcp/

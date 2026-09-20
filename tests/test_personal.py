@@ -71,6 +71,11 @@ class TestRewriteRules:
             adv = rewrite.classify_line(line)
             assert adv.action == rewrite.KEEP, f"R1 未保护：{line} → {adv.action}"
 
+    def test_r1_protects_fullwidth_digits(self):
+        # 中文文案里全角数字常见；判据显式列 ０-９，与 JS 端字符类逐字一致
+        adv = rewrite.classify_line("已完成３轮内测。")
+        assert adv.action == rewrite.KEEP
+
     def test_manual_voice_deleted_whole(self):
         # 功能说明腔：整句删，不压缩、不产出候选
         adv = rewrite.classify_line("点击右上角选择文件，支持批量导入。")

@@ -22,6 +22,10 @@ _SEV_RANK = {"high": 0, "medium": 1, "low": 2, "hint": 3}
 
 _DISCLAIMER = "风格提示，不是 AI 判定；单条命中不构成证据。"
 
+# 弱命中列表的展示上限：hundreds-of-hints 的长文里它只是参考信息，
+# 全量列出会淹没正文发现（JSON 出口不带截断——事实源永远完整）
+_HINTS_MAX = 12
+
 
 def _fmt(value: float) -> str:
     return "—" if value != value else f"{value:.2f}"
@@ -115,8 +119,10 @@ def render_terminal(result: AnalysisResult) -> str:
                 out.append(C("32", f"  → {f.suggestion}"))
             out.append("")
     if result.hints:
-        out.append(C("90", f"另有 {len(result.hints)} 处孤立弱命中，仅供参考："))
-        for f in result.hints:
+        shown = result.hints[:_HINTS_MAX]
+        out.append(C("90", f"另有 {len(result.hints)} 处孤立弱命中，仅供参考"
+                          + (f"（列前 {len(shown)} 处）" if len(shown) < len(result.hints) else "") + "："))
+        for f in shown:
             out.append(C("90", f"  · {f.rule_id} {f.rule_name} ¶{f.para + 1}"))
         out.append("")
     out.append(C("90", "─" * 46))
@@ -170,7 +176,11 @@ def render_markdown(result: AnalysisResult) -> str:
     if result.hints:
         out.append("## 孤立弱命中（仅供参考）")
         out.append("")
-        for f in result.hints:
+        shown = result.hints[:_HINTS_MAX]
+        if len(shown) < len(result.hints):
+            out.append(f"共 {len(result.hints)} 处，列前 {len(shown)} 处：")
+            out.append("")
+        for f in shown:
             out.append(f"- {f.rule_id} {f.rule_name}（¶{f.para + 1}）")
         out.append("")
     out.append("---")
