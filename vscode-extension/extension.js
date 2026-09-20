@@ -70,8 +70,8 @@ function renderReportHtml(fileName, profile, result) {
 
   parts.push(`<div class="stats">
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
-    <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类基线 ≈0.45，越低越平） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
-    <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
+    ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
+    <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
   </div>`);
 
   const F = result.findings;
@@ -102,7 +102,7 @@ function renderReportHtml(fileName, profile, result) {
   if (result.hints.length) {
     const shown = result.hints.slice(0, HINTS_MAX);
     const more = result.hints.length - shown.length;
-    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中，仅供参考${more ? `（列前 ${shown.length} 处）` : ""}</div>` +
+    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处弱命中（仅供参考${more ? `，列前 ${shown.length} 处` : ""}）</div>` +
       shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
       `</div>`);

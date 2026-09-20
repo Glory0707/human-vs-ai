@@ -33,14 +33,16 @@ def _fmt(value: float) -> str:
 
 def stats_lines(result: AnalysisResult) -> list[str]:
     s = result.doc_stats
-    return [
-        f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字",
-        f"节奏：句长 CV {_fmt(s.sentence_cv)}（人类基线 ≈0.45，越低越平）"
-        f" · 段长 CV {_fmt(s.para_len_cv)}",
-        f"词汇：TTR {_fmt(s.ttr)} · 连接词密度 {_fmt(s.conn_density)}"
-        f"{' 条/句' if s.conn_density == s.conn_density else ''}"
-        f" · 4-gram 重复率 {_fmt(s.ngram_repeat)}",
-    ]
+    rows = [f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字"]
+    # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
+    # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
+    if s.n_sentences < 8:
+        return rows
+    rows.append(f"节奏：句长 CV {_fmt(s.sentence_cv)} · 段长 CV {_fmt(s.para_len_cv)}")
+    rows.append(f"词汇：TTR {_fmt(s.ttr)} · 连接词密度 {_fmt(s.conn_density)}"
+                f"{' 条/句' if s.conn_density == s.conn_density else ''}"
+                f" · 4-gram 重复率 {_fmt(s.ngram_repeat)}")
+    return rows
 
 
 def _group_by_sentence(findings: list[Finding]):
@@ -120,8 +122,8 @@ def render_terminal(result: AnalysisResult) -> str:
             out.append("")
     if result.hints:
         shown = result.hints[:_HINTS_MAX]
-        out.append(C("90", f"另有 {len(result.hints)} 处孤立弱命中，仅供参考"
-                          + (f"（列前 {len(shown)} 处）" if len(shown) < len(result.hints) else "") + "："))
+        out.append(C("90", f"另有 {len(result.hints)} 处弱命中（仅供参考"
+                           + (f"，列前 {len(shown)} 处" if len(shown) < len(result.hints) else "") + "）："))
         for f in shown:
             out.append(C("90", f"  · {f.rule_id} {f.rule_name} ¶{f.para + 1}"))
         out.append("")
@@ -174,7 +176,7 @@ def render_markdown(result: AnalysisResult) -> str:
             out.append(f"**建议**：{f.suggestion}")
         out.append("")
     if result.hints:
-        out.append("## 孤立弱命中（仅供参考）")
+        out.append("## 弱命中（仅供参考）")
         out.append("")
         shown = result.hints[:_HINTS_MAX]
         if len(shown) < len(result.hints):
