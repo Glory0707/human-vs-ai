@@ -27,3 +27,6 @@ corpus_private/
 # 视觉验收截图（本地产物，不入库）
 _qa/*.png
 .playwright-mcp/
+
+# 评分实验的特征缓存（可由公共语料重新抽取，不入库）
+_qa/exp_rows_*.json

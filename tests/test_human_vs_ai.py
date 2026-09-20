@@ -115,6 +115,15 @@ class TestStats:
             ) / (len(tokens) - window + 1)
             assert stats.mattr(tokens) == pytest.approx(naive)
 
+    def test_ttr_unified_2gram(self):
+        # v0.11.0 起 TTR 只用字级 2-gram 口径：与评分、与 JS 引擎逐位一致，
+        # 装没装任何分词库数字都一样——这条钉住口径，防止词级切分悄悄回来
+        paras = [["随着技术的快速发展，指标显著提升。", "其次，方法稳定收敛。"]]
+        st = stats.compute_doc_stats(paras)
+        full = "".join(s for p in paras for s in p)
+        assert st.ttr == stats.mattr(stats.tokenize_2gram(full))
+        assert st.to_dict()["tokenizer"] == "char-2gram"
+
 
 # ---------- engine ----------
 
@@ -326,7 +335,21 @@ class TestScore:
         # 公文没有真人配对的 AI 语料，宁缺毋滥；personal 是改写层不出分
         assert engine.load_scoring("official") is None
         assert engine.load_scoring("personal") is None
-        assert engine.analyze(AI_TEXT, "official").score is None
+        r = engine.analyze(AI_TEXT, "official")
+        assert r.score is None
+        # 够 8 句却没分要给原因（不然用户从学术切过来纳闷分去哪了）；
+        # 短文本保持空——短文本不展示统计行，多一行解释反而吵
+        assert "未校准" in r.scoring_note
+        short = engine.analyze("你好呀。今天天气不错。", "official")
+        assert short.scoring_note == ""
+
+    def test_score_note_in_renders_and_json(self):
+        import json as _json
+        r = engine.analyze(AI_TEXT, "official")
+        assert "该文体未校准评分" in report.render_terminal(r)
+        payload = _json.loads(report.render_json(r))
+        assert payload["score"] is None
+        assert "未校准" in payload["score_note"]
 
     def test_score_in_renders_and_json(self):
         import json as _json

@@ -322,6 +322,14 @@ function scoreRow(score) {
     `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${comps}</span></div>`;
 }
 
+/* 够 8 句却没出分（公文/个人口味无校准语料）给一行原因——不然用户从
+   学术/问答切过来会纳闷分去哪了；文案与 engine.score_note 同源 */
+function scoreNoteRow(note) {
+  if (!note) return "";
+  return `<div class="row score" title="该文体没有真人配对的校准语料，给不出可信的分——宁缺毋滥。">` +
+    `AI 味指数 <span class="comp">—（${note}）</span></div>`;
+}
+
 function statsRows(s) {
   const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
   // 统计行只在样本够判定时展示（与 doc 规则的 min_sentences=8 同口径）：
@@ -336,7 +344,7 @@ function renderReport(result) {
   if (!result) return;
   const parts = [];
 
-  parts.push(`<div class="stats">${scoreRow(result.score)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
+  parts.push(`<div class="stats">${scoreRow(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };
@@ -465,6 +473,8 @@ function reportToMarkdown() {
     const comps = Object.entries(r.score.components).map(([f, v]) =>
       `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`).join(" · ");
     if (comps) L.push(`- 构成：${comps}`);
+  } else if (r.score_note) {
+    L.push(`- AI 味指数：—（${r.score_note}）`);
   }
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");

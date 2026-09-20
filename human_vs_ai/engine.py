@@ -149,6 +149,9 @@ class AnalysisResult:
     doc_stats: stats.DocStats = field(default_factory=stats.DocStats)
     profile: str = ""
     score: Score | None = None  # <8 句或该 profile 未校准时为 None
+    # 8 句以上却没出分时给一句原因（该文体未校准）；<8 句保持空——
+    # 短文本本来就不展示统计，多一行解释反而吵（v0.9.1 的教训）
+    scoring_note: str = ""
 
     @property
     def n_high(self) -> int:
@@ -220,7 +223,6 @@ def load_scoring(profile: str) -> dict | None:
 
 
 def compute_score(
-    full_raw: str,
     doc_stats: stats.DocStats,
     findings: list[Finding],
     hints: list[Finding],
@@ -230,8 +232,8 @@ def compute_score(
 
     规则特征用未门控密度——共现门控是"逐句指控"的纪律（单个弱命中
     不许告一条句子），文档级聚合保留幅度信息更有效（消融：0.847 vs 0.810）。
-    TTR 用字级 2-gram 专用口径：jieba 词级数值浏览器端不可复现，评分必须
-    两端同分，所以不复用 doc_stats.ttr。短文本（<8 句）不出分。
+    TTR 直接用 doc_stats.ttr：全文唯一切分口径是字级 2-gram，与 JS 端
+    逐位一致。短文本（<8 句）不出分。
     """
     if not scoring:
         return None
@@ -241,11 +243,10 @@ def compute_score(
     hit_density = (
         sum(_SCORE_WEIGHT.get(f.severity, 1.0) for f in findings + hints if f.para >= 0) / n
     )
-    ttr_2gram = stats.mattr(stats.tokenize_2gram(full_raw))
     values = {
         "hit_density": hit_density,
         "sentence_cv": doc_stats.sentence_cv,
-        "ttr": ttr_2gram,
+        "ttr": doc_stats.ttr,
         "ngram_repeat": doc_stats.ngram_repeat,
         "conn_density": doc_stats.conn_density,
     }
@@ -372,9 +373,6 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     for rule in rules:
         if rule.scope != "doc" or not rule.doc_metric:
             continue
-        # TTR 阈值按词级口径标定；没装 jieba 时是字级 2-gram 口径，数值不可比，跳过不判
-        if rule.doc_metric == "ttr" and not stats._HAS_JIEBA:
-            continue
         if result.doc_stats.n_sentences < rule.min_sentences:
             continue  # 短文本统计无意义——宁可不判
         value = getattr(result.doc_stats, rule.doc_metric, math.nan)
@@ -405,11 +403,13 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     result.findings.sort(
         key=lambda f: (-SEVERITY_ORDER.get(f.severity, 0), f.para)
     )
+    scoring = load_scoring(profile)
     result.score = compute_score(
-        "".join(s.text for block in doc for s in block.sents),
         result.doc_stats,
         result.findings,
         result.hints,
-        load_scoring(profile),
+        scoring,
     )
+    if result.score is None and scoring is None and result.doc_stats.n_sentences >= 8:
+        result.scoring_note = "该文体未校准评分，宁缺毋滥"
     return result

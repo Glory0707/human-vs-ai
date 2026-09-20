@@ -5,10 +5,9 @@
  * 用固定语料对比 Python 与本文件的 findings/hints JSON,任何漂移都会被
  * 测试抓住。改动切分或统计逻辑时两端必须同步改。
  *
- * 口径说明:浏览器没有 jieba,tokenize 退化为字级 2-gram(与 Python 无
- * jieba 时同口径)。TTR 数值因此与 Python(装了 jieba)不同,但两个
- * profile 的规则库都没有 TTR 判定规则,D-UNIF/D-CONN/D-PARA/D-NGRAM/
- * D-DASH 全部与分词无关——一致性不受影响。
+ * 口径说明:全文唯一切分口径是字级 2-gram(Python 端 v0.11.0 起同口径),
+ * TTR 三端同数并纳入一致性对比。所有 doc 统计(D-UNIF/D-CONN/D-PARA/
+ * D-NGRAM/D-DASH)都与分词器无关。
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -332,8 +331,8 @@
   var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1 };
 
   /* 规则特征用未门控加权密度（共现门控是逐句指控的纪律，文档级聚合
-     保留幅度信息更有效）；TTR 直接用 stats.ttr——本引擎 tokenize 就是
-     字级 2-gram，与 Python 评分专用口径天然一致。短文本（<8 句）不出分。 */
+     保留幅度信息更有效）；TTR 直接用 stats.ttr——全文唯一切分口径是
+     字级 2-gram，与 Python 端逐位一致。短文本（<8 句）不出分。 */
   function computeScore(stats, weightedHits, scoring) {
     if (!scoring) return null;
     if (stats.n_sentences < 8) return null;
@@ -486,8 +485,12 @@
     findings.sort(function (a, b) {
       return (SEV[b.severity] - SEV[a.severity]) || (a.para - b.para);
     });
+    /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；
+       <8 句保持空——短文本不展示统计，多一行解释反而吵 */
+    var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分，宁缺毋滥" : "";
     return { findings: findings, hints: hints, stats: stats,
-             score: computeScore(stats, weightedHits, scoring || null) };
+             score: computeScore(stats, weightedHits, scoring || null),
+             score_note: scoreNote };
   }
 
   return {

@@ -22,7 +22,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from human_vs_ai import engine, segment, stats  # noqa: E402
+from human_vs_ai import engine  # noqa: E402
 from evaluate_cred import load_samples as load_cred, auroc  # noqa: E402
 from evaluate import load_samples as load_hc3  # noqa: E402
 
@@ -55,15 +55,12 @@ def extract(text: str, profile: str) -> dict:
     n = max(st.n_sentences, 1)
     gated = sum(engine._SCORE_WEIGHT.get(f.severity, 1.0) for f in r.findings if f.para >= 0)
     ungated = sum(engine._SCORE_WEIGHT.get(f.severity, 1.0) for f in r.findings + r.hints if f.para >= 0)
-    # 评分 TTR 口径：字级 2-gram（与 engine.compute_score 逐字一致——jieba
-    # 词级数值浏览器端不可复现，评分必须两端同分）
-    full_raw = "".join(s.text for block in segment.split_document(text) for s in block.sents)
     return {
         "n_sentences": st.n_sentences,
         "gated_density": gated / n,
         "hit_density": ungated / n,
         "sentence_cv": st.sentence_cv,
-        "ttr": stats.mattr(stats.tokenize_2gram(full_raw)),
+        "ttr": st.ttr,  # 字级 2-gram 口径（v0.11.0 起与评分/JS 端同口径）
         "ngram_repeat": st.ngram_repeat,
         "conn_density": st.conn_density,
     }

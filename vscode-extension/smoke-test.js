@@ -91,7 +91,10 @@ check("score row rendered", aiHtml.includes("AI 味指数") && /s-(high|medium|l
 check("score components shown", aiHtml.includes("构成"));
 const officialResult = HvA.analyze("首先进行研究。其次进行分析。此外完成验证。与此同时记录数据。最后归纳结论。另外补充实验。总之效果良好。结果表明方法可行。", RULES.official, null);
 const officialNoScoreHtml = renderReportHtml("x.txt", "official", officialResult);
-check("no score when uncalibrated", !officialNoScoreHtml.includes("AI 味指数"));
+// 未校准档：无分档色分数，但给一行"为什么没分"；短文本连说明行也不出
+check("no score band when uncalibrated", !/class="s-(high|medium|low)"/.test(officialNoScoreHtml) && officialNoScoreHtml.includes("该文体未校准评分"));
+const officialShort = HvA.analyze("首先进行研究。其次进行分析。", RULES.official, null);
+check("no score note on short text", officialShort.score_note === "" && !renderReportHtml("x.txt", "official", officialShort).includes("AI 味指数"));
 
 // 9. 发现→文档定位：顺序定位、重复句推进第二处、doc 级跳过、找不到的句子跳过
 const doc = "# 报告\n\n首先要明确目标。其次要持续投入。\n\n- 首先要明确目标。\n- 其次要持续投入。\n";

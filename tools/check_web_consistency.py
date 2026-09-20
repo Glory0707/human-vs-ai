@@ -2,8 +2,9 @@
 
 双实现最大的风险是静默漂移——切分差一个字符、统计差一次舍入,
 两端报告就会各说各话。本脚本用固定语料集对两端跑 analyze,
-findings/hints 逐条 diff、stats 数值按 4 位小数 diff(ttr/tokenizer
-除外:浏览器无 jieba,口径不同;两端规则库均无 TTR 判定,不影响报告)。
+findings/hints 逐条 diff、stats 数值按 4 位小数 diff(ttr 已随
+v0.11.0 口径统一为字级 2-gram,纳入对比;tokenizer/avg_sentence_len/
+sentence_cvs 仅 Python 端存在,不比)。
 
 运行:python tools/check_web_consistency.py   (需要 node 在 PATH)
 """
@@ -18,7 +19,6 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from human_vs_ai import engine  # noqa: E402
-from human_vs_ai.stats import _HAS_JIEBA  # noqa: E402
 
 PROBE_TEXTS = [
     ("ai_fixture", (ROOT / "tests/data/ai_academic.txt").read_text(encoding="utf-8")),
@@ -138,8 +138,9 @@ def normalize(result: dict) -> dict:
     return {
         "findings": fs(result["findings"]),
         "hints": fs(result["hints"]),
-        "stats": {k: norm_num(v) for k, v in s.items() if k not in ("ttr", "tokenizer", "avg_sentence_len", "sentence_cvs")},
+        "stats": {k: norm_num(v) for k, v in s.items() if k not in ("tokenizer", "avg_sentence_len", "sentence_cvs")},
         "score": norm_score,
+        "score_note": result.get("score_note", ""),
     }
 
 
@@ -150,8 +151,6 @@ def main() -> None:
         sys.exit("缺少 web/engine.js")
     if not rewrite_js.exists():
         sys.exit("缺少 web/rewrite.js")
-    if _HAS_JIEBA:
-        print("提示:当前 Python 环境装有 jieba,统计对比忽略 ttr 字段(口径不同,无 TTR 判定规则,不受影响)")
     failed = False
     for profile in engine.available_profiles():
         rules_json = json.dumps(rules_to_json(profile), ensure_ascii=False)
@@ -187,13 +186,14 @@ def main() -> None:
                  "stats": py.doc_stats.__dict__,
                  "score": ({"index": score.index, "components": score.components,
                             "corpus": score.corpus, "human_p50": score.human_p50,
-                            "human_p90": score.human_p90} if score else None)}
+                            "human_p90": score.human_p90} if score else None),
+                 "score_note": py.scoring_note}
             )
             js_norm = normalize(js_results[name])
             if py_norm != js_norm:
                 failed = True
                 print(f"[FAIL] {profile}/{name}")
-                for key in ("findings", "hints", "stats", "score"):
+                for key in ("findings", "hints", "stats", "score", "score_note"):
                     if py_norm[key] != js_norm[key]:
                         print(f"  {key}:\n    py={json.dumps(py_norm[key], ensure_ascii=False)[:400]}"
                               f"\n    js={json.dumps(js_norm[key], ensure_ascii=False)[:400]}")

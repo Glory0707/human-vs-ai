@@ -245,13 +245,16 @@ rules:
 # 如实标注；逐句规则的区分度见上方规则表（纯扣词在此语料上 0.577≈瞎猜，
 # 评分的价值正是把扣词、节奏、词汇合成一个看）。
 scoring:
-  corpus: "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300），2026-09"
-  intercept: 20.7692
-  hit_density: 1.9778
-  sentence_cv: -6.2976
-  ttr: -19.3341
-  ngram_repeat: -7.4213
-  auroc: 0.834
-  auroc_holdout: 0.868
-  human_p50: 60
-  human_p90: 88
+  # v0.11.0 类平衡加权：HC3 真人只占 24%，不加权时截距被人训成 +20.8，
+  # 人味文本普遍偏高分（真人 p50 高达 60）。按类别倒数加权后区分度不降
+  # 反微升（留出 0.868→0.870），真人 p50/p90 回落到 27/69，指数摆放更合理
+  corpus: "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300，类平衡加权），2026-09"
+  intercept: 18.0167
+  hit_density: 1.9553
+  sentence_cv: -7.4254
+  ttr: -17.0713
+  ngram_repeat: -5.8575
+  auroc: 0.838
+  auroc_holdout: 0.870
+  human_p50: 27
+  human_p90: 69

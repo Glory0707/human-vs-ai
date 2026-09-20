@@ -78,6 +78,13 @@ function scoreRowHtml(score) {
     `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${comps}</span></div>`;
 }
 
+/* 够 8 句却没出分（公文/个人口味无校准语料）给一行原因；文案与 engine.score_note 同源 */
+function scoreNoteRowHtml(note) {
+  if (!note) return "";
+  return `<div class="row score" title="该文体没有真人配对的校准语料，给不出可信的分——宁缺毋滥。">` +
+    `AI 味指数 <span class="comp">—（${note}）</span></div>`;
+}
+
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
    样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
    挂 vscode-light / vscode-dark 类），暗色主题下不再白底刺眼。 */
@@ -87,6 +94,7 @@ function renderReportHtml(fileName, profile, result) {
 
   parts.push(`<div class="stats">
     ${scoreRowHtml(result.score)}
+    ${scoreNoteRowHtml(result.score_note)}
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
     ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}

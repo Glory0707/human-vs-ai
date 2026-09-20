@@ -8,27 +8,16 @@
 - 连接词密度与 4-gram 重复率：部分 slop 模式在 LLM 输出中频率是人类
   的 1000 倍以上（Antislop, arXiv 2510.15061）。
 
-词级统计用 jieba（若已安装）；未安装时回退字级，指标口径不变、精度略降——
-不把 jieba 做成硬依赖，`pip install human-vs-ai` 必须零负担。
+切分口径是字级 2-gram（与 JS 引擎逐位一致）：CLI/网页/插件三端同数，
+装没装任何分词库输出都一样。曾用 jieba 词级口径，因浏览器端不可复现
+且造成"装没装库数字不同"而废弃（v0.11.0）。
 """
 from __future__ import annotations
 
-import logging
 import math
 import re
 from collections import Counter
 from dataclasses import dataclass, field
-
-try:
-    import jieba  # type: ignore
-
-    if hasattr(jieba, "setLogLevel"):
-        # 压掉每次进程启动的 "Building prefix dict..." 四行日志——那是
-        # 初始化噪音，会污染每次 CLI 调用的终端输出
-        jieba.setLogLevel(logging.ERROR)
-    _HAS_JIEBA = True
-except ImportError:  # pragma: no cover - 环境相关
-    _HAS_JIEBA = False
 
 _PUNCT = re.compile(r"[，。！？；：、…“”‘’《》（）\(\)\[\]【】,\.!\?;:\"'—\-\s]")
 
@@ -49,18 +38,11 @@ def _cv(xs: list[float]) -> float:
 
 
 def tokenize_2gram(text: str) -> list[str]:
-    """字级 2-gram 切分——评分专用口径（见 engine.compute_score）。"""
+    """字级 2-gram 切分——全文唯一的切分口径（TTR/评分都用它）。"""
     clean = _PUNCT.sub("", text)
     if len(clean) < 2:
         return [c for c in clean if c.strip()]
     return [clean[i : i + 2] for i in range(len(clean) - 1)]
-
-
-def tokenize(text: str) -> list[str]:
-    """切词：有 jieba 用 jieba，没有就退化成 2-gram 切片（够算 TTR 的量级）。"""
-    if _HAS_JIEBA:
-        return [w for w in jieba.lcut(text) if w.strip()]
-    return tokenize_2gram(text)
 
 
 @dataclass
@@ -71,7 +53,7 @@ class DocStats:
     sentence_cvs: list[float] = field(default_factory=list)  # 每段内句长 CV
     sentence_cv: float = math.nan  # 全文句长 CV（主指标）
     para_len_cv: float = math.nan  # 段落长度 CV
-    ttr: float = math.nan  # MATTR 滑窗词汇丰富度（长度归一）
+    ttr: float = math.nan  # MATTR 滑窗词汇丰富度（字级 2-gram，长度归一）
     conn_density: float = math.nan  # 连接词/句
     ngram_repeat: float = math.nan  # 重复 4-gram 占比
     dash_density: float = math.nan  # 破折号/句
@@ -92,7 +74,7 @@ class DocStats:
             "ngram_repeat": f(self.ngram_repeat),
             "dash_density": f(self.dash_density),
             "avg_sentence_len": f(self.avg_sentence_len),
-            "tokenizer": "jieba" if _HAS_JIEBA else "char-2gram",
+            "tokenizer": "char-2gram",
         }
 
 
@@ -164,9 +146,8 @@ def compute_doc_stats(
     lens = [len(c) for c in clean_sents]
     para_lens = [sum(len(c) for c in para) for para in clean_paras]
     full_clean = "".join(clean_sents)
-    # TTR 沿用旧口径在原文上切词：jieba 会把标点切成独立 token，
-    # 基线阈值按这个口径标定，不能换口径
-    tokens = tokenize("".join(raw_sents))
+    # TTR 与评分同口径：字级 2-gram（JS 引擎逐位一致，无环境差）
+    tokens = tokenize_2gram("".join(raw_sents))
     stats = DocStats(
         n_paragraphs=len(paragraphs),
         n_sentences=len(clean_sents),

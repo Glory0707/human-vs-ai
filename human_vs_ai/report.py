@@ -37,7 +37,8 @@ _SCORE_LABEL = {
 
 
 def _score_line(score: Score) -> str:
-    return f"AI 味指数：{_fmt(score.index)} / 100"
+    # 整数显示：逻辑回归压到 0-100 后小数位是假精度（网页端同口径）
+    return f"AI 味指数：{round(score.index)} / 100"
 
 
 def _score_components(score: Score) -> str:
@@ -59,6 +60,9 @@ def stats_lines(result: AnalysisResult) -> list[str]:
     if result.score:
         rows.append(_score_line(result.score))
         rows.append(_score_components(result.score))
+    elif result.scoring_note:
+        # 够 8 句却没分：给一行原因，免得用户在各文体间切换时纳闷分去哪了
+        rows.append(f"AI 味指数：—（{result.scoring_note}）")
     rows.append(f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
     # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
@@ -225,6 +229,7 @@ def render_json(result: AnalysisResult) -> str:
             "profile": result.profile,
             "stats": result.doc_stats.to_dict(),
             "score": result.score.to_dict() if result.score else None,
+            "score_note": result.scoring_note or None,
             "findings": [f.to_dict() for f in result.findings],
             "hints": [f.to_dict() for f in result.hints],
             "disclaimer": _DISCLAIMER,
