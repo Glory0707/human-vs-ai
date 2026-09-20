@@ -18,7 +18,8 @@ from dataclasses import dataclass
 _SENT_END = "。！？；…!?;"
 
 # 引号对：内层句末标点不是边界
-_QUOTES = {"“": "”", "『": "』", "「": "」", '"': '"', "'": "'"}
+_OPEN_QUOTES = "“『「"
+_CLOSE_QUOTES = "”』」"
 
 _MD_STRUCTURE = re.compile(
     r"^\s*(```|~~~|#{1,6}\s|\||\*|[-+]\s|\d+\.\s|===|---)"
@@ -29,8 +30,6 @@ _MD_STRUCTURE = re.compile(
 class Sentence:
     text: str
     para: int  # 段落序号，从 0
-    start: int  # 在全文中的字符偏移
-    end: int  # 不含句末标点之后的空白
 
 
 def strip_markdown(text: str) -> tuple[str, dict[int, int]]:
@@ -78,21 +77,25 @@ def split_paragraphs(text: str) -> list[str]:
 
 
 def split_sentences(text: str) -> list[Sentence]:
-    """把一段正文切成句子列表（跨段不切，段落由 split_paragraphs 先分）。"""
+    """把一段正文切成句子列表（跨段不切，段落由 split_paragraphs 先分）。
+
+    引号规则：中文引号（“「『）按嵌套计数；ASCII 双引号按奇偶切换；
+    ASCII 单引号不参与——英文所有格/缩写（it's）远比引语常见，
+    拿它当引号切分会吞掉后续句末标点（首轮审计实证）。
+    """
     sentences: list[Sentence] = []
     depth = 0  # 引号嵌套深度
     start = 0
     n = len(text)
     for i, ch in enumerate(text):
-        close = _QUOTES.get(ch)
-        if close and ch in ("“", "『", "「", '"', "'"):
-            if close == ch:  # 中英文单引号同形：数奇偶
-                depth = 0 if depth else 1
-            else:
-                depth += 1
+        if ch in _OPEN_QUOTES:
+            depth += 1
             continue
-        if ch in ("”", "』", "」"):
+        if ch in _CLOSE_QUOTES:
             depth = max(0, depth - 1)
+            continue
+        if ch == chr(34):  # ASCII 双引号(chr 写法避免引号字符被编辑器/生成环节偷换成全角)
+            depth = 0 if depth else 1
             continue
         if depth > 0:
             continue
@@ -103,11 +106,11 @@ def split_sentences(text: str) -> list[Sentence]:
                 j += 1
             body = text[start:j].strip()
             if body:
-                sentences.append(Sentence(body, 0, start, j))
+                sentences.append(Sentence(body, 0))
             start = j
     tail = text[start:].strip()
     if tail:
-        sentences.append(Sentence(tail, 0, start, n))
+        sentences.append(Sentence(tail, 0))
     return sentences
 
 
@@ -118,12 +121,9 @@ def split_document(text: str) -> list[list[Sentence]]:
     """
     clean = strip_markdown(text)
     result: list[list[Sentence]] = []
-    offset = 0
     for para in split_paragraphs(clean):
         sents = split_sentences(para)
         for s in sents:
             s.para = len(result)
-        # 修正偏移：strip_paragraphs 丢了行首缩进，直接在干净文本里定位
         result.append(sents)
-        offset += len(para)
     return result

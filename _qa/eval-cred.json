@@ -440,9 +440,9 @@
   {
    "source": "human",
    "is_ai": false,
-   "n_sentences": 8,
+   "n_sentences": 10,
    "hits_per_sent": 0.0,
-   "cv": 0.9798072356214421,
+   "cv": 0.4027682370678976,
    "ttr": 0.58358024691358,
    "conn": 0.0,
    "per_rule": {
@@ -4718,9 +4718,9 @@
   {
    "source": "qwen-3",
    "is_ai": true,
-   "n_sentences": 1,
+   "n_sentences": 6,
    "hits_per_sent": 0.0,
-   "cv": NaN,
+   "cv": 0.33316378299525534,
    "ttr": 0.7432352941176465,
    "conn": 0.0,
    "per_rule": {
@@ -6351,9 +6351,9 @@
   {
    "source": "gpt-4o",
    "is_ai": true,
-   "n_sentences": 9,
-   "hits_per_sent": 0.3333333333333333,
-   "cv": 0.45151109126221506,
+   "n_sentences": 10,
+   "hits_per_sent": 0.3,
+   "cv": 0.35108543326959196,
    "ttr": 0.6520967741935488,
    "conn": 0.0,
    "per_rule": {
@@ -8789,9 +8789,9 @@
   {
    "source": "deepseek-r1",
    "is_ai": true,
-   "n_sentences": 6,
-   "hits_per_sent": 0.16666666666666666,
-   "cv": 0.9148675854799632,
+   "n_sentences": 9,
+   "hits_per_sent": 0.1111111111111111,
+   "cv": 0.21810365460544015,
    "ttr": 0.7217368421052631,
    "conn": 0.0,
    "per_rule": {
@@ -9202,8 +9202,8 @@
   }
  ],
  "auroc": {
-  "hits": 0.80423828125,
-  "cv": 0.7977643953143045,
+  "hits": 0.8040234375,
+  "cv": 0.7988486842105263,
   "ttr": 0.1978515625
  }
 }

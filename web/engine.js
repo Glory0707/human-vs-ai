@@ -72,8 +72,9 @@
         if (depth > 0) depth--;
         continue;
       }
-      /* 中英文同形单双引号（" 与 '）：按奇偶切换，与 Python 实现同构 */
-      if (ch === "\u0022" || ch === "\u0027") {
+      /* ASCII 双引号按奇偶切换；ASCII 单引号不参与——英文所有格/缩写
+         （it's）远比引语常见，拿它当引号会吞后续句末标点（与 Python 同步） */
+      if (ch === "\u0022") {
         depth = depth ? 0 : 1;
         continue;
       }

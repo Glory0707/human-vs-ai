@@ -72,7 +72,10 @@ def main() -> None:
 
     out = Path("_qa/eval-official.md")
     out.write_text("\n".join(lines), encoding="utf-8")
-    print(f"误报率 {flagged}/{len(files)} = {rate:.1%}（{verdict}）· AI 样本命中 {ai_hits} 处")
+    if args.show:
+        print("\n".join(lines))
+    else:
+        print(f"误报率 {flagged}/{len(files)} = {rate:.1%}（{verdict}）· AI 样本命中 {ai_hits} 处")
     print(f"详单：{out}")
 
 

@@ -3,7 +3,7 @@
  "ai_mean_hits": 0.011647126022126024,
  "human_mean_hits": 0.048257575757575756,
  "ai_cv": 0.3365048274037837,
- "human_cv": 0.525735485958526,
+ "human_cv": 0.521482781077011,
  "ai_ttr": 0.6100593273254992,
  "human_ttr": 0.6960524628502844,
  "ai_conn": 0.009500661375661376,
@@ -3036,10 +3036,10 @@
   {
    "label": "human",
    "domain": "baike",
-   "n_sentences": 2,
+   "n_sentences": 8,
    "hits_per_sent": 0.0,
    "n_high": 0,
-   "cv": NaN,
+   "cv": 0.3379105118699018,
    "ttr": 0.6441772151898736,
    "conn": 0.0,
    "per_rule": {
@@ -3948,10 +3948,10 @@
   {
    "label": "human",
    "domain": "baike",
-   "n_sentences": 1,
+   "n_sentences": 3,
    "hits_per_sent": 0.0,
    "n_high": 0,
-   "cv": NaN,
+   "cv": 0.3690913646444282,
    "ttr": 0.7160493827160493,
    "conn": 0.0,
    "per_rule": {

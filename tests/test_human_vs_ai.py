@@ -25,6 +25,11 @@ class TestSegment:
         assert len(sents) == 1
         assert "关键" in sents[0].text
 
+    def test_ascii_single_quote_not_a_quote(self):
+        # 英文所有格/缩写的撇号不参与引号切换（首轮审计发现的切分 bug）
+        sents = segment.split_sentences("It's fine。Next sentence。")
+        assert [s.text for s in sents] == ["It's fine。", "Next sentence。"]
+
     def test_ellipsis_boundary(self):
         sents = segment.split_sentences("先这样……然后呢。")
         assert len(sents) == 2

@@ -77,7 +77,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q          # 31 项单元+边界+区分度测试
+python -m pytest tests/ -q          # 32 项单元+边界+区分度测试
 python tools/evaluate_cred.py       # C-ReD 学术语料评测（语料下载见 docs/rules.md）
 python tools/evaluate.py            # HC3-Chinese 问答语料评测
 python tools/evaluate_official.py   # 公文语料评测（误报率验收）
