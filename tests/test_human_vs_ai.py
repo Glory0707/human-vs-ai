@@ -133,10 +133,15 @@ class TestEngine:
 
 class TestProseQuality:
     def test_folded_yaml_no_cjk_gap(self):
-        # YAML folded 块把换行折成空格——中文之间的空格是伪影，加载时必须清掉
+        # YAML folded 块把换行折成空格——中文之间、中文与破折号/引号之间的
+        # 空格都是伪影，加载时必须清掉（中英文之间的排版空格保留）
         import re
-        cjk = r"[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]"
-        pat = re.compile(rf"(?<={cjk}) +(?={cjk})")
+        cjk = r"[一-鿿　-ヿ＀-￯]"
+        pd = r"[—“”‘’']"
+        pat = re.compile(
+            rf"(?<={cjk}) +(?={cjk})"
+            rf"|(?<={cjk}) +(?={pd})|(?<={pd}) +(?={cjk})"
+        )
         for profile in engine.available_profiles():
             for r in engine.load_rules(profile):
                 for field in ("name", "explanation", "suggestion", "human_ref"):

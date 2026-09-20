@@ -98,8 +98,8 @@ def _connective_count(sentences_text: list[str], lexicon: set[str]) -> int:
     return n
 
 
-def _four_gram_repeat(text: str) -> float:
-    clean = _PUNCT.sub("", text)
+def _four_gram_repeat(clean: str) -> float:
+    """重复 4-gram 占比。入参须是已去标点的文本（清洗在调用方统一做）。"""
     if len(clean) < 8:
         return 0.0
     grams: dict[str, int] = {}
@@ -139,32 +139,33 @@ def compute_doc_stats(
     connective_lexicon 由规则库传入（与词表规则共用一份连接词表，
     口径统一——报告里的密度数字必须和命中的规则对得上）。
     """
-    all_sents: list[str] = [s for para in paragraphs for s in para]
-    lens = [len(_PUNCT.sub("", s)) for s in all_sents]
-    para_lens = [sum(len(_PUNCT.sub("", s)) for s in para) for para in paragraphs]
-    full_text = "".join(all_sents)
-    tokens = tokenize(full_text)
+    raw_sents = [s for para in paragraphs for s in para]
+    # 标点清洗每句只做一次，下游长度/CV/4-gram 全部复用
+    clean_paras = [[_PUNCT.sub("", s) for s in para] for para in paragraphs]
+    clean_sents = [c for para in clean_paras for c in para]
+    lens = [len(c) for c in clean_sents]
+    para_lens = [sum(len(c) for c in para) for para in clean_paras]
+    full_clean = "".join(clean_sents)
+    # TTR 沿用旧口径在原文上切词：jieba 会把标点切成独立 token，
+    # 基线阈值按这个口径标定，不能换口径
+    tokens = tokenize("".join(raw_sents))
     stats = DocStats(
         n_paragraphs=len(paragraphs),
-        n_sentences=len(all_sents),
+        n_sentences=len(clean_sents),
         n_chars=sum(lens),
-        sentence_cvs=[_cv([len(_PUNCT.sub("", s)) for s in para]) for para in paragraphs],
+        sentence_cvs=[_cv([float(len(c)) for c in para]) for para in clean_paras],
         sentence_cv=_cv([float(x) for x in lens]),
         para_len_cv=_cv([float(x) for x in para_lens]),
         ttr=mattr(tokens),
         avg_sentence_len=_mean([float(x) for x in lens]),
     )
-    if connective_lexicon:
-        stats.conn_density = (
-            _connective_count(all_sents, connective_lexicon) / len(all_sents)
-            if all_sents
-            else math.nan
-        )
-    stats.ngram_repeat = _four_gram_repeat(full_text)
-    # 中文破折号是双字符"——"，按出现次数数，别按字符数数
-    n_double = full_text.count("——")
-    n_single = full_text.count("—") - 2 * n_double
-    stats.dash_density = (
-        (n_double + n_single) / len(all_sents) if all_sents else math.nan
-    )
+    if connective_lexicon and raw_sents:
+        stats.conn_density = _connective_count(raw_sents, connective_lexicon) / len(raw_sents)
+    stats.ngram_repeat = _four_gram_repeat(full_clean)
+    # 中文破折号是双字符"——"，按出现次数数，别按字符数数；须在原文上数
+    if raw_sents:
+        full_raw = "".join(raw_sents)
+        n_double = full_raw.count("——")
+        n_single = full_raw.count("—") - 2 * n_double
+        stats.dash_density = (n_double + n_single) / len(raw_sents)
     return stats

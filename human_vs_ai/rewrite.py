@@ -32,9 +32,6 @@ _IMPORTANT = re.compile(
     r"\d|%|％|[一二三四五六七八九十百千万]+(倍|万|亿|人天|分钟)"
     r"|(结论|结果表明|数据显示|实测|验证|复现|报错|错误码|失败率|通过率|达标|未达标)"
 )
-# 结论性动词/断言
-_ASSERTION = re.compile(r"(是|为|等于|达到|超过|低于|高于|包含|需要|必须|禁止)")
-
 # R3：具体名词与梗——我的定稿里 60% 含具体名词，被毙稿只有 19%，
 # 这是判别力最强的单项。缺这两样且无腔调命中的句子仍进"改"档：
 # 方向不是"删"，是"补一个能承载信息的实物"。
@@ -193,21 +190,18 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
         taste = [r.taste for r in hits if r.taste]
         return LineAdvice(
             text=line, action=KEEP, taste=taste, rules=[r.id for r in hits],
-            reason="含数据/结论——按 R1 删减哲学保留，结构不动",
-            direction="重要数据与结论，不要删；只在确有冗余时精简措辞",
+            reason="含数据/结论，保留",
         )
 
     if not hits:
         # R3 只作提示不作判据：缺具体名词/梗是"没加分"，不是"有毛病"——
         # 拿它单独定罪会把功能标签、参数说明、help 文本全判成该改（自检实证
-        # 47/53 命中），正是本项目的设计原则要避免的误判机器。
+        # 47/53 命中），正是本项目的设计原则要避免的误判机器。保留档本身不
+        # 需要理由，只在可能是文案时给一条轻提示。
         if _NOUN.search(line) or _MEME.search(line):
-            return LineAdvice(text=line, action=KEEP,
-                              reason="未命中腔调规则，且已含具体名词或梗——在风格空间内")
-        return LineAdvice(text=line, action=KEEP, taste=[], rules=[],
-                          reason="未命中腔调规则——没有需要删改的腔调",
-                          direction="若这是文案（不是功能标签）：可以补一个具体名词或梗，"
-                                    "让它落到实物上（定稿里 60% 含具体名词，被毙稿只有 19%）")
+            return LineAdvice(text=line, action=KEEP)
+        return LineAdvice(text=line, action=KEEP,
+                          direction="若是文案，可补一个具体名词或梗")
 
     ids = [r.id for r in hits]
     tastes = [r.taste for r in hits if r.taste]
@@ -265,6 +259,5 @@ def render_advice(result: RewriteResult) -> str:
         elif a.direction:
             out.append(f"   → {a.direction}")
         out.append("")
-    out.append("改写准则：该多说时多说，该少说时少说，重要数据和结论要保留（R1）。"
-               "梗需要人来补——本模块只做规则化建议，不替你造梗。")
+    out.append("改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。")
     return "\n".join(out)

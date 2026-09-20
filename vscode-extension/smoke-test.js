@@ -21,8 +21,8 @@ function check(name, cond, extra) {
   else { failed++; console.log(`[FAIL] ${name}${extra ? " — " + extra : ""}`); }
 }
 
-// 1. 三个 profile 的规则都注入了
-check("profiles injected", ["academic", "general", "official"].every(p => Array.isArray(RULES[p]) && RULES[p].length));
+// 1. 四个 profile 的规则都注入了
+check("profiles injected", ["academic", "general", "official", "personal"].every(p => Array.isArray(RULES[p]) && RULES[p].length));
 
 // 2. AI 学术 fixture:academic 下有命中,报告含规则 ID 与免责
 const aiText = fs.readFileSync(path.join(ROOT, "tests/data/ai_academic.txt"), "utf-8");
@@ -30,7 +30,7 @@ const aiResult = HvA.analyze(aiText, RULES.academic);
 check("ai fixture has findings", aiResult.findings.length >= 5, `got ${aiResult.findings.length}`);
 const aiHtml = renderReportHtml("ai_academic.txt", "academic", aiResult);
 check("html contains rule ids", aiHtml.includes("L-FORM-01"));
-check("html contains disclaimer", aiHtml.includes("不是 AI 生成判定"));
+check("html contains disclaimer", aiHtml.includes("不是 AI 判定"));
 // 同一规则的解释全文只讲一次(与 CLI/网页口径一致)
 const lconnHits = aiResult.findings.filter(f => f.rule_id === "L-CONN-01").length;
 const lconnExplained = aiHtml.split("这批词本身没有错").length - 1;

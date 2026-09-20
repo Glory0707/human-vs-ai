@@ -28,7 +28,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 **口味校准层（personal）**：三个公开 profile 校准的是通用 AI 味；`personal` 校准的是**我本人的取舍**——用私人标注链（同一批产品文案，AI 交稿 → 我逐条毙或亲改 → 定稿落盘，被毙 31 条 vs 定稿 37 条）归纳出 12 条口味条目，配套 `rewrite` 子命令给逐句改写建议。规则见 [docs/taste_zhouao.md](docs/taste_zhouao.md)，语料永不入库（`corpus_private/` 在 .gitignore）。
 
-**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，24 项语料逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
+**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，8 段分析语料 + 9 条改写探针 × 4 profile = 68 项逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
 
 **在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景）。构建产物（engine.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 

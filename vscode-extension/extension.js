@@ -32,7 +32,7 @@ function renderReportHtml(fileName, profile, result) {
 
   parts.push(`<div class="stats">
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
-    <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类约 0.45，越低越"平"） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
+    <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类基线 ≈0.45，越低越平） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：连接词密度 <b>${fmt(s.conn_density)}</b> 条/句 · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
   </div>`);
 
@@ -62,12 +62,12 @@ function renderReportHtml(fileName, profile, result) {
   });
 
   if (result.hints.length) {
-    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中（未达共现阈值，仅供参考）</div>` +
+    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中，仅供参考</div>` +
       result.hints.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       `</div>`);
   }
 
-  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。</div>`);
+  parts.push(`<div class="disclaimer">风格提示，不是 AI 判定；单条命中不构成证据。</div>`);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">

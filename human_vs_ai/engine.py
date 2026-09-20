@@ -26,14 +26,19 @@ RULES_DIR = Path(__file__).parent / "rules"
 SEVERITY_ORDER = {"high": 3, "medium": 2, "low": 1, "hint": 0}
 
 # YAML folded 块（>）把源码换行折叠成半角空格——中文行文里那是伪影
-# （"研究 里 142 条"）。只清"中文-空格-中文"，中英文之间的排版空格保留。
-_CJK = "\u4e00-\u9fff\u3000-\u303f\uff00-\uffef"
+# （"研究 里 142 条"）。清"中文-空格-中文"及中文与破折号/引号之间的空格，
+# 中英文之间的排版空格保留。
+_CJK = "一-鿿　-ヿ＀-￯"
 _CJK_GAP = re.compile(rf"(?<=[{_CJK}]) +(?=[{_CJK}])")
+_QUOTE_DASH = "—“”‘’'"
+_CJK_PD_GAP = re.compile(
+    rf"(?<=[{_CJK}]) +(?=[{_QUOTE_DASH}])|(?<=[{_QUOTE_DASH}]) +(?=[{_CJK}])"
+)
 
 
 def _clean_prose(text: str) -> str:
     """规则文案的统一清洗：直引号配对换中文引号 + 去中文间折叠空格。"""
-    return _CJK_GAP.sub("", _cn_quotes(text))
+    return _CJK_PD_GAP.sub("", _CJK_GAP.sub("", _cn_quotes(text)))
 
 
 def _cn_quotes(text: str) -> str:

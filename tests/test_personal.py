@@ -102,7 +102,7 @@ class TestRewriteRules:
 
     def test_render_advice_mentions_criterion(self):
         out = rewrite.render_advice(rewrite.rewrite_text("别急，代码明天还在仓库里。"))
-        assert "删" in out and "R1" in out
+        assert "改" in out and "重要数据和结论要保留" in out
 
 
 class TestCliRewrite:

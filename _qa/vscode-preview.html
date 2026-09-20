@@ -28,7 +28,7 @@ blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid 
 </style></head>
 <body><div class="docname">ai_official.txt · official profile</div><div class="stats">
     <div class="row">规模：<b>14</b> 段 · <b>23</b> 句 · <b>1109</b> 字</div>
-    <div class="row">节奏：句长 CV <b>0.33</b>（人类约 0.45，越低越"平"） · 段长 CV <b>0.33</b></div>
+    <div class="row">节奏：句长 CV <b>0.33</b>（人类基线 ≈0.45，越低越平） · 段长 CV <b>0.33</b></div>
     <div class="row">词汇：连接词密度 <b>0.78</b> 条/句 · 4-gram 重复率 <b>0.04</b></div>
   </div><div class="summary">发现 7 处（高 3 · 中 3 · 低 1）</div><div class="found">
         <div class="head"><span class="dot" style="background:#B3261E"></span>高 · O-TAIL-01 演讲腔收尾<span class="loc">¶4</span></div>
@@ -65,4 +65,4 @@ blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid 
         
         <div class="match">命中：<code>conn_density=0.783（阈值 0.55）</code></div>
         <div class="why">每句平均出现的强化副词（O-STK-01 词表）超过 0.55 条。真人公文的强化副词集中在部署要求段落，AI 则均匀铺满——“每段都有三个进一步”是 AI 公文的直观印象在统计上的样子。阈值首轮按真人公文分布实测校准。</div><div class="tip">→ 按“动词 + 宾语”直陈改写，强化词只留给真正需要加压的要求句。</div>
-      </div><div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。</div></body></html>
+      </div><div class="disclaimer">风格提示，不是 AI 判定；单条命中不构成证据。</div></body></html>

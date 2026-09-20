@@ -95,22 +95,20 @@
         text: line, action: KEEP,
         taste: hits.map(function (h) { return h.taste; }).filter(Boolean),
         rules: hits.map(function (h) { return h.id; }),
-        reason: "含数据/结论——按 R1 删减哲学保留，结构不动",
-        candidate: "", direction: "重要数据与结论，不要删；只在确有冗余时精简措辞",
+        reason: "含数据/结论，保留",
+        candidate: "", direction: "",
       };
     }
     if (!hits.length) {
-      /* R3 只作提示不作判据：缺具体名词/梗是"没加分"，不是"有毛病"——
-         与 Python 端同口径（一致性探针守护） */
+      /* R3 只作提示不作判据：保留档本身不给理由，只在可能是文案时给一条
+         轻提示——与 Python 端同口径（一致性探针守护）。 */
       if (NOUN_RE.test(line) || MEME_RE.test(line)) {
         return { text: line, action: KEEP, taste: [], rules: [],
-                 reason: "未命中腔调规则，且已含具体名词或梗——在风格空间内",
-                 candidate: "", direction: "" };
+                 reason: "", candidate: "", direction: "" };
       }
       return { text: line, action: KEEP, taste: [], rules: [],
-               reason: "未命中腔调规则——没有需要删改的腔调",
-               candidate: "",
-               direction: "若这是文案（不是功能标签）：可以补一个具体名词或梗，让它落到实物上（定稿里 60% 含具体名词，被毙稿只有 19%）" };
+               reason: "", candidate: "",
+               direction: "若是文案，可补一个具体名词或梗" };
     }
 
     var ids = hits.map(function (h) { return h.id; });

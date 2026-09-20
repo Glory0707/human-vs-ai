@@ -32,10 +32,9 @@ class Sentence:
     para: int  # 段落序号，从 0
 
 
-def strip_markdown(text: str) -> tuple[str, dict[int, int]]:
-    """去掉 Markdown 结构行，返回 (纯文本, 原文行号→新文本行号 映射不需要，直接丢结构行)。
+def strip_markdown(text: str) -> str:
+    """去掉 Markdown 结构行，保留段落空行结构供 split_paragraphs 使用。
 
-    返回的文本保留段落空行结构，供 split_paragraphs 使用。
     代码块整块丢弃——代码没有"AI 味"可言。
     """
     out: list[str] = []

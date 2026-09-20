@@ -96,10 +96,8 @@ main { flex: 1; display: flex; min-height: 0; }
   font-size: var(--fs-xs); color: var(--ink-3); border-radius: 3px;
 }
 .empty { color: var(--ink-3); padding: 24px 0; }
-.empty b { color: var(--ink); }
 .advice { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .advice:last-of-type { border-bottom: none; }
-.advice .line { }
 .advice .tag {
   display: inline-block; min-width: 18px; text-align: center;
   font-size: var(--fs-xs); font-weight: 600; border-radius: 2px;
@@ -133,13 +131,11 @@ main { flex: 1; display: flex; min-height: 0; }
 <main>
   <section class="pane">
     <div class="pane-label">粘贴文本</div>
-    <textarea id="input" placeholder="把文章、论文段落或回答粘贴到这里。
-
-Markdown 标题、列表与代码块会跳过，只分析正文。"></textarea>
+    <textarea id="input" placeholder="粘贴正文。标题、列表、代码块自动跳过。"></textarea>
   </section>
   <section class="pane">
     <div class="pane-label">分析报告</div>
-    <div id="report"><div class="empty">粘贴文本即出报告。</div></div>
+    <div id="report"><div class="empty">粘贴正文即出报告。</div></div>
   </section>
 </main>
 <script>
@@ -191,7 +187,7 @@ function renderReport(result) {
 
   parts.push(`<div class="stats">
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
-    <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类约 0.45，越低越"平"） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
+    <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类基线 ≈0.45，越低越平） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：连接词密度 <b>${fmt(s.conn_density)}</b> 条/句 · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
   </div>`);
 
@@ -201,9 +197,7 @@ function renderReport(result) {
   const sevName = { high: "高", medium: "中", low: "低" };
   const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
     .map(sv => `${sevName[sv]} ${bySev[sv].length}`).join(" · ");
-  const nSent = new Set(F.filter(f => f.para >= 0).map(f => f.para + " " + f.sentence)).size;
-  const nDoc = F.filter(f => f.para < 0).length;
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}），涉及 ${nSent} 句 + ${nDoc} 项全文指标` : "未发现明显的模板化写作模式"}</div>`);
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式"}</div>`);
 
   const explained = new Set();
   // 同句多规则聚成一条（与 CLI _group_by_sentence 同口径）：标题合并规则名，
@@ -257,16 +251,16 @@ function renderReport(result) {
   });
 
   if (result.hints.length) {
-    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中（未达共现阈值，仅供参考）</div>` +
+    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处孤立弱命中，仅供参考</div>` +
       result.hints.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       `</div>`);
   }
 
-  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。</div>`);
+  parts.push(`<div class="disclaimer">风格提示，不是 AI 判定；单条命中不构成证据。</div>`);
   el.innerHTML = parts.join("");
 }
 
-const EMPTY_REPORT = '<div class="empty">粘贴文本即出报告。</div>';
+const EMPTY_REPORT = '<div class="empty">粘贴正文即出报告。</div>';
 
 const ADVICE_META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
 
@@ -285,7 +279,7 @@ function renderAdvice(result) {
       ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
     </div>`);
   });
-  parts.push(`<div class="disclaimer">改写准则：该多说时多说，该少说时少说，重要数据和结论要保留（R1）。梗需要人来补——这里只做规则化建议，不替你造梗。口味条目见 docs/taste_zhouao.md。</div>`);
+  parts.push(`<div class="disclaimer">改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。</div>`);
   el.innerHTML = parts.join("");
 }
 

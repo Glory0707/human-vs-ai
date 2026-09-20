@@ -20,10 +20,7 @@ _TIER_LABEL = {"lexical": "词表", "syntactic": "句式", "structural": "结构
 _SEV_LABEL = {"high": "高", "medium": "中", "low": "低", "hint": "弱"}
 _SEV_RANK = {"high": 0, "medium": 1, "low": 2, "hint": 3}
 
-_DISCLAIMER = (
-    "以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，"
-    "单独任何一条都不构成证据。"
-)
+_DISCLAIMER = "风格提示，不是 AI 判定；单条命中不构成证据。"
 
 
 def _fmt(value: float) -> str:
@@ -34,7 +31,7 @@ def stats_lines(result: AnalysisResult) -> list[str]:
     s = result.doc_stats
     return [
         f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字",
-        f"节奏：句长 CV {_fmt(s.sentence_cv)}（人类学术文本约 0.45，越低越\"平\"）"
+        f"节奏：句长 CV {_fmt(s.sentence_cv)}（人类基线 ≈0.45，越低越平）"
         f" · 段长 CV {_fmt(s.para_len_cv)}",
         f"词汇：TTR {_fmt(s.ttr)} · 连接词密度 {_fmt(s.conn_density)} 条/句"
         f" · 4-gram 重复率 {_fmt(s.ngram_repeat)}",
@@ -88,9 +85,7 @@ def render_terminal(result: AnalysisResult) -> str:
         explained: set[str] = set()
         groups, doc_level = _group_by_sentence(result.findings)
         n_hi, n_md, n_lo = result.n_high, result.n_medium, result.n_low
-        out.append(
-            C("1", f"发现 {len(result.findings)} 处（高 {n_hi} · 中 {n_md} · 低 {n_lo}），涉及 {len(groups)} 句 + {len(doc_level)} 项全文指标")
-        )
+        out.append(C("1", f"发现 {len(result.findings)} 处（高 {n_hi} · 中 {n_md} · 低 {n_lo}）"))
         out.append("")
         for group in groups:
             title = _group_title(group)
@@ -119,7 +114,7 @@ def render_terminal(result: AnalysisResult) -> str:
                 out.append(C("32", f"  → {f.suggestion}"))
             out.append("")
     if result.hints:
-        out.append(C("90", f"另有 {len(result.hints)} 处孤立弱命中（未达共现阈值，仅供参考）："))
+        out.append(C("90", f"另有 {len(result.hints)} 处孤立弱命中，仅供参考："))
         for f in result.hints:
             out.append(C("90", f"  · {f.rule_id} {f.rule_name} ¶{f.para + 1}"))
         out.append("")
@@ -172,7 +167,7 @@ def render_markdown(result: AnalysisResult) -> str:
             out.append(f"**建议**：{f.suggestion}")
         out.append("")
     if result.hints:
-        out.append("## 孤立弱命中（未达共现阈值，仅供参考）")
+        out.append("## 孤立弱命中（仅供参考）")
         out.append("")
         for f in result.hints:
             out.append(f"- {f.rule_id} {f.rule_name}（¶{f.para + 1}）")
