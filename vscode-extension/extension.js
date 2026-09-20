@@ -16,74 +16,13 @@ try { HvARewrite = require("./rewrite.js"); } catch (e) { HvARewrite = null; }
 const RULES = require("./rules.json");
 let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
+/* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
+const { esc, fmt, hiSentence, scoreRow, scoreNoteRow, hintsHtml,
+        SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
-const PROFILE_LABEL = {
-  academic: "学术", general: "问答", official: "公文", personal: "我的口味",
-};
-
-const SCORE_LABEL = { hit_density: "规则", sentence_cv: "节奏", ttr: "词汇", ngram_repeat: "重复", conn_density: "连接词" };
-
-const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E", hint: "#8A8A86" };
-const SEV_LABEL = { high: "高", medium: "中", low: "低", hint: "弱" };
-/* 弱命中只是参考信息，长文里全量列出会淹没正文发现（与 CLI/网页同口径） */
-const HINTS_MAX = 12;
-
-function esc(s) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-}
-
-function fmt(v) {
-  return typeof v !== "number" || isNaN(v) ? "—" : v.toFixed(2);
-}
-
-/* 原句命中区间高亮：按索引切原文再统一转义，杜绝"先转义后拼串"
-   被 mark 字样命中词撞上标签的注人问题（与网页版同一算法） */
-function hiSentence(sent, matches) {
-  const spans = [];
-  (matches || []).forEach(m => {
-    if (!m) return;
-    let from = 0, idx;
-    while ((idx = sent.indexOf(m, from)) >= 0) {
-      spans.push([idx, idx + m.length]);
-      from = idx + m.length;
-    }
-  });
-  if (!spans.length) return esc(sent);
-  spans.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
-  const merged = [];
-  let last = spans[0].slice();
-  for (let i = 1; i < spans.length; i++) {
-    if (spans[i][0] <= last[1]) last[1] = Math.max(last[1], spans[i][1]);
-    else { merged.push(last); last = spans[i].slice(); }
-  }
-  merged.push(last);
-  let out = "", pos = 0;
-  merged.forEach(r => {
-    out += esc(sent.slice(pos, r[0])) + "<mark>" + esc(sent.slice(r[0], r[1])) + "</mark>";
-    pos = r[1];
-  });
-  return out + esc(sent.slice(pos));
-}
-
-/* 指数行：分档锚定校准语料真人分位；构成列出各特征贡献——分数可拆解 */
-function scoreRowHtml(score) {
-  if (!score) return "";
-  const idx = score.index.toFixed(0);
-  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-  const comps = Object.keys(score.components).map(f => {
-    const v = score.components[f];
-    return `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`;
-  }).join(" · ");
-  return `<div class="row score" title="风格形态综合分（校准语料真人 p50≈${score.human_p50} / p90≈${score.human_p90}）。是风格分，不是 AI 概率。">` +
-    `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${comps}</span></div>`;
-}
-
-/* 够 8 句却没出分（公文/个人口味无校准语料）给一行原因；文案与 engine.score_note 同源 */
-function scoreNoteRowHtml(note) {
-  if (!note) return "";
-  return `<div class="row score" title="该文体没有真人配对的校准语料，给不出可信的分——宁缺毋滥。">` +
-    `AI 味指数 <span class="comp">—（${note}）</span></div>`;
-}
+/* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
+   编辑器装饰必须给实色；hint 档不画装饰） */
+const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E" };
 
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
    样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
@@ -93,8 +32,8 @@ function renderReportHtml(fileName, profile, result) {
   const parts = [];
 
   parts.push(`<div class="stats">
-    ${scoreRowHtml(result.score)}
-    ${scoreNoteRowHtml(result.score_note)}
+    ${scoreRow(result.score)}
+    ${scoreNoteRow(result.score_note)}
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
     ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
@@ -103,9 +42,8 @@ function renderReportHtml(fileName, profile, result) {
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };
   F.forEach(f => bySev[f.severity].push(f));
-  const sevName = { high: "高", medium: "中", low: "低" };
   const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
-    .map(sv => `${sevName[sv]} ${bySev[sv].length}`).join(" · ");
+    .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
   parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式。"}</div>`);
 
   const explained = new Set();
@@ -117,7 +55,7 @@ function renderReportHtml(fileName, profile, result) {
       if (showWhy) explained.add(f.rule_id);
       const matchArr = [...new Set(f.matches)];
       parts.push(`<div class="found">
-        <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${sevName[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
+        <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${SEV_NAME[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
         ${f.sentence ? `<blockquote>${hiSentence(f.sentence, matchArr)}</blockquote>` : ""}
         ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${showWhy ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
@@ -125,16 +63,9 @@ function renderReportHtml(fileName, profile, result) {
     });
   });
 
-  if (result.hints.length) {
-    const shown = result.hints.slice(0, HINTS_MAX);
-    const more = result.hints.length - shown.length;
-    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处弱命中（仅供参考${more ? `，列前 ${shown.length} 处` : ""}）</div>` +
-      shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
-      (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
-      `</div>`);
-  }
+  parts.push(hintsHtml(result.hints));
 
-  parts.push(`<div class="disclaimer">风格提示，不是 AI 判定；单条命中不构成证据。</div>`);
+  parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -187,7 +118,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
               color: var(--ink-3); border-radius: 3px; }
 .docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
 </style></head>
-<body><div class="docname">${esc(fileName)} · ${esc(PROFILE_LABEL[profile] || profile)}</div>${parts.join("")}</body></html>`;
+<body><div class="docname">${esc(fileName)} · ${esc((PROFILE_META[profile] || [profile])[0])}</div>${parts.join("")}</body></html>`;
 }
 
 function renderAdviceHtml(fileName, result) {
@@ -206,7 +137,7 @@ function renderAdviceHtml(fileName, result) {
     </div>`;
   }).join("");
   const counts = `<div class="counts">共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></div>`;
-  const footer = `<div class="disclaimer">改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。</div>`;
+  const footer = `<div class="disclaimer">${ADVICE_FOOTER}</div>`;
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -370,6 +301,7 @@ function analyzeActive() {
 }
 
 function activate(context) {
+  const vscode = require("vscode");
   context.subscriptions.push(
     vscode.commands.registerCommand("human-vs-ai.analyze", analyzeActive),
     vscode.commands.registerCommand("human-vs-ai.rewrite", rewriteActive)

@@ -196,58 +196,26 @@ __ENGINE__
 __REWRITE__
 </script>
 <script>
+__RENDER__
+</script>
+<script>
 const RULES_BY_PROFILE = __RULES_JSON__;
 const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
-const PROFILE_META = {
-  academic: ["学术", "论文、摘要、实验报告"],
-  general: ["问答", "知乎、公众号、科普"],
-  official: ["公文", "通知、意见、实施方案"],
-  personal: ["我的口味", "短文案：界面文案、标题、提示语"],
-};
+/* 渲染共享层（web/render.js，构建注入）：转义/高亮/评分行/常量 */
+const { esc, fmt, hiSentence, scoreRow, scoreNoteRow, hintsHtml,
+        componentsText, SEV_NAME, PROFILE_META,
+        HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
 let currentMode = "analyze";
 let debounceTimer = null;
 let lastResult = null;   // 检测模式最近一次结果（复制按钮的数据源）
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
-const HINTS_MAX = 12;
 
 const reportEl = document.getElementById("report");
 const inputEl = document.getElementById("input");
 const copyBtn = document.getElementById("copyBtn");
-
-const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-const fmt = v => (typeof v !== "number" || isNaN(v)) ? "—" : v.toFixed(2);
-
-/* 原句高亮：按索引区间切原文再统一转义——先转义再拼串会被
-   "mark" 这类英文命中词撞上已插入的标签，按区间切没有这个问题 */
-function hiSentence(sent, matches) {
-  const spans = [];
-  (matches || []).forEach(m => {
-    if (!m) return;
-    let from = 0, idx;
-    while ((idx = sent.indexOf(m, from)) >= 0) {
-      spans.push([idx, idx + m.length]);
-      from = idx + m.length;
-    }
-  });
-  if (!spans.length) return esc(sent);
-  spans.sort((a, b) => a[0] - b[0] || b[1] - a[1]);
-  const merged = [];
-  let last = spans[0].slice();
-  for (let i = 1; i < spans.length; i++) {
-    if (spans[i][0] <= last[1]) last[1] = Math.max(last[1], spans[i][1]);
-    else { merged.push(last); last = spans[i].slice(); }
-  }
-  merged.push(last);
-  let out = "", pos = 0;
-  merged.forEach(r => {
-    out += esc(sent.slice(pos, r[0])) + "<mark>" + esc(sent.slice(r[0], r[1])) + "</mark>";
-    pos = r[1];
-  });
-  return out + esc(sent.slice(pos));
-}
 
 function renderProfiles() {
   const nav = document.getElementById("profiles");
@@ -308,28 +276,6 @@ function buildGroups(F) {
   return { groups, docLevel, sevRank };
 }
 
-const SCORE_LABEL = { hit_density: "规则", sentence_cv: "节奏", ttr: "词汇", ngram_repeat: "重复", conn_density: "连接词" };
-
-/* 指数行：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低），
-   构成列出各特征贡献——分数永远可拆解，不许当黑盒 */
-function scoreRow(score) {
-  if (!score) return "";
-  const idx = score.index.toFixed(0);
-  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-  const comps = Object.entries(score.components).map(([f, v]) =>
-    `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`).join(" · ");
-  return `<div class="row score" title="风格形态综合分：规则命中密度与全文统计的加权（校准 AUROC ${score.auroc.toFixed(2)}，校准语料真人 p50≈${score.human_p50} / p90≈${score.human_p90}）。是风格分，不是 AI 概率。">` +
-    `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${comps}</span></div>`;
-}
-
-/* 够 8 句却没出分（公文/个人口味无校准语料）给一行原因——不然用户从
-   学术/问答切过来会纳闷分去哪了；文案与 engine.score_note 同源 */
-function scoreNoteRow(note) {
-  if (!note) return "";
-  return `<div class="row score" title="该文体没有真人配对的校准语料，给不出可信的分——宁缺毋滥。">` +
-    `AI 味指数 <span class="comp">—（${note}）</span></div>`;
-}
-
 function statsRows(s) {
   const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
   // 统计行只在样本够判定时展示（与 doc 规则的 min_sentences=8 同口径）：
@@ -349,9 +295,8 @@ function renderReport(result) {
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };
   F.forEach(f => bySev[f.severity].push(f));
-  const sevName = { high: "高", medium: "中", low: "低" };
   const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
-    .map(sv => `${sevName[sv]} ${bySev[sv].length}`).join(" · ");
+    .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
   parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式"}</div>`);
 
   const explained = new Set();
@@ -367,7 +312,7 @@ function renderReport(result) {
     if (why) explained.add(why.rule_id);
     g.items.forEach(i => explained.add(i.rule_id));
     parts.push(`<div class="found">
-      <div class="head"><span class="dot" style="background:var(--sev-${top.severity})"></span>${sevName[top.severity]} · ${esc(ids)} ${esc(names)}${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+      <div class="head"><span class="dot" style="background:var(--sev-${top.severity})"></span>${SEV_NAME[top.severity]} · ${esc(ids)} ${esc(names)}${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
       ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
       ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
@@ -378,22 +323,15 @@ function renderReport(result) {
     const why = !explained.has(f.rule_id);
     explained.add(f.rule_id);
     parts.push(`<div class="found">
-      <div class="head"><span class="dot" style="background:var(--sev-${f.severity})"></span>${sevName[f.severity]} · ${esc(f.rule_id)} ${esc(f.rule_name)}${taste}<span class="loc">全文</span></div>
+      <div class="head"><span class="dot" style="background:var(--sev-${f.severity})"></span>${SEV_NAME[f.severity]} · ${esc(f.rule_id)} ${esc(f.rule_name)}${taste}<span class="loc">全文</span></div>
       ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
     </div>`);
   });
 
-  if (result.hints.length) {
-    const shown = result.hints.slice(0, HINTS_MAX);
-    const more = result.hints.length - shown.length;
-    parts.push(`<div class="hints"><div class="t">另有 ${result.hints.length} 处弱命中（仅供参考${more ? `，列前 ${shown.length} 处` : ""}）</div>` +
-      shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
-      (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
-      `</div>`);
-  }
+  parts.push(hintsHtml(result.hints));
 
-  parts.push(`<div class="disclaimer">风格提示，不是 AI 判定；单条命中不构成证据。</div>`);
+  parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
   reportEl.innerHTML = parts.join("");
 }
 
@@ -420,7 +358,7 @@ function renderAdvice() {
       ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
     </div>`);
   });
-  parts.push(`<div class="disclaimer">改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。</div>`);
+  parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   reportEl.innerHTML = parts.join("");
   reportEl.querySelectorAll(".filters button").forEach(b => {
     b.onclick = () => { adviceFilter = b.dataset.f; renderAdvice(); };
@@ -470,8 +408,7 @@ function reportToMarkdown() {
   L.push("## 全文统计", "");
   if (r.score) {
     L.push(`- AI 味指数：${r.score.index.toFixed(0)} / 100（风格形态综合分，不是 AI 概率）`);
-    const comps = Object.entries(r.score.components).map(([f, v]) =>
-      `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`).join(" · ");
+    const comps = componentsText(r.score.components);
     if (comps) L.push(`- 构成：${comps}`);
   } else if (r.score_note) {
     L.push(`- AI 味指数：—（${r.score_note}）`);
@@ -479,7 +416,6 @@ function reportToMarkdown() {
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
   if (!r.findings.length) L.push("未发现明显的模板化写作模式。");
-  const sevName = { high: "高", medium: "中", low: "低" };
   const explained = new Set();
   const { groups, docLevel, sevRank } = buildGroups(r.findings);
   groups.forEach(g => {
@@ -488,7 +424,7 @@ function reportToMarkdown() {
     const ids = g.items.map(i => i.rule_id).join(" + ");
     const names = g.items.map(i => i.rule_name).join(" + ");
     const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
-    L.push(`### [${sevName[top.severity]}] ${ids} ${names} · ¶${g.para + 1}`, "");
+    L.push(`### [${SEV_NAME[top.severity]}] ${ids} ${names} · ¶${g.para + 1}`, "");
     if (g.sentence) L.push(`> ${g.sentence}`, "");
     if (matchArr.length) L.push(`**命中**：${matchArr.join("、")}`, "");
     const why = g.items.find(i => !explained.has(i.rule_id));
@@ -502,7 +438,7 @@ function reportToMarkdown() {
   docLevel.forEach(f => {
     const why = !explained.has(f.rule_id);
     explained.add(f.rule_id);
-    L.push(`### [${sevName[f.severity]}] ${f.rule_id} ${f.rule_name}${f.taste ? ` · ${f.taste}` : ""}（全文）`, "");
+    L.push(`### [${SEV_NAME[f.severity]}] ${f.rule_id} ${f.rule_name}${f.taste ? ` · ${f.taste}` : ""}（全文）`, "");
     if (f.matches.length) L.push(`**命中**：${[...new Set(f.matches)].join("、")}`, "");
     if (why) {
       L.push(f.explanation.trim());
@@ -517,7 +453,7 @@ function reportToMarkdown() {
     if (r.hints.length > HINTS_MAX) L.push(`- …等 ${r.hints.length} 处`);
     L.push("");
   }
-  L.push("---", "", "风格提示，不是 AI 判定；单条命中不构成证据。");
+  L.push("---", "", DISCLAIMER);
   return L.join("\n");
 }
 
@@ -534,7 +470,7 @@ function adviceToMarkdown() {
     else if (a.direction) L.push(`  → ${a.direction}`);
     L.push("");
   });
-  L.push("---", "", "改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。");
+  L.push("---", "", ADVICE_FOOTER);
   return L.join("\n");
 }
 

@@ -38,8 +38,7 @@ class TestSegment:
         # 标题/代码块整块丢弃；表格分隔行丢弃，表头内容保留（新口径：
         # 列表/表格正文参与分析，v0.8.0 修订）
         text = "# 标题\n\n正文第一段。\n\n```python\ncode = 1\n```\n\n| 指标 | 数值 |\n|---|---|\n\n正文第二段。"
-        paras = segment.split_paragraphs(segment.strip_markdown(text))
-        joined = "\n".join(paras)
+        joined = segment.strip_markdown(text)
         assert "```" not in joined and "标题" not in joined
         assert "正文第一段。" in joined and "正文第二段。" in joined
         assert "指标" in joined and "数值" in joined

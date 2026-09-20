@@ -31,7 +31,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 **不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，13 段分析语料 + 12 条改写探针 × 4 profile = 100 项逐字段对齐，含列表/表格/裸链接/全角数字探针）；改了规则后用 `python tools/build_web.py` 重新生成。输入即析（长文自动放宽防抖），命中词在原句里高亮，跟随系统暗色模式，报告可一键复制为 Markdown，改写建议按删/改/留过滤。
 
-**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景），命中句同时在正文里画上对应严重级的波浪线；「human-vs-ai: 改写建议（个人口味）」给逐句删/改/留建议，待删待改句同步标出。报告面板跟随编辑器主题（暗色不刺眼）。构建产物（engine.js/rewrite.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
+**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景），命中句同时在正文里画上对应严重级的波浪线；「human-vs-ai: 改写建议（个人口味）」给逐句删/改/留建议，待删待改句同步标出。报告面板跟随编辑器主题（暗色不刺眼）。构建产物（engine.js/rewrite.js/render.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
 ## 功能总览（全部已实现并实测）
 

@@ -96,7 +96,33 @@ check("no score band when uncalibrated", !/class="s-(high|medium|low)"/.test(off
 const officialShort = HvA.analyze("首先进行研究。其次进行分析。", RULES.official, null);
 check("no score note on short text", officialShort.score_note === "" && !renderReportHtml("x.txt", "official", officialShort).includes("AI 味指数"));
 
-// 9. 发现→文档定位：顺序定位、重复句推进第二处、doc 级跳过、找不到的句子跳过
+// 9. activate 命令注册：vscode 模块桩加载扩展并触发 activate——
+//    回归 v0.9.0 起的隐患（activate 内引用了未 require 的 vscode，激活即崩）
+const Module = require("module");
+const fakeVscode = {
+  commands: {
+    registered: [],
+    registerCommand(id) { fakeVscode.commands.registered.push(id); },
+  },
+};
+const origLoad = Module._load;
+Module._load = function (request, parent, isMain) {
+  if (request === "vscode") return fakeVscode;
+  return origLoad.call(Module, request, parent, isMain);
+};
+try {
+  const { activate } = require(path.join(EXT, "extension.js"));
+  const subscriptions = [];
+  activate({ subscriptions });
+  check("activate registers commands", fakeVscode.commands.registered.length === 2 &&
+    subscriptions.length === 2, `got ${fakeVscode.commands.registered.join(",") || "none"}`);
+} catch (e) {
+  check("activate registers commands", false, e.message);
+} finally {
+  Module._load = origLoad;
+}
+
+// 10. 发现→文档定位：顺序定位、重复句推进第二处、doc 级跳过、找不到的句子跳过
 const doc = "# 报告\n\n首先要明确目标。其次要持续投入。\n\n- 首先要明确目标。\n- 其次要持续投入。\n";
 const fakeFindings = [
   { para: 0, sentence: "首先要明确目标。", severity: "high" },       // 第一次出现

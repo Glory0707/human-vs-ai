@@ -108,11 +108,11 @@ def _line_units(text: str) -> list[tuple[str, str]]:
     return units
 
 
-def strip_markdown(text: str) -> str:
-    """去掉 Markdown 标记，返回纯文本（保留段落空行结构）。
+def _text_blocks(text: str) -> list[tuple[str, list[str]]]:
+    """_line_units 的结果组装成块序列 (kind, [文本, ...])。
 
-    与 split_document 同一解析结果渲染，保证两个出口口径一致。
-    代码块整块丢弃——代码没有"AI 味"可言。
+    strip_markdown 与 split_document 的共同底座——两个出口必须吃同一份
+    解析结果，口径才不会漂移（JS 端同构函数名 groupBlocks）。
     """
     blocks: list[tuple[str, list[str]]] = []
     p_buf: list[str] = []
@@ -146,28 +146,19 @@ def strip_markdown(text: str) -> str:
             p_buf.append(t)
     flush_prose()
     flush_run()
-
-    rendered: list[str] = []
-    for kind, units in blocks:
-        if kind == "para":
-            rendered.append(units[0])
-        else:
-            rendered.append("\n".join(units))
-    return "\n\n".join(rendered)
+    return blocks
 
 
-def split_paragraphs(text: str) -> list[str]:
-    paras: list[str] = []
-    cur: list[str] = []
-    for line in text.splitlines():
-        if line.strip():
-            cur.append(line.strip())
-        elif cur:
-            paras.append("\n".join(cur))
-            cur = []
-    if cur:
-        paras.append("\n".join(cur))
-    return paras
+def strip_markdown(text: str) -> str:
+    """去掉 Markdown 标记，返回纯文本（保留段落空行结构）。
+
+    与 split_document 同一解析结果渲染，保证两个出口口径一致。
+    代码块整块丢弃——代码没有"AI 味"可言。
+    """
+    return "\n\n".join(
+        units[0] if kind == "para" else "\n".join(units)
+        for kind, units in _text_blocks(text)
+    )
 
 
 def split_sentences(text: str) -> list[Sentence]:
@@ -215,43 +206,14 @@ def split_document(text: str) -> list[Block]:
     （条目没有句末标点也算一句，不与相邻条目拼接）。
     """
     blocks: list[Block] = []
-    p_buf: list[str] = []
-    run: list | None = None
-
-    def flush_prose() -> None:
-        nonlocal p_buf
-        if p_buf:
-            block = Block(kind="para")
-            block.sents = split_sentences("\n".join(p_buf))
-            blocks.append(block)
-            p_buf = []
-
-    def flush_run() -> None:
-        nonlocal run
-        if run:
-            block = Block(kind=run[0])
-            for unit in run[1]:
-                block.sents.extend(split_sentences(unit))
-            blocks.append(block)
-            run = None
-
-    for kind, t in _line_units(text):
-        if kind == "b":
-            flush_prose()
-            flush_run()
-        elif kind in ("li", "tr"):
-            flush_prose()
-            block_kind = "list" if kind == "li" else "table"
-            if run is None or run[0] != block_kind:
-                flush_run()
-                run = [block_kind, []]
-            run[1].append(t)
+    for kind, units in _text_blocks(text):
+        block = Block(kind=kind)
+        if kind == "para":
+            block.sents = split_sentences(units[0])
         else:
-            flush_run()
-            p_buf.append(t)
-    flush_prose()
-    flush_run()
-
+            for unit in units:
+                block.sents.extend(split_sentences(unit))
+        blocks.append(block)
     for pi, block in enumerate(blocks):
         for s in block.sents:
             s.para = pi

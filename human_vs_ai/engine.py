@@ -15,6 +15,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 
 import yaml
@@ -170,7 +171,14 @@ def available_profiles() -> list[str]:
     return sorted(p.stem for p in RULES_DIR.glob("*.yaml"))
 
 
+@lru_cache(maxsize=None)
 def load_rules(profile: str) -> list[Rule]:
+    """加载并编译一个 profile 的规则。
+
+    结果按 profile 缓存（与 JS 端 compileRules 的 WeakMap 缓存同策略）：
+    网页逐键分析、批量评测、长循环拟合都不再重复编译正则。
+    代价是同进程内改 YAML 不生效——校准流程本来就是"改完重跑"。
+    """
     path = RULES_DIR / f"{profile}.yaml"
     if not path.exists():
         raise FileNotFoundError(
@@ -301,6 +309,22 @@ def _doc_threshold(rule: Rule, n_chars: int) -> float:
     return rule.doc_threshold
 
 
+def _finding(rule: Rule, para: int, sentence: str, matches: list[str]) -> Finding:
+    """规则命中 → Finding：文案字段统一从规则带出，调用处只给定位信息。"""
+    return Finding(
+        rule_id=rule.id,
+        rule_name=rule.name,
+        severity=rule.severity,
+        tier=rule.tier,
+        para=para,
+        sentence=sentence,
+        matches=matches,
+        explanation=rule.explanation,
+        suggestion=rule.suggestion,
+        taste=rule.taste,
+    )
+
+
 def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     rules = load_rules(profile)
     doc = segment.split_document(text)
@@ -321,19 +345,9 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                     if m:
                         matches.append(m.group(0))
                 if matches:
-                    f = Finding(
-                        rule_id=rule.id,
-                        rule_name=rule.name,
-                        severity=rule.severity,
-                        tier=rule.tier,
-                        para=pi,
-                        sentence=sent.text,
-                        matches=matches,
-                        explanation=rule.explanation,
-                        suggestion=rule.suggestion,
-                        taste=rule.taste,
+                    raw_hits.setdefault(rule.id, []).append(
+                        _finding(rule, pi, sent.text, matches)
                     )
-                    raw_hits.setdefault(rule.id, []).append(f)
         # 独句总结段只看普通段：列表/表格的条目天然又短又独立，
         # 判成"盖章段"是格式误伤
         if block.kind != "para":
@@ -344,18 +358,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                 continue
             if rule.doc_metric == "one_liner" and len(para) == 1 and len(para[0].text) <= 40:
                 raw_hits.setdefault(rule.id, []).append(
-                    Finding(
-                        rule_id=rule.id,
-                        rule_name=rule.name,
-                        severity=rule.severity,
-                        tier=rule.tier,
-                        para=pi,
-                        sentence=para[0].text,
-                        matches=[f"独句段（{len(para[0].text)} 字）"],
-                        explanation=rule.explanation,
-                        suggestion=rule.suggestion,
-                        taste=rule.taste,
-                    )
+                    _finding(rule, pi, para[0].text, [f"独句段（{len(para[0].text)} 字）"])
                 )
 
     # 共现加权：low 规则全文 <2 处命中 → 降为 hint
@@ -386,18 +389,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
         )
         if hit:
             result.findings.append(
-                Finding(
-                    rule_id=rule.id,
-                    rule_name=rule.name,
-                    severity=rule.severity,
-                    tier=rule.tier,
-                    para=-1,
-                    sentence="",
-                    matches=[f"{rule.doc_metric}={value:.3f}（阈值 {threshold:.2f}）"],
-                    explanation=rule.explanation,
-                    suggestion=rule.suggestion,
-                    taste=rule.taste,
-                )
+                _finding(rule, -1, "", [f"{rule.doc_metric}={value:.3f}（阈值 {threshold:.2f}）"])
             )
 
     result.findings.sort(

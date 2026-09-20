@@ -173,6 +173,5 @@
     return { advices: advices };
   }
 
-  return { rewriteText: rewriteText, classifyLine: classifyLine,
-           KEEP: KEEP, REWRITE: REWRITE, DELETE: DELETE };
+  return { rewriteText: rewriteText };
 });

@@ -110,25 +110,6 @@
     return blocks;
   }
 
-  function stripMarkdown(text) {
-    var rendered = groupBlocks(lineUnits(text)).map(function (b) {
-      return b[0] === "para" ? b[1][0] : b[1].join("\n");
-    });
-    return rendered.join("\n\n");
-  }
-
-  function splitParagraphs(text) {
-    var paras = [];
-    var cur = [];
-    var lines = text.split(/\r?\n/);
-    for (var i = 0; i < lines.length; i++) {
-      if (lines[i].trim()) cur.push(lines[i].trim());
-      else if (cur.length) { paras.push(cur.join("\n")); cur = []; }
-    }
-    if (cur.length) paras.push(cur.join("\n"));
-    return paras;
-  }
-
   /* 引号嵌套:与 Python 相同——开引号加深、闭引号减浅,深处句末标点不算边界 */
   function splitSentences(text) {
     var sents = [];
@@ -495,13 +476,5 @@
 
   return {
     analyze: analyze,
-    splitDocument: splitDocument,
-    splitSentences: splitSentences,
-    splitParagraphs: splitParagraphs,
-    stripMarkdown: stripMarkdown,
-    computeDocStats: computeDocStats,
-    tokenize: tokenize,
-    mattr: mattr,
-    fourGramRepeat: fourGramRepeat,
   };
 });

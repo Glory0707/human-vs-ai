@@ -47,6 +47,15 @@ def _require_profile(name: str) -> None:
         )
 
 
+def _emit(out: str, output: str | None) -> None:
+    """结果出口：写文件（提示走 stderr，不污染管道）或打印。"""
+    if output:
+        Path(output).write_text(out, encoding="utf-8")
+        print(f"已写入 {output}", file=sys.stderr)
+    else:
+        print(out)
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="human-vs-ai",
@@ -125,11 +134,7 @@ def main(argv: list[str] | None = None) -> None:
                 ensure_ascii=False, indent=2)
         else:
             out = rewrite.render_advice(result)
-        if args.output:
-            Path(args.output).write_text(out, encoding="utf-8")
-            print(f"已写入 {args.output}", file=sys.stderr)
-        else:
-            print(out)
+        _emit(out, args.output)
         return
 
     _require_profile(args.profile)
@@ -151,11 +156,7 @@ def main(argv: list[str] | None = None) -> None:
             result.hints = []
 
     out = report.render(result, args.format)
-    if args.output:
-        Path(args.output).write_text(out, encoding="utf-8")
-        print(f"已写入 {args.output}", file=sys.stderr)
-    else:
-        print(out)
+    _emit(out, args.output)
 
 
 if __name__ == "__main__":

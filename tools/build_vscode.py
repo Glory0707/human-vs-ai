@@ -25,16 +25,13 @@ EXT = ROOT / "vscode-extension"
 def main() -> None:
     rules = {p: rules_to_json(p) for p in engine.available_profiles()}
     (EXT / "rules.json").write_text(
-        json.dumps(rules, ensure_ascii=False, indent=1).replace("</", "<\\/>"),
-        encoding="utf-8",
-    )
+        json.dumps(rules, ensure_ascii=False, indent=1), encoding="utf-8")
     scoring = {p: scoring_to_json(p) for p in engine.available_profiles()}
     (EXT / "scoring.json").write_text(
-        json.dumps(scoring, ensure_ascii=False, indent=1).replace("</", "<\\/>"),
-        encoding="utf-8",
-    )
+        json.dumps(scoring, ensure_ascii=False, indent=1), encoding="utf-8")
     shutil.copyfile(ROOT / "web/engine.js", EXT / "engine.js")
     shutil.copyfile(ROOT / "web/rewrite.js", EXT / "rewrite.js")
+    shutil.copyfile(ROOT / "web/render.js", EXT / "render.js")
     # package.json 版本与主包对齐
     pkg_path = EXT / "package.json"
     pkg = pkg_path.read_text(encoding="utf-8")
