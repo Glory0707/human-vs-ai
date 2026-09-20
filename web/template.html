@@ -182,7 +182,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 <main>
   <section class="pane">
     <div class="pane-label">粘贴文本</div>
-    <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="粘贴正文。标题、代码块与裸链接自动跳过；列表、表格正文照常分析。"></textarea>
+    <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="粘贴正文"></textarea>
   </section>
   <section class="pane">
     <div class="pane-label with-btn"><span>分析报告</span><button id="copyBtn" title="把当前报告复制为 Markdown" disabled>复制 Markdown</button></div>
@@ -224,7 +224,7 @@ function renderProfiles() {
     const [label, desc] = PROFILE_META[p] || [p, ""];
     const b = document.createElement("button");
     b.textContent = label;
-    b.title = `${p} · ${desc}`;
+    b.title = desc;
     b.className = p === currentProfile ? "on" : "";
     // 改写建议只按 personal（其余三库没有删/改口径）
     if (currentMode === "rewrite" && p !== "personal") b.disabled = true;
@@ -297,7 +297,7 @@ function renderReport(result) {
   F.forEach(f => bySev[f.severity].push(f));
   const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
     .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式"}</div>`);
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`);
 
   const explained = new Set();
   const { groups, docLevel, sevRank } = buildGroups(F);
@@ -407,7 +407,7 @@ function reportToMarkdown() {
   L.push(`# human-vs-ai 分析报告（${label}）`, "");
   L.push("## 全文统计", "");
   if (r.score) {
-    L.push(`- AI 味指数：${r.score.index.toFixed(0)} / 100（风格形态综合分，不是 AI 概率）`);
+    L.push(`- AI 味指数：${r.score.index.toFixed(0)} / 100（风格分，不是 AI 概率）`);
     const comps = componentsText(r.score.components);
     if (comps) L.push(`- 构成：${comps}`);
   } else if (r.score_note) {
@@ -415,7 +415,7 @@ function reportToMarkdown() {
   }
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
-  if (!r.findings.length) L.push("未发现明显的模板化写作模式。");
+  if (!r.findings.length) L.push("未发现模板化写作。");
   const explained = new Set();
   const { groups, docLevel, sevRank } = buildGroups(r.findings);
   groups.forEach(g => {
@@ -447,7 +447,7 @@ function reportToMarkdown() {
     }
   });
   if (r.hints.length) {
-    L.push(`## 孤立弱命中（仅供参考，共 ${r.hints.length} 处）`, "");
+    L.push(`## 弱命中（共 ${r.hints.length} 处）`, "");
     r.hints.slice(0, HINTS_MAX).forEach(h =>
       L.push(`- ${h.rule_id} ${h.rule_name}（¶${h.para + 1}）`));
     if (r.hints.length > HINTS_MAX) L.push(`- …等 ${r.hints.length} 处`);

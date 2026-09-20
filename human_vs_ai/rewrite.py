@@ -281,5 +281,5 @@ def render_advice(result: RewriteResult) -> str:
         elif a.direction:
             out.append(f"   → {a.direction}")
         out.append("")
-    out.append("改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。")
+    out.append("重要数据和结论要保留；梗得人来补。")
     return "\n".join(out)

@@ -403,5 +403,5 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
         scoring,
     )
     if result.score is None and scoring is None and result.doc_stats.n_sentences >= 8:
-        result.scoring_note = "该文体未校准评分，宁缺毋滥"
+        result.scoring_note = "该文体未校准评分"
     return result

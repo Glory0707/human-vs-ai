@@ -466,9 +466,8 @@
     findings.sort(function (a, b) {
       return (SEV[b.severity] - SEV[a.severity]) || (a.para - b.para);
     });
-    /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；
-       <8 句保持空——短文本不展示统计，多一行解释反而吵 */
-    var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分，宁缺毋滥" : "";
+    /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空 */
+    var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoring || null),
              score_note: scoreNote };

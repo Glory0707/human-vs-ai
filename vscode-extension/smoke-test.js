@@ -53,7 +53,7 @@ check("official lexicon silent on academic human text", oHits.length === 0,
 const emptyResult = HvA.analyze("", RULES.academic);
 check("empty input safe", Array.isArray(emptyResult.findings));
 const emptyHtml = renderReportHtml("empty.txt", "academic", emptyResult);
-check("empty report renders", emptyHtml.includes("未发现明显"));
+check("empty report renders", emptyHtml.includes("未发现模板化写作"));
 // 场景标签中文化
 check("profile label localized", renderReportHtml("x.txt", "official", emptyResult).includes("公文"));
 

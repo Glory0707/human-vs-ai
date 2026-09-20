@@ -20,7 +20,7 @@ _TIER_LABEL = {"lexical": "词表", "syntactic": "句式", "structural": "结构
 _SEV_LABEL = {"high": "高", "medium": "中", "low": "低", "hint": "弱"}
 _SEV_RANK = {"high": 0, "medium": 1, "low": 2, "hint": 3}
 
-_DISCLAIMER = "风格提示，不是 AI 判定；单条命中不构成证据。"
+_DISCLAIMER = "风格提示，不是 AI 判定。"
 
 # 弱命中列表的展示上限：hundreds-of-hints 的长文里它只是参考信息，
 # 全量列出会淹没正文发现（JSON 出口不带截断——事实源永远完整）
@@ -117,7 +117,7 @@ def render_terminal(result: AnalysisResult) -> str:
     out.extend(stats_lines(result))
     out.append("")
     if not result.findings:
-        out.append(C("32", "未发现明显的模板化写作模式。"))
+        out.append(C("32", "未发现模板化写作。"))
     else:
         explained: set[str] = set()
         groups, doc_level = _group_by_sentence(result.findings)
@@ -152,8 +152,8 @@ def render_terminal(result: AnalysisResult) -> str:
             out.append("")
     if result.hints:
         shown = result.hints[:_HINTS_MAX]
-        out.append(C("90", f"另有 {len(result.hints)} 处弱命中（仅供参考"
-                           + (f"，列前 {len(shown)} 处" if len(shown) < len(result.hints) else "") + "）："))
+        cap = f"（列前 {len(shown)} 处）" if len(shown) < len(result.hints) else ""
+        out.append(C("90", f"另有 {len(result.hints)} 处弱命中{cap}："))
         for f in shown:
             out.append(C("90", f"  · {f.rule_id} {f.rule_name} ¶{f.para + 1}"))
         out.append("")
@@ -174,7 +174,7 @@ def render_markdown(result: AnalysisResult) -> str:
     out.append(f"## 发现（{len(result.findings)} 处）")
     out.append("")
     if not result.findings:
-        out.append("未发现明显的模板化写作模式。")
+        out.append("未发现模板化写作。")
     explained: set[str] = set()
     groups, doc_level = _group_by_sentence(result.findings)
     for group in groups:
@@ -206,7 +206,7 @@ def render_markdown(result: AnalysisResult) -> str:
             out.append(f"**建议**：{f.suggestion}")
         out.append("")
     if result.hints:
-        out.append("## 弱命中（仅供参考）")
+        out.append("## 弱命中")
         out.append("")
         shown = result.hints[:_HINTS_MAX]
         if len(shown) < len(result.hints):

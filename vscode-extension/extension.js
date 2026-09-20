@@ -44,7 +44,7 @@ function renderReportHtml(fileName, profile, result) {
   F.forEach(f => bySev[f.severity].push(f));
   const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
     .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式。"}</div>`);
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作。"}</div>`);
 
   const explained = new Set();
   ["high", "medium", "low"].forEach(sev => {
@@ -244,7 +244,7 @@ function rewriteActive() {
     return;
   }
   if (!HvARewrite) {
-    vscode.window.showErrorMessage("human-vs-ai：改写模块缺失（请重跑 build_vscode.py 同步 rewrite.js）。");
+    vscode.window.showErrorMessage("human-vs-ai：改写模块缺失，请重跑 build_vscode.py。");
     return;
   }
   const text = editor.document.getText();
@@ -295,7 +295,7 @@ function analyzeActive() {
 
   const n = result.findings.length;
   vscode.window.setStatusBarMessage(
-    n ? `human-vs-ai：${fileName} 发现 ${n} 处` : `human-vs-ai：${fileName} 未发现明显模板化写作模式`,
+    n ? `human-vs-ai：${fileName} 发现 ${n} 处` : `human-vs-ai：${fileName} 未发现模板化写作`,
     8000
   );
 }

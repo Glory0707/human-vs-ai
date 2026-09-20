@@ -6,10 +6,6 @@ build/
 dist/
 .pytest_cache/
 
-# 下载的第三方语料（版权与体积，不入库；获取方式见 docs/rules.md）
-_qa/corpus/
-_qa/walk_*.txt
-
 # 本地环境
 .venv/
 venv/
@@ -17,16 +13,18 @@ venv/
 # 编辑器
 .vscode/
 .idea/
-_qa/_web_*.js
-_qa/_web_*.json
-_qa/_mini*.js
 
 # 私人语料（口味校准层）——永不入库
 corpus_private/
 
-# 视觉验收截图（本地产物，不入库）
+# 下载的第三方语料（版权与体积，不入库；获取方式见 docs/rules.md）
+_qa/corpus/
+_qa/walk_*.txt
+
+# 本地产物：截图 / 一致性检查与冒烟测试的中间产物（每次运行重新生成）
 _qa/*.png
 .playwright-mcp/
-
-# 评分实验的特征缓存（可由公共语料重新抽取，不入库）
+_qa/_web_*.js
+_qa/_web_*.json
+_qa/vscode-preview.html
 _qa/exp_rows_*.json

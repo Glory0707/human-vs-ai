@@ -19,12 +19,12 @@
     academic: ["学术", "论文、摘要、实验报告"],
     general: ["问答", "知乎、公众号、科普"],
     official: ["公文", "通知、意见、实施方案"],
-    personal: ["我的口味", "短文案：界面文案、标题、提示语"],
+    personal: ["我的口味", "界面文案、标题、提示语"],
   };
   /* 弱命中只是参考信息，长文里全量列出会淹没正文发现（与 CLI 同口径） */
   var HINTS_MAX = 12;
-  var DISCLAIMER = "风格提示，不是 AI 判定；单条命中不构成证据。";
-  var ADVICE_FOOTER = "改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。";
+  var DISCLAIMER = "风格提示，不是 AI 判定。";
+  var ADVICE_FOOTER = "重要数据和结论要保留；梗得人来补。";
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -76,22 +76,21 @@
     if (!score) return "";
     const idx = score.index.toFixed(0);
     const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-    return `<div class="row score" title="风格形态综合分：规则命中密度与全文统计的加权（校准 AUROC ${score.auroc.toFixed(2)}，校准语料真人 p50≈${score.human_p50} / p90≈${score.human_p90}）。是风格分，不是 AI 概率。">` +
+    return `<div class="row score" title="风格综合分，不是 AI 概率（真人 p50≈${score.human_p50} / p90≈${score.human_p90}）">` +
       `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${componentsText(score.components)}</span></div>`;
   }
 
   /* 够 8 句却没出分（无校准语料）给一行原因；文案与 engine.score_note 同源 */
   function scoreNoteRow(note) {
     if (!note) return "";
-    return `<div class="row score" title="该文体没有真人配对的校准语料，给不出可信的分——宁缺毋滥。">` +
-      `AI 味指数 <span class="comp">—（${note}）</span></div>`;
+    return `<div class="row score">AI 味指数 <span class="comp">—（${note}）</span></div>`;
   }
 
   function hintsHtml(hints) {
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
     const more = hints.length - shown.length;
-    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中（仅供参考${more ? `，列前 ${shown.length} 处` : ""}）</div>` +
+    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中${more ? `（列前 ${shown.length} 处）` : ""}</div>` +
       shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
       `</div>`;
