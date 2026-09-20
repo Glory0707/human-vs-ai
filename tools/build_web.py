@@ -16,7 +16,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from human_vs_ai import __version__, engine  # noqa: E402
-from tools.check_web_consistency import rules_to_json  # noqa: E402
+from tools.check_web_consistency import rules_to_json, scoring_to_json  # noqa: E402
 
 
 def _strip_calibration_notes(rules: list[dict]) -> list[dict]:
@@ -45,13 +45,18 @@ def main() -> None:
         p: _strip_calibration_notes(rules_to_json(p))
         for p in engine.available_profiles()
     }
-    rules_json = json.dumps(rules, ensure_ascii=False).replace("</", "<\\/")
+    rules_json = json.dumps(rules, ensure_ascii=False).replace("</", "<\\/>")
+    scoring_json = json.dumps(
+        {p: scoring_to_json(p) for p in engine.available_profiles()},
+        ensure_ascii=False,
+    ).replace("</", "<\\/")
 
     html = (
         template.replace("__VERSION__", __version__)
         .replace("__ENGINE__", engine_js.replace("</", "<\\/"))
         .replace("__REWRITE__", rewrite_js.replace("</", "<\\/"))
         .replace("__RULES_JSON__", rules_json)
+        .replace("__SCORING_JSON__", scoring_json)
     )
     out = ROOT / "web/index.html"
     out.write_text(html, encoding="utf-8")

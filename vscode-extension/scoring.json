@@ -1,0 +1,28 @@
+{
+ "academic": {
+  "corpus": "C-ReD paper 245 篇过 8 句门槛样本（真人 33 vs 四模型 212），2026-09",
+  "intercept": -69.8327,
+  "hit_density": 8.9025,
+  "sentence_cv": -14.8899,
+  "ttr": 83.377,
+  "ngram_repeat": 22.6387,
+  "auroc": 0.984,
+  "auroc_holdout": 0.974,
+  "human_p50": 15,
+  "human_p90": 63
+ },
+ "general": {
+  "corpus": "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300），2026-09",
+  "intercept": 20.7692,
+  "hit_density": 1.9778,
+  "sentence_cv": -6.2976,
+  "ttr": -19.3341,
+  "ngram_repeat": -7.4213,
+  "auroc": 0.834,
+  "auroc_holdout": 0.868,
+  "human_p50": 60,
+  "human_p90": 88
+ },
+ "official": null,
+ "personal": null
+}

@@ -46,9 +46,10 @@ const HvA = require(process.argv[2]);
 const HvARewrite = require(process.argv[3]);
 const rules = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
 const texts = JSON.parse(fs.readFileSync(process.argv[5], "utf8"));
+const scoring = JSON.parse(fs.readFileSync(process.argv[6], "utf8"));
 const out = {};
 for (const [name, text] of Object.entries(texts)) {
-  out[name] = HvA.analyze(text, rules);
+  out[name] = HvA.analyze(text, rules, scoring);
 }
 const rw = {};
 for (const [name, text] of Object.entries(texts)) {
@@ -100,6 +101,11 @@ def rules_to_json(profile: str) -> list[dict]:
     ]
 
 
+def scoring_to_json(profile: str) -> dict | None:
+    """评分模型的注入形态（scoring 段原样；未校准的 profile 为 None）。"""
+    return engine.load_scoring(profile)
+
+
 def normalize(result: dict) -> dict:
     """归一到可比形态:findings/hints 逐条全字段,stats 舍入 4 位(忽略 ttr/tokenizer)。"""
     def fs(fs_list):
@@ -118,10 +124,22 @@ def normalize(result: dict) -> dict:
             return round(float(v), 4)
         return v
 
+    score = result.get("score")
+    norm_score = None
+    if score:
+        norm_score = {
+            "index": round(float(score["index"]), 4),
+            "components": {k: round(float(v), 4) for k, v in score["components"].items()},
+            "corpus": score.get("corpus", ""),
+            "human_p50": score.get("human_p50", 0),
+            "human_p90": score.get("human_p90", 0),
+        }
+
     return {
         "findings": fs(result["findings"]),
         "hints": fs(result["hints"]),
         "stats": {k: norm_num(v) for k, v in s.items() if k not in ("ttr", "tokenizer", "avg_sentence_len", "sentence_cvs")},
+        "score": norm_score,
     }
 
 
@@ -144,11 +162,14 @@ def main() -> None:
         script.write_text(NODE_SCRIPT, encoding="utf-8")
         rules_path = ROOT / "_qa/_web_rules.json"
         texts_path = ROOT / "_qa/_web_texts.json"
+        scoring_path = ROOT / "_qa/_web_scoring.json"
         rules_path.write_text(rules_json, encoding="utf-8")
         texts_path.write_text(texts_json, encoding="utf-8")
+        scoring_path.write_text(
+            json.dumps(scoring_to_json(profile), ensure_ascii=False), encoding="utf-8")
         proc = subprocess.run(
             ["node", str(script), str(engine_js.resolve()), str(rewrite_js.resolve()),
-             str(rules_path), str(texts_path)],
+             str(rules_path), str(texts_path), str(scoring_path)],
             capture_output=True, text=True, encoding="utf-8",
         )
         if proc.returncode != 0:
@@ -159,16 +180,20 @@ def main() -> None:
 
         for name, _ in PROBE_TEXTS:
             py = engine.analyze(dict(PROBE_TEXTS)[name], profile)
+            score = py.score
             py_norm = normalize(
                 {"findings": [f.to_dict() for f in py.findings],
                  "hints": [f.to_dict() for f in py.hints],
-                 "stats": py.doc_stats.__dict__}
+                 "stats": py.doc_stats.__dict__,
+                 "score": ({"index": score.index, "components": score.components,
+                            "corpus": score.corpus, "human_p50": score.human_p50,
+                            "human_p90": score.human_p90} if score else None)}
             )
             js_norm = normalize(js_results[name])
             if py_norm != js_norm:
                 failed = True
                 print(f"[FAIL] {profile}/{name}")
-                for key in ("findings", "hints", "stats"):
+                for key in ("findings", "hints", "stats", "score"):
                     if py_norm[key] != js_norm[key]:
                         print(f"  {key}:\n    py={json.dumps(py_norm[key], ensure_ascii=False)[:400]}"
                               f"\n    js={json.dumps(js_norm[key], ensure_ascii=False)[:400]}")

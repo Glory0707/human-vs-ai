@@ -324,6 +324,46 @@
     return stats;
   }
 
+  /* ---------- 综合评分（与 Python compute_score 同构） ---------- */
+
+  /* 严重级 → 加权密度系数（与 Python _SCORE_WEIGHT / fit_score.py 同步） */
+  var SCORE_WEIGHT = { high: 3.0, medium: 2.0, low: 1.0 };
+  /* scoring 段里的元字段，不是特征 */
+  var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1 };
+
+  /* 规则特征用未门控加权密度（共现门控是逐句指控的纪律，文档级聚合
+     保留幅度信息更有效）；TTR 直接用 stats.ttr——本引擎 tokenize 就是
+     字级 2-gram，与 Python 评分专用口径天然一致。短文本（<8 句）不出分。 */
+  function computeScore(stats, weightedHits, scoring) {
+    if (!scoring) return null;
+    if (stats.n_sentences < 8) return null;
+    var z = scoring.intercept;
+    var components = {};
+    var values = {
+      hit_density: stats.n_sentences ? weightedHits / stats.n_sentences : 0,
+      sentence_cv: stats.sentence_cv,
+      ttr: stats.ttr,
+      ngram_repeat: stats.ngram_repeat,
+      conn_density: stats.conn_density,
+    };
+    for (var feat in scoring) {
+      if (SCORING_META[feat] || !scoring.hasOwnProperty(feat)) continue;
+      var v = values[feat];
+      if (typeof v !== "number" || isNaN(v)) continue;
+      components[feat] = scoring[feat] * v;
+      z += components[feat];
+    }
+    z = Math.max(Math.min(z, 30), -30);
+    return {
+      index: 100 / (1 + Math.exp(-z)),
+      components: components,
+      corpus: String(scoring.corpus || ""),
+      auroc: typeof scoring.auroc === "number" ? scoring.auroc : NaN,
+      human_p50: scoring.human_p50 || 0,
+      human_p90: scoring.human_p90 || 0,
+    };
+  }
+
   /* ---------- 引擎 ---------- */
 
   /* 编译结果按规则数组引用缓存（网页端每次按键都调 analyze，
@@ -352,15 +392,17 @@
     return out;
   }
 
-  function analyze(text, rules) {
+  function analyze(text, rules, scoring) {
     rules = compileRules(rules);
     var doc = splitDocument(text);
     var findings = [], hints = [];
     var raw = {};
+    var weightedHits = 0;
 
     function push(rule, f) {
       if (!raw[rule.id]) raw[rule.id] = [];
       raw[rule.id].push(f);
+      weightedHits += SCORE_WEIGHT[f.severity] || 1.0;
     }
 
     for (var pi = 0; pi < doc.length; pi++) {
@@ -444,7 +486,8 @@
     findings.sort(function (a, b) {
       return (SEV[b.severity] - SEV[a.severity]) || (a.para - b.para);
     });
-    return { findings: findings, hints: hints, stats: stats };
+    return { findings: findings, hints: hints, stats: stats,
+             score: computeScore(stats, weightedHits, scoring || null) };
   }
 
   return {

@@ -48,14 +48,19 @@ def _cv(xs: list[float]) -> float:
     return math.sqrt(var) / m
 
 
-def tokenize(text: str) -> list[str]:
-    """切词：有 jieba 用 jieba，没有就退化成 2-gram 切片（够算 TTR 的量级）。"""
-    if _HAS_JIEBA:
-        return [w for w in jieba.lcut(text) if w.strip()]
+def tokenize_2gram(text: str) -> list[str]:
+    """字级 2-gram 切分——评分专用口径（见 engine.compute_score）。"""
     clean = _PUNCT.sub("", text)
     if len(clean) < 2:
         return [c for c in clean if c.strip()]
     return [clean[i : i + 2] for i in range(len(clean) - 1)]
+
+
+def tokenize(text: str) -> list[str]:
+    """切词：有 jieba 用 jieba，没有就退化成 2-gram 切片（够算 TTR 的量级）。"""
+    if _HAS_JIEBA:
+        return [w for w in jieba.lcut(text) if w.strip()]
+    return tokenize_2gram(text)
 
 
 @dataclass

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "human-vs-ai"
-version = "0.9.1"
+version = "0.10.0"
 description = "可解释的中文 AI 味分析器：逐句指出文本哪里像 AI、为什么像、怎么改。不判 AI 概率，只做写作风格归因。"
 readme = "README.md"
 requires-python = ">=3.10"

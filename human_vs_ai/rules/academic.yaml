@@ -405,3 +405,19 @@ rules:
     suggestion: 破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。
     references:
       - https://github.com/blader/humanizer
+
+# 综合评分（AI 味指数）：门控前规则加权密度 + 全文统计的逻辑回归。
+# 拟合与分层验证：tools/fit_score.py（半样本拟合并留出验证，防过拟合）；
+# TTR 特征用字级 2-gram 口径（浏览器引擎可复现，两端同分）。
+# 实测：全量 AUROC 0.984 / 分层留出 0.974；消融显示纯扣词只有 0.847。
+scoring:
+  corpus: "C-ReD paper 245 篇过 8 句门槛样本（真人 33 vs 四模型 212），2026-09"
+  intercept: -69.8327
+  hit_density: 8.9025
+  sentence_cv: -14.8899
+  ttr: 83.3770
+  ngram_repeat: 22.6387
+  auroc: 0.984
+  auroc_holdout: 0.974
+  human_p50: 15
+  human_p90: 63

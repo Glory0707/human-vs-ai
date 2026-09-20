@@ -27,7 +27,11 @@ b { font-variant-numeric: tabular-nums; }
 .stats { padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
 .stats .row { font-size: 12px; color: var(--ink-2); }
 .stats .row + .row { margin-top: 2px; }
-.stats b { color: inherit; }
+.stats .row.score b.s-high { color: var(--sev-high); }
+.stats .row.score b.s-medium { color: var(--sev-medium); }
+.stats .row.score b.s-low { color: var(--sev-low); }
+.stats .row.score .comp { color: var(--ink-3); }
+.stats .row.score b { color: inherit; }
 .summary { padding: 12px 0 4px; font-weight: 600; }
 .found { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .found .head { font-weight: 600; }
@@ -46,6 +50,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 .docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
 </style></head>
 <body><div class="docname">ai_official.txt · 公文</div><div class="stats">
+    
     <div class="row">规模：<b>14</b> 段 · <b>23</b> 句 · <b>1109</b> 字</div>
     <div class="row">节奏：句长 CV <b>0.33</b> · 段长 CV <b>0.33</b></div>
     <div class="row">词汇：TTR <b>0.94</b> · 连接词密度 <b>0.78</b> 条/句 · 4-gram 重复率 <b>0.04</b></div>

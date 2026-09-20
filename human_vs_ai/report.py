@@ -13,7 +13,7 @@ import json
 import sys
 from collections import OrderedDict
 
-from .engine import AnalysisResult, Finding
+from .engine import AnalysisResult, Score, Finding
 from . import __version__
 
 _TIER_LABEL = {"lexical": "词表", "syntactic": "句式", "structural": "结构", "statistical": "统计"}
@@ -26,6 +26,27 @@ _DISCLAIMER = "风格提示，不是 AI 判定；单条命中不构成证据。"
 # 全量列出会淹没正文发现（JSON 出口不带截断——事实源永远完整）
 _HINTS_MAX = 12
 
+# 评分特征 → 报告用短标签（components 键序即 scoring YAML 特征序）
+_SCORE_LABEL = {
+    "hit_density": "规则",
+    "sentence_cv": "节奏",
+    "ttr": "词汇",
+    "ngram_repeat": "重复",
+    "conn_density": "连接词",
+}
+
+
+def _score_line(score: Score) -> str:
+    return f"AI 味指数：{_fmt(score.index)} / 100"
+
+
+def _score_components(score: Score) -> str:
+    parts = []
+    for feat, v in score.components.items():
+        label = _SCORE_LABEL.get(feat, feat)
+        parts.append(f"{label} {v:+.0f}")
+    return "构成：" + " · ".join(parts) if parts else ""
+
 
 def _fmt(value: float) -> str:
     return "—" if value != value else f"{value:.2f}"
@@ -33,7 +54,12 @@ def _fmt(value: float) -> str:
 
 def stats_lines(result: AnalysisResult) -> list[str]:
     s = result.doc_stats
-    rows = [f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字"]
+    rows = []
+    # 综合分是报告的第一行——它是用户要的"整体判断"，逐句发现在后
+    if result.score:
+        rows.append(_score_line(result.score))
+        rows.append(_score_components(result.score))
+    rows.append(f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
     # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
     if s.n_sentences < 8:
@@ -198,6 +224,7 @@ def render_json(result: AnalysisResult) -> str:
             "version": __version__,
             "profile": result.profile,
             "stats": result.doc_stats.to_dict(),
+            "score": result.score.to_dict() if result.score else None,
             "findings": [f.to_dict() for f in result.findings],
             "hints": [f.to_dict() for f in result.hints],
             "disclaimer": _DISCLAIMER,

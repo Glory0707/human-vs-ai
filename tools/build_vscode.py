@@ -17,7 +17,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from human_vs_ai import __version__, engine  # noqa: E402
-from tools.check_web_consistency import rules_to_json  # noqa: E402
+from tools.check_web_consistency import rules_to_json, scoring_to_json  # noqa: E402
 
 EXT = ROOT / "vscode-extension"
 
@@ -28,6 +28,11 @@ def main() -> None:
         json.dumps(rules, ensure_ascii=False, indent=1).replace("</", "<\\/>"),
         encoding="utf-8",
     )
+    scoring = {p: scoring_to_json(p) for p in engine.available_profiles()}
+    (EXT / "scoring.json").write_text(
+        json.dumps(scoring, ensure_ascii=False, indent=1).replace("</", "<\\/>"),
+        encoding="utf-8",
+    )
     shutil.copyfile(ROOT / "web/engine.js", EXT / "engine.js")
     shutil.copyfile(ROOT / "web/rewrite.js", EXT / "rewrite.js")
     # package.json 版本与主包对齐
@@ -36,7 +41,8 @@ def main() -> None:
     import re
     pkg = re.sub(r'("version":\s*")[^"]+(")', rf"\g<1>{__version__}\g<2>", pkg, count=1)
     pkg_path.write_text(pkg, encoding="utf-8")
-    print(f"已注入 {len(rules)} 个 profile 的规则并同步引擎 → {EXT}")
+    n_scored = sum(1 for v in scoring.values() if v)
+    print(f"已注入 {len(rules)} 个 profile 的规则（{n_scored} 个带评分模型）并同步引擎 → {EXT}")
 
 
 if __name__ == "__main__":

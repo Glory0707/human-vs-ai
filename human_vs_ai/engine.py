@@ -115,11 +115,40 @@ class Finding:
 
 
 @dataclass
+class Score:
+    """AI 味指数：规则命中密度 + 全文统计的逻辑回归综合分（0-100）。
+
+    系数在 profile YAML 的 scoring 段（校准只改数据的纪律），拟合与
+    分层验证见 tools/fit_score.py 与 _qa/score-fit.json。它回答"这篇
+    整体上模板腔有多重"，逐句归因仍由 findings 承担——分数不许单独
+    定罪，免责声明始终随行。
+    """
+
+    index: float  # 0-100
+    components: dict[str, float]  # 各特征贡献 coef*value（显示与解释用）
+    corpus: str = ""
+    auroc: float = math.nan
+    human_p50: int = 0  # 校准语料真人指数分位——给读分数的人一个锚
+    human_p90: int = 0
+
+    def to_dict(self) -> dict:
+        return {
+            "index": round(self.index, 1),
+            "components": {k: round(v, 1) for k, v in self.components.items()},
+            "human_p50": self.human_p50,
+            "human_p90": self.human_p90,
+            "corpus": self.corpus,
+            "auroc": self.auroc,
+        }
+
+
+@dataclass
 class AnalysisResult:
     findings: list[Finding] = field(default_factory=list)
     hints: list[Finding] = field(default_factory=list)  # 弱规则孤立命中，仅供参考
     doc_stats: stats.DocStats = field(default_factory=stats.DocStats)
     profile: str = ""
+    score: Score | None = None  # <8 句或该 profile 未校准时为 None
 
     @property
     def n_high(self) -> int:
@@ -174,6 +203,71 @@ def load_rules(profile: str) -> list[Rule]:
 
 
 _DENSITY_PREFIXES = ("L-CONN", "O-STK")  # 词表规则同时供全文密度统计的前缀
+
+# 评分特征权重：严重级 → 加权密度系数（与 fit_score.py 的 WEIGHT 同步）
+_SCORE_WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
+# scoring 段里的元字段，不是特征
+_SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90")
+
+
+def load_scoring(profile: str) -> dict | None:
+    """读 profile YAML 的 scoring 段；没有（未校准）返回 None——宁缺毋滥。"""
+    path = RULES_DIR / f"{profile}.yaml"
+    if not path.exists():
+        return None
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    return data.get("scoring")
+
+
+def compute_score(
+    full_raw: str,
+    doc_stats: stats.DocStats,
+    findings: list[Finding],
+    hints: list[Finding],
+    scoring: dict,
+) -> Score | None:
+    """综合评分：门控前的规则加权密度 + 全文统计，过逻辑回归映射 0-100。
+
+    规则特征用未门控密度——共现门控是"逐句指控"的纪律（单个弱命中
+    不许告一条句子），文档级聚合保留幅度信息更有效（消融：0.847 vs 0.810）。
+    TTR 用字级 2-gram 专用口径：jieba 词级数值浏览器端不可复现，评分必须
+    两端同分，所以不复用 doc_stats.ttr。短文本（<8 句）不出分。
+    """
+    if not scoring:
+        return None
+    n = doc_stats.n_sentences
+    if n < 8:
+        return None
+    hit_density = (
+        sum(_SCORE_WEIGHT.get(f.severity, 1.0) for f in findings + hints if f.para >= 0) / n
+    )
+    ttr_2gram = stats.mattr(stats.tokenize_2gram(full_raw))
+    values = {
+        "hit_density": hit_density,
+        "sentence_cv": doc_stats.sentence_cv,
+        "ttr": ttr_2gram,
+        "ngram_repeat": doc_stats.ngram_repeat,
+        "conn_density": doc_stats.conn_density,
+    }
+    z = float(scoring.get("intercept", 0.0))
+    components: dict[str, float] = {}
+    for feat, coef in scoring.items():
+        if feat in _SCORING_META:
+            continue
+        v = values.get(feat)
+        if v is None or v != v:  # 该 profile 没有此特征或值为 NaN（无词表等）
+            continue
+        components[feat] = float(coef) * v
+        z += components[feat]
+    z = max(min(z, 30.0), -30.0)
+    return Score(
+        index=100.0 / (1.0 + math.exp(-z)),
+        components=components,
+        corpus=str(scoring.get("corpus", "")),
+        auroc=float(scoring.get("auroc", math.nan)),
+        human_p50=int(scoring.get("human_p50", 0)),
+        human_p90=int(scoring.get("human_p90", 0)),
+    )
 
 
 def connective_lexicon(rules: list[Rule]) -> set[str]:
@@ -310,5 +404,12 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
 
     result.findings.sort(
         key=lambda f: (-SEVERITY_ORDER.get(f.severity, 0), f.para)
+    )
+    result.score = compute_score(
+        "".join(s.text for block in doc for s in block.sents),
+        result.doc_stats,
+        result.findings,
+        result.hints,
+        load_scoring(profile),
     )
     return result

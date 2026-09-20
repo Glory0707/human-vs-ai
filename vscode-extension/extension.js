@@ -14,10 +14,14 @@ const HvA = require("./engine.js");
 let HvARewrite = null;
 try { HvARewrite = require("./rewrite.js"); } catch (e) { HvARewrite = null; }
 const RULES = require("./rules.json");
+let SCORING = {};
+try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 
 const PROFILE_LABEL = {
   academic: "学术", general: "问答", official: "公文", personal: "我的口味",
 };
+
+const SCORE_LABEL = { hit_density: "规则", sentence_cv: "节奏", ttr: "词汇", ngram_repeat: "重复", conn_density: "连接词" };
 
 const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E", hint: "#8A8A86" };
 const SEV_LABEL = { high: "高", medium: "中", low: "低", hint: "弱" };
@@ -61,6 +65,19 @@ function hiSentence(sent, matches) {
   return out + esc(sent.slice(pos));
 }
 
+/* 指数行：分档锚定校准语料真人分位；构成列出各特征贡献——分数可拆解 */
+function scoreRowHtml(score) {
+  if (!score) return "";
+  const idx = score.index.toFixed(0);
+  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+  const comps = Object.keys(score.components).map(f => {
+    const v = score.components[f];
+    return `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`;
+  }).join(" · ");
+  return `<div class="row score" title="风格形态综合分（校准语料真人 p50≈${score.human_p50} / p90≈${score.human_p90}）。是风格分，不是 AI 概率。">` +
+    `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${comps}</span></div>`;
+}
+
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
    样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
    挂 vscode-light / vscode-dark 类），暗色主题下不再白底刺眼。 */
@@ -69,6 +86,7 @@ function renderReportHtml(fileName, profile, result) {
   const parts = [];
 
   parts.push(`<div class="stats">
+    ${scoreRowHtml(result.score)}
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
     ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
@@ -139,7 +157,11 @@ b { font-variant-numeric: tabular-nums; }
 .stats { padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
 .stats .row { font-size: 12px; color: var(--ink-2); }
 .stats .row + .row { margin-top: 2px; }
-.stats b { color: inherit; }
+.stats .row.score b.s-high { color: var(--sev-high); }
+.stats .row.score b.s-medium { color: var(--sev-medium); }
+.stats .row.score b.s-low { color: var(--sev-low); }
+.stats .row.score .comp { color: var(--ink-3); }
+.stats .row.score b { color: inherit; }
 .summary { padding: 12px 0 4px; font-weight: 600; }
 .found { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .found .head { font-weight: 600; }
@@ -320,7 +342,7 @@ function analyzeActive() {
     return;
   }
   const text = editor.document.getText();
-  const result = HvA.analyze(text, rules);
+  const result = HvA.analyze(text, rules, SCORING[profile] || null);
   const fileName = path.basename(editor.document.fileName);
 
   const panel = vscode.window.createWebviewPanel(

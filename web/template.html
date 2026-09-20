@@ -105,6 +105,10 @@ main { flex: 1; display: flex; min-height: 0; }
 .stats .row { font-size: var(--fs-sm); color: var(--ink-2); }
 .stats .row + .row { margin-top: 2px; }
 .stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.stats .row.score b.s-high { color: var(--sev-high); }
+.stats .row.score b.s-medium { color: var(--sev-medium); }
+.stats .row.score b.s-low { color: var(--sev-low); }
+.stats .row.score .comp { color: var(--ink-3); }
 .summary { padding: 12px 0 4px; font-weight: 600; }
 .found { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .found:last-of-type { border-bottom: none; }
@@ -193,6 +197,7 @@ __REWRITE__
 </script>
 <script>
 const RULES_BY_PROFILE = __RULES_JSON__;
+const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 const PROFILE_META = {
   academic: ["学术", "论文、摘要、实验报告"],
@@ -303,6 +308,20 @@ function buildGroups(F) {
   return { groups, docLevel, sevRank };
 }
 
+const SCORE_LABEL = { hit_density: "规则", sentence_cv: "节奏", ttr: "词汇", ngram_repeat: "重复", conn_density: "连接词" };
+
+/* 指数行：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低），
+   构成列出各特征贡献——分数永远可拆解，不许当黑盒 */
+function scoreRow(score) {
+  if (!score) return "";
+  const idx = score.index.toFixed(0);
+  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+  const comps = Object.entries(score.components).map(([f, v]) =>
+    `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`).join(" · ");
+  return `<div class="row score" title="风格形态综合分：规则命中密度与全文统计的加权（校准 AUROC ${score.auroc.toFixed(2)}，校准语料真人 p50≈${score.human_p50} / p90≈${score.human_p90}）。是风格分，不是 AI 概率。">` +
+    `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${comps}</span></div>`;
+}
+
 function statsRows(s) {
   const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
   // 统计行只在样本够判定时展示（与 doc 规则的 min_sentences=8 同口径）：
@@ -317,7 +336,7 @@ function renderReport(result) {
   if (!result) return;
   const parts = [];
 
-  parts.push(`<div class="stats">${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
+  parts.push(`<div class="stats">${scoreRow(result.score)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };
@@ -424,7 +443,7 @@ function doAnalyze(text) {
     lastAdvice = HvARewrite.rewriteText(text, rules);
     renderAdvice();
   } else {
-    lastResult = HvA.analyze(text, rules);
+    lastResult = HvA.analyze(text, rules, SCORING[currentProfile] || null);
     renderReport(lastResult);
   }
   updateCopyBtn();
@@ -441,6 +460,12 @@ function reportToMarkdown() {
   const L = [];
   L.push(`# human-vs-ai 分析报告（${label}）`, "");
   L.push("## 全文统计", "");
+  if (r.score) {
+    L.push(`- AI 味指数：${r.score.index.toFixed(0)} / 100（风格形态综合分，不是 AI 概率）`);
+    const comps = Object.entries(r.score.components).map(([f, v]) =>
+      `${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}`).join(" · ");
+    if (comps) L.push(`- 构成：${comps}`);
+  }
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
   if (!r.findings.length) L.push("未发现明显的模板化写作模式。");

@@ -6,4 +6,4 @@
 （斯坦福 2023、IJEI 2023、Nature 2026 对检测器的结论见 docs/design.md）。
 """
 
-__version__ = "0.9.1"
+__version__ = "0.10.0"

@@ -1,0 +1,60 @@
+{
+ "academic": {
+  "n": 245,
+  "n_ai": 212,
+  "n_human": 33,
+  "auroc": {
+   "ungated_rules": 0.847,
+   "gated_rules": 0.81,
+   "stats_only": 0.965,
+   "full": 0.984,
+   "full_holdout": 0.974
+  },
+  "human_p50_p90": [
+   15,
+   63
+  ],
+  "features": [
+   "hit_density",
+   "sentence_cv",
+   "ttr",
+   "ngram_repeat"
+  ],
+  "coef": [
+   8.9025,
+   -14.8899,
+   83.377,
+   22.6387
+  ],
+  "intercept": -69.8327
+ },
+ "general": {
+  "n": 391,
+  "n_ai": 300,
+  "n_human": 91,
+  "auroc": {
+   "ungated_rules": 0.577,
+   "gated_rules": 0.496,
+   "stats_only": 0.828,
+   "full": 0.834,
+   "full_holdout": 0.868
+  },
+  "human_p50_p90": [
+   60,
+   88
+  ],
+  "features": [
+   "hit_density",
+   "sentence_cv",
+   "ttr",
+   "ngram_repeat"
+  ],
+  "coef": [
+   1.9778,
+   -6.2976,
+   -19.3341,
+   -7.4213
+  ],
+  "intercept": 20.7692
+ }
+}

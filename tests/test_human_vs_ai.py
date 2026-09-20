@@ -296,3 +296,45 @@ class TestDiscrimination:
         rule_ids = {f.rule_id for f in ai.findings + ai.hints}
         assert "L-INFL-01" in rule_ids
         assert "L-FORM-01" in rule_ids
+
+
+# ---------- 综合评分（AI 味指数） ----------
+
+class TestScore:
+    def test_score_monotonic_on_fixtures(self):
+        # 指数综合规则密度与全文统计：AI fixture 必须显著高于人类 fixture，
+        # 且两者的差主要由规则贡献（fixture 的主要差异就是模板密度）
+        ai = engine.analyze(AI_TEXT, "academic")
+        human = engine.analyze(HUMAN_TEXT, "academic")
+        assert ai.score is not None and human.score is not None
+        assert ai.score.index > human.score.index
+        assert ai.score.components["hit_density"] > human.score.components["hit_density"]
+
+    def test_score_band_anchors_to_human_percentiles(self):
+        # 分档锚点来自校准语料真人分位，跟着 YAML 走（校准只改数据）
+        ai = engine.analyze(AI_TEXT, "academic")
+        s = ai.score
+        assert s.human_p50 > 0 and s.human_p90 > s.human_p50
+        assert s.index > s.human_p90  # AI fixture 应落在高档
+        assert 0 < s.auroc <= 1
+
+    def test_score_short_text_none(self):
+        # <8 句不出分：统计层不判，评分也不判
+        assert engine.analyze("你好呀。", "academic").score is None
+
+    def test_score_uncalibrated_profiles_none(self):
+        # 公文没有真人配对的 AI 语料，宁缺毋滥；personal 是改写层不出分
+        assert engine.load_scoring("official") is None
+        assert engine.load_scoring("personal") is None
+        assert engine.analyze(AI_TEXT, "official").score is None
+
+    def test_score_in_renders_and_json(self):
+        import json as _json
+        r = engine.analyze(AI_TEXT, "academic")
+        term = report.render_terminal(r)
+        md = report.render_markdown(r)
+        for out in (term, md):
+            assert "AI 味指数" in out and "构成" in out
+        payload = _json.loads(report.render_json(r))
+        assert payload["score"]["index"] == round(r.score.index, 1)
+        assert "hit_density" in payload["score"]["components"]

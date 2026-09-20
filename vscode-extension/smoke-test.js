@@ -16,6 +16,7 @@ const { renderReportHtml, renderAdviceHtml, locateFindings } = ext;
 const HvA = require(path.join(EXT, "engine.js"));
 const HvARewrite = require(path.join(EXT, "rewrite.js"));
 const RULES = require(path.join(EXT, "rules.json"));
+const SCORING = require(path.join(EXT, "scoring.json"));
 
 let failed = 0;
 function check(name, cond, extra) {
@@ -23,12 +24,13 @@ function check(name, cond, extra) {
   else { failed++; console.log(`[FAIL] ${name}${extra ? " — " + extra : ""}`); }
 }
 
-// 1. 四个 profile 的规则都注入了
+// 1. 四个 profile 的规则都注入了；评分模型只注入到已校准的 profile
 check("profiles injected", ["academic", "general", "official", "personal"].every(p => Array.isArray(RULES[p]) && RULES[p].length));
+check("scoring injected for calibrated profiles", !!SCORING.academic && !!SCORING.general && !SCORING.official && !SCORING.personal);
 
 // 2. AI 学术 fixture:academic 下有命中,报告含规则 ID 与免责
 const aiText = fs.readFileSync(path.join(ROOT, "tests/data/ai_academic.txt"), "utf-8");
-const aiResult = HvA.analyze(aiText, RULES.academic);
+const aiResult = HvA.analyze(aiText, RULES.academic, SCORING.academic || null);
 check("ai fixture has findings", aiResult.findings.length >= 5, `got ${aiResult.findings.length}`);
 const aiHtml = renderReportHtml("ai_academic.txt", "academic", aiResult);
 check("html contains rule ids", aiHtml.includes("L-FORM-01"));
@@ -82,6 +84,14 @@ check("hints capped at 12", capHtml.includes("列前 12 处") && capHtml.include
 
 // 8. 主题适配：暗色类钩子与主题变量都在样式里
 check("dark theme hooks", aiHtml.includes("vscode-dark") && aiHtml.includes("--vscode-editor-background"));
+
+// 8.5 综合评分行：指数 + 构成 + 分档（academic 带 scoring 注入）
+check("score row rendered", aiHtml.includes("AI 味指数") && /s-(high|medium|low)/.test(aiHtml),
+  "index row missing");
+check("score components shown", aiHtml.includes("构成"));
+const officialResult = HvA.analyze("首先进行研究。其次进行分析。此外完成验证。与此同时记录数据。最后归纳结论。另外补充实验。总之效果良好。结果表明方法可行。", RULES.official, null);
+const officialNoScoreHtml = renderReportHtml("x.txt", "official", officialResult);
+check("no score when uncalibrated", !officialNoScoreHtml.includes("AI 味指数"));
 
 // 9. 发现→文档定位：顺序定位、重复句推进第二处、doc 级跳过、找不到的句子跳过
 const doc = "# 报告\n\n首先要明确目标。其次要持续投入。\n\n- 首先要明确目标。\n- 其次要持续投入。\n";

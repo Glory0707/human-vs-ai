@@ -238,3 +238,20 @@ rules:
     suggestion: 破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。
     references:
       - https://github.com/blader/humanizer
+
+# 综合评分（AI 味指数）：门控前规则加权密度 + 全文统计的逻辑回归。
+# 拟合与分层验证：tools/fit_score.py；TTR 用字级 2-gram 口径（两端同分）。
+# 实测：全量 AUROC 0.834 / 分层留出 0.868——2023 语料 + 字级口径的限制，
+# 如实标注；逐句规则的区分度见上方规则表（纯扣词在此语料上 0.577≈瞎猜，
+# 评分的价值正是把扣词、节奏、词汇合成一个看）。
+scoring:
+  corpus: "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300），2026-09"
+  intercept: 20.7692
+  hit_density: 1.9778
+  sentence_cv: -6.2976
+  ttr: -19.3341
+  ngram_repeat: -7.4213
+  auroc: 0.834
+  auroc_holdout: 0.868
+  human_p50: 60
+  human_p90: 88
