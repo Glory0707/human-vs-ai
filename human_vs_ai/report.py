@@ -33,7 +33,8 @@ def stats_lines(result: AnalysisResult) -> list[str]:
         f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字",
         f"节奏：句长 CV {_fmt(s.sentence_cv)}（人类基线 ≈0.45，越低越平）"
         f" · 段长 CV {_fmt(s.para_len_cv)}",
-        f"词汇：TTR {_fmt(s.ttr)} · 连接词密度 {_fmt(s.conn_density)} 条/句"
+        f"词汇：TTR {_fmt(s.ttr)} · 连接词密度 {_fmt(s.conn_density)}"
+        f"{' 条/句' if s.conn_density == s.conn_density else ''}"
         f" · 4-gram 重复率 {_fmt(s.ngram_repeat)}",
     ]
 

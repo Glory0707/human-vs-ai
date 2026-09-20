@@ -48,6 +48,7 @@ header {
   padding: 2px 10px; border-radius: 3px;
 }
 .profiles button.on { color: var(--ink); background: #F4F4F2; font-weight: 600; }
+.profiles button:disabled { opacity: 0.3; cursor: default; }
 .modes { display: flex; gap: 2px; margin-left: 8px; padding-left: 10px; border-left: 1px solid var(--hairline); }
 .modes button {
   border: none; background: none; cursor: pointer;
@@ -131,7 +132,7 @@ main { flex: 1; display: flex; min-height: 0; }
 <main>
   <section class="pane">
     <div class="pane-label">粘贴文本</div>
-    <textarea id="input" placeholder="粘贴正文。标题、列表、代码块自动跳过。"></textarea>
+    <textarea id="input" placeholder="粘贴正文。标题、代码块与裸链接自动跳过；列表、表格正文照常分析。"></textarea>
   </section>
   <section class="pane">
     <div class="pane-label">分析报告</div>
@@ -147,6 +148,12 @@ __REWRITE__
 <script>
 const RULES_BY_PROFILE = __RULES_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
+const PROFILE_META = {
+  academic: ["学术", "论文、摘要、实验报告"],
+  general: ["问答", "知乎、公众号、科普"],
+  official: ["公文", "通知、意见、实施方案"],
+  personal: ["我的口味", "短文案：界面文案、标题、提示语"],
+};
 let currentProfile = PROFILES[0];
 let currentMode = "analyze";
 let debounceTimer = null;
@@ -158,9 +165,13 @@ function renderProfiles() {
   const nav = document.getElementById("profiles");
   nav.innerHTML = "";
   PROFILES.forEach(p => {
+    const [label, desc] = PROFILE_META[p] || [p, ""];
     const b = document.createElement("button");
-    b.textContent = p;
+    b.textContent = label;
+    b.title = `${p} · ${desc}`;
     b.className = p === currentProfile ? "on" : "";
+    // 改写建议只按 personal（其余三库没有删/改口径）
+    if (currentMode === "rewrite" && p !== "personal") b.disabled = true;
     b.onclick = () => { currentProfile = p; renderProfiles(); analyzeNow(); };
     nav.appendChild(b);
   });
@@ -174,7 +185,11 @@ function renderModes() {
     const b = document.createElement("button");
     b.textContent = label;
     b.className = key === currentMode ? "on" : "";
-    b.onclick = () => { currentMode = key; renderModes(); analyzeNow(); };
+    b.onclick = () => {
+      currentMode = key;
+      if (key === "rewrite") currentProfile = "personal";
+      renderModes(); renderProfiles(); analyzeNow();
+    };
     nav.appendChild(b);
   });
 }
@@ -188,7 +203,7 @@ function renderReport(result) {
   parts.push(`<div class="stats">
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
     <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类基线 ≈0.45，越低越平） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
-    <div class="row">词汇：连接词密度 <b>${fmt(s.conn_density)}</b> 条/句 · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
+    <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
   </div>`);
 
   const F = result.findings;

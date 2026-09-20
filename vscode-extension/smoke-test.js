@@ -11,8 +11,10 @@ const path = require("path");
 
 const EXT = __dirname;
 const ROOT = path.join(EXT, "..");
-const { renderReportHtml } = require(path.join(EXT, "extension.js"));
+const ext = require(path.join(EXT, "extension.js"));
+const { renderReportHtml, renderAdviceHtml } = ext;
 const HvA = require(path.join(EXT, "engine.js"));
+const HvARewrite = require(path.join(EXT, "rewrite.js"));
 const RULES = require(path.join(EXT, "rules.json"));
 
 let failed = 0;
@@ -50,8 +52,20 @@ const emptyResult = HvA.analyze("", RULES.academic);
 check("empty input safe", Array.isArray(emptyResult.findings));
 const emptyHtml = renderReportHtml("empty.txt", "academic", emptyResult);
 check("empty report renders", emptyHtml.includes("未发现明显"));
+// 场景标签中文化
+check("profile label localized", renderReportHtml("x.txt", "official", emptyResult).includes("公文"));
 
-// 5. 输出预览文件(视觉审查用)
+// 5. 改写建议面板（personal）：删/改/留三档与页脚
+const copyText = ["别急，代码明天还在仓库里。", "实测三次，失败率降到 3%。",
+                  "自动匹配相关段落，一次最多三条。"].join("\n");
+const advice = HvARewrite.rewriteText(copyText, RULES.personal);
+const adviceHtml = renderAdviceHtml("copy.txt", advice);
+check("advice has counts", adviceHtml.includes("共 <b>3</b> 条"));
+check("advice has del tag", /class="advice del"/.test(adviceHtml));
+check("advice footer", adviceHtml.includes("梗得人来补"));
+check("advice data kept", adviceHtml.includes("失败率降到 3%"));
+
+// 6. 输出预览文件(视觉审查用)
 const previewText = fs.readFileSync(path.join(ROOT, "tests/data/ai_official.txt"), "utf-8");
 const previewResult = HvA.analyze(previewText, RULES.official);
 const previewHtml = renderReportHtml("ai_official.txt", "official", previewResult);

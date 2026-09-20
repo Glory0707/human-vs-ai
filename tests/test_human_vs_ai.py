@@ -35,10 +35,39 @@ class TestSegment:
         assert len(sents) == 2
 
     def test_markdown_structure_dropped(self):
-        text = "# 标题\n\n正文第一段。\n\n```python\ncode = 1\n```\n\n| a | b |\n|---|---|\n\n正文第二段。"
+        # 标题/代码块整块丢弃；表格分隔行丢弃，表头内容保留（新口径：
+        # 列表/表格正文参与分析，v0.8.0 修订）
+        text = "# 标题\n\n正文第一段。\n\n```python\ncode = 1\n```\n\n| 指标 | 数值 |\n|---|---|\n\n正文第二段。"
         paras = segment.split_paragraphs(segment.strip_markdown(text))
-        assert len(paras) == 2
-        assert all("```" not in p and "|" not in p for p in paras)
+        joined = "\n".join(paras)
+        assert "```" not in joined and "标题" not in joined
+        assert "正文第一段。" in joined and "正文第二段。" in joined
+        assert "指标" in joined and "数值" in joined
+        assert "---" not in joined
+
+    def test_list_items_kept_as_content(self):
+        # 问答/自媒体用列表写正文——条目必须进分析，不能整块丢
+        text = "- 首先要明确目标。\n- 其次要持续投入。\n* 综上所述，坚持才有回报。"
+        doc = segment.split_document(text)
+        kinds = [b.kind for b in doc]
+        assert kinds == ["list"]
+        sents = [s.text for s in doc[0].sents]
+        assert len(sents) == 3
+        assert sents[0] == "首先要明确目标。"
+
+    def test_numbered_list_and_emphasis_kept(self):
+        doc = segment.split_document("1. 首先进行预处理。\n2. 其次进行训练。")
+        assert [s.text for b in doc for s in b.sents] == ["首先进行预处理。", "其次进行训练。"]
+        # 中文星号强调剥离标记保留文字；算式 3*5 不被误剥
+        doc2 = segment.split_document("*重点*在于效率，3*5 也算。")
+        assert doc2[0].sents[0].text == "重点在于效率，3*5 也算。"
+
+    def test_bare_url_stripped(self):
+        text = "参考链接 https://example.com/a?x=1 显著提升了性能。"
+        doc = segment.split_document(text)
+        body = "".join(s.text for b in doc for s in b.sents)
+        assert "example.com" not in body
+        assert "显著提升了性能。" in body
 
     def test_empty_and_short(self):
         assert segment.split_sentences("") == []
@@ -133,14 +162,15 @@ class TestEngine:
 
 class TestProseQuality:
     def test_folded_yaml_no_cjk_gap(self):
-        # YAML folded 块把换行折成空格——中文之间、中文与破折号/引号之间的
-        # 空格都是伪影，加载时必须清掉（中英文之间的排版空格保留）
+        # YAML folded 块把换行折成空格——中文之间、中文标点两侧的空格都是
+        # 伪影（"。 2023"、"—— “"），加载时必须清掉；普通汉字与英文单词
+        # 之间的排版空格保留
         import re
         cjk = r"[一-鿿　-ヿ＀-￯]"
-        pd = r"[—“”‘’']"
+        punct = r"[　-〿＀-￯—‘’“”]"
         pat = re.compile(
             rf"(?<={cjk}) +(?={cjk})"
-            rf"|(?<={cjk}) +(?={pd})|(?<={pd}) +(?={cjk})"
+            rf"|(?<={punct}) +| +(?={punct})"
         )
         for profile in engine.available_profiles():
             for r in engine.load_rules(profile):
@@ -167,6 +197,30 @@ class TestProseQuality:
         with pytest.raises(SystemExit) as ei:
             cli.main(["check", str(tmp_path)])
         assert "目录" in str(ei.value)
+
+    def test_unknown_profile_clean_error(self, tmp_path):
+        from human_vs_ai import cli
+        f = tmp_path / "a.txt"
+        f.write_text("正文。", encoding="utf-8")
+        for argv in (["check", str(f), "-p", "nope"],
+                     ["stats", str(f), "-p", "nope"],
+                     ["explain", "L-INFL-01", "-p", "nope"],
+                     ["rewrite", str(f), "-p", "nope"]):
+            with pytest.raises(SystemExit) as ei:
+                cli.main(argv)
+            assert "不存在" in str(ei.value) and "nope" in str(ei.value)
+
+    def test_stats_command_stats_only(self, tmp_path, capsys):
+        # stats 契约：只出统计特征，不夹带 findings/hints/disclaimer
+        import json as _json
+        from human_vs_ai import cli
+        f = tmp_path / "a.txt"
+        f.write_text("随着人工智能的快速发展，方法越来越多。" * 6, encoding="utf-8")
+        cli.main(["stats", str(f)])
+        payload = _json.loads(capsys.readouterr().out)
+        assert set(payload) == {"tool", "version", "profile", "stats"}
+        assert "n_sentences" in payload["stats"]
+        assert "findings" not in payload
 
 
 # ---------- 端到端区分度冒烟 ----------

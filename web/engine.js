@@ -20,32 +20,102 @@
   "use strict";
 
   var SENT_END = "。！？；…!?;";
-  var OPEN_Q_RE = /[\u201C\u300E\u300C]/;
-  var CLOSE_Q_RE = /[\u201D\u300F\u300D]/;
-  var STRUCT_RE = /^\s*(```|~~~|#{1,6}\s|\||\*|[-+]\s|\d+\.\s|===|---)/;
-  var PUNCT_RE = /[，。！？；：、…\u201C\u201D\u2018\u2019《》（）()[\]【】,\.!\?;:\u0022\u0027—\-\s]/g;
+  var OPEN_Q_RE = /[“『「]/;
+  var CLOSE_Q_RE = /[”』」]/;
+  var PUNCT_RE = /[，。！？；：、…“”‘’《》（）()[\]【】,\.!\?;:"'—\-\s]/g;
 
-  function stripMarkdown(text) {
-    var out = [];
+  /* 与 Python segment.py 同构的 Markdown 解析：标题/代码丢弃，
+     列表项与表格行内容保留（各成句，不触发独句段形状规则） */
+  var FENCE_RE = /^\s*(?:```|~~~)/;
+  var HEADING_RE = /^\s*#{1,6}(?:\s|$)/;
+  var HR_RE = /^\s*(?:-\s*){2,}-?\s*$|^\s*(?:\*\s*){2,}\*?\s*$|^\s*_{3,}\s*$/;
+  var SETEXT_RE = /^\s*=+\s*$/;
+  var LIST_RE = /^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*(.*)$/;
+  var CHECKBOX_RE = /^\s*\[[ xX]\]\s*/;
+  var QUOTE_PREFIX_RE = /^\s*>+\s?/;
+  var TABLE_SEP_RE = /^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|?\s*$/;
+
+  function inlineClean(line) {
+    return line
+      .replace(/`([^`]*)`/g, "$1")
+      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/(?:https?:\/\/|www\.)[^\s，。；！？、）)】」』]+/gi, "")
+      .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "")
+      .replace(/\*{1,3}(?!\s)([^*]*?[一-鿿][^*]*?)(?<!\s)\*{1,3}/g, "$1")
+      .replace(/[ \t]{2,}/g, " ")
+      .trim();
+  }
+
+  /* 行 → 有序单元 ["p"|"li"|"tr"|"b", 文本] */
+  function lineUnits(text) {
+    var units = [];
     var inCode = false;
-    var lines = text.split(/\r?\n/);
-    for (var i = 0; i < lines.length; i++) {
-      var line = lines[i];
-      var s = line.trim();
-      if (s.indexOf("```") === 0 || s.indexOf("~~~") === 0) {
-        inCode = !inCode;
-        out.push("");
+    var rawLines = text.split(/\r?\n/);
+    for (var i = 0; i < rawLines.length; i++) {
+      var s = rawLines[i].trim().replace(QUOTE_PREFIX_RE, "");
+      if (FENCE_RE.test(s)) { inCode = !inCode; units.push(["b", ""]); continue; }
+      if (inCode || !s) { units.push(["b", ""]); continue; }
+      if (HEADING_RE.test(s) || HR_RE.test(s) || SETEXT_RE.test(s)) {
+        units.push(["b", ""]);
         continue;
       }
-      if (inCode) continue;
-      if (!s) { out.push(""); continue; }
-      if (STRUCT_RE.test(line)) { out.push(""); continue; }
-      var cleaned = line.replace(/`([^`]*)`/g, "$1");
-      cleaned = cleaned.replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1");
-      cleaned = cleaned.replace(/\[([^\]]*)\]\([^)]*\)/g, "$1");
-      out.push(cleaned);
+      var lm = LIST_RE.exec(s);
+      if (lm) {
+        var item = lm[1].replace(CHECKBOX_RE, "").trim();
+        units.push(item ? ["li", inlineClean(item)] : ["b", ""]);
+        continue;
+      }
+      if (s.indexOf("|") >= 0) {
+        if (TABLE_SEP_RE.test(s)) { units.push(["b", ""]); continue; }
+        var cells = s.replace(/^\s*\|/, "").replace(/\|\s*$/, "").split("|");
+        var kept = [];
+        for (var ci = 0; ci < cells.length; ci++) {
+          var c = cells[ci].trim();
+          if (c) kept.push(c);
+        }
+        var row = inlineClean(kept.join("，"));
+        units.push(row ? ["tr", row] : ["b", ""]);
+        continue;
+      }
+      units.push(["p", inlineClean(s)]);
     }
-    return out.join("\n");
+    return units;
+  }
+
+  /* 单元 → 块 [kind, units[]] */
+  function groupBlocks(units) {
+    var blocks = [];
+    var pBuf = [];
+    var run = null;
+    function flushProse() {
+      if (pBuf.length) { blocks.push(["para", [pBuf.join("\n")]]); pBuf = []; }
+    }
+    function flushRun() {
+      if (run) { blocks.push(run); run = null; }
+    }
+    for (var i = 0; i < units.length; i++) {
+      var kind = units[i][0], t = units[i][1];
+      if (kind === "b") { flushProse(); flushRun(); }
+      else if (kind === "li" || kind === "tr") {
+        flushProse();
+        var bk = kind === "li" ? "list" : "table";
+        if (!run || run[0] !== bk) { flushRun(); run = [bk, []]; }
+        run[1].push(t);
+      } else {
+        flushRun();
+        pBuf.push(t);
+      }
+    }
+    flushProse(); flushRun();
+    return blocks;
+  }
+
+  function stripMarkdown(text) {
+    var rendered = groupBlocks(lineUnits(text)).map(function (b) {
+      return b[0] === "para" ? b[1][0] : b[1].join("\n");
+    });
+    return rendered.join("\n\n");
   }
 
   function splitParagraphs(text) {
@@ -93,13 +163,22 @@
   }
 
   function splitDocument(text) {
-    var clean = stripMarkdown(text);
-    var paras = splitParagraphs(clean);
+    var grouped = groupBlocks(lineUnits(text));
     var out = [];
-    for (var pi = 0; pi < paras.length; pi++) {
-      var sents = splitSentences(paras[pi]);
+    for (var pi = 0; pi < grouped.length; pi++) {
+      var kind = grouped[pi][0], units = grouped[pi][1];
+      var sents = [];
+      if (kind === "para") {
+        sents = splitSentences(units[0]);
+      } else {
+        /* 列表/表格：每个条目独立分句，无句末标点也成句 */
+        for (var ui = 0; ui < units.length; ui++) {
+          var parts = splitSentences(units[ui]);
+          for (var k = 0; k < parts.length; k++) sents.push(parts[k]);
+        }
+      }
       for (var si = 0; si < sents.length; si++) sents[si].para = pi;
-      out.push(sents);
+      out.push({ kind: kind, sents: sents });
     }
     return out;
   }
@@ -190,20 +269,20 @@
     return Object.keys(lex);
   }
 
-  function computeDocStats(paraSents, lexicon) {
+  function computeDocStats(blocks, lexicon) {
     var allSents = [];
-    for (var p = 0; p < paraSents.length; p++)
-      for (var s = 0; s < paraSents[p].length; s++) allSents.push(paraSents[p][s].text);
+    for (var p = 0; p < blocks.length; p++)
+      for (var s = 0; s < blocks[p].sents.length; s++) allSents.push(blocks[p].sents[s].text);
     var lens = allSents.map(function (t) { return t.replace(PUNCT_RE, "").length; });
-    var paraLens = paraSents.map(function (para) {
+    var paraLens = blocks.map(function (block) {
       var n = 0;
-      for (var i = 0; i < para.length; i++) n += para[i].text.replace(PUNCT_RE, "").length;
+      for (var i = 0; i < block.sents.length; i++) n += block.sents[i].text.replace(PUNCT_RE, "").length;
       return n;
     });
     var fullText = allSents.join("");
     var tokens = tokenize(fullText);
     var stats = {
-      n_paragraphs: paraSents.length,
+      n_paragraphs: blocks.length,
       n_sentences: allSents.length,
       n_chars: lens.reduce(function (a, b) { return a + b; }, 0),
       sentence_cv: cv(lens),
@@ -266,9 +345,9 @@
     }
 
     for (var pi = 0; pi < doc.length; pi++) {
-      var para = doc[pi];
-      for (var si = 0; si < para.length; si++) {
-        var sent = para[si];
+      var block = doc[pi];
+      for (var si = 0; si < block.sents.length; si++) {
+        var sent = block.sents[si];
         for (var ri = 0; ri < rules.length; ri++) {
           var rule = rules[ri];
           if (rule.scope !== "sentence") continue;
@@ -287,6 +366,9 @@
           }
         }
       }
+      /* 独句总结段只看普通段：bullet/表格行天然又短又独立 */
+      if (block.kind !== "para") continue;
+      var para = block.sents;
       for (var ri2 = 0; ri2 < rules.length; ri2++) {
         var rule2 = rules[ri2];
         if (rule2.scope !== "shape") continue;

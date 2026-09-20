@@ -31,6 +31,22 @@ def _read_file(path: str) -> str:
         sys.exit(f"错误：无法读取 {p}（{e.strerror}）")
 
 
+_PROFILE_DESC = {
+    "academic": ("学术", "论文、摘要、实验报告"),
+    "general": ("问答", "知乎、公众号、科普"),
+    "official": ("公文", "通知、意见、实施方案"),
+    "personal": ("我的口味", "短文案：界面文案、标题、提示语（rewrite 专用）"),
+}
+
+
+def _require_profile(name: str) -> None:
+    """未知场景给干净报错，不抛 traceback。"""
+    if name not in engine.available_profiles():
+        sys.exit(
+            f"错误：场景 '{name}' 不存在。可用：{', '.join(engine.available_profiles())}"
+        )
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(
         prog="human-vs-ai",
@@ -74,10 +90,12 @@ def main(argv: list[str] | None = None) -> None:
 
     if args.command == "profiles":
         for name in engine.available_profiles():
-            print(name)
+            label, desc = _PROFILE_DESC.get(name, ("", ""))
+            print(f"{name} · {label} — {desc}" if label else name)
         return
 
     if args.command == "explain":
+        _require_profile(args.profile)
         for rule in engine.load_rules(args.profile):
             if rule.id.upper() == args.rule_id.upper():
                 parts = [
@@ -97,6 +115,7 @@ def main(argv: list[str] | None = None) -> None:
         sys.exit(f"规则不存在：{args.rule_id}（profile={args.profile}）")
 
     if args.command == "rewrite":
+        _require_profile(args.profile)
         text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
         result = rewrite.rewrite_text(text, args.profile)
         if args.format == "json":
@@ -113,11 +132,16 @@ def main(argv: list[str] | None = None) -> None:
             print(out)
         return
 
+    _require_profile(args.profile)
     text = _read_file(args.file)
     result = engine.analyze(text, args.profile)
 
     if args.command == "stats":
-        print(report.render_json(result))
+        # 契约是"只看统计特征"：只出 stats，不夹带 findings
+        print(json.dumps(
+            {"tool": "human-vs-ai", "version": __version__,
+             "profile": result.profile, "stats": result.doc_stats.to_dict()},
+            ensure_ascii=False, indent=2))
         return
 
     if args.min_severity != "hint":

@@ -28,19 +28,19 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 **口味校准层（personal）**：三个公开 profile 校准的是通用 AI 味；`personal` 校准的是**我本人的取舍**——用私人标注链（同一批产品文案，AI 交稿 → 我逐条毙或亲改 → 定稿落盘，被毙 31 条 vs 定稿 37 条）归纳出 12 条口味条目，配套 `rewrite` 子命令给逐句改写建议。规则见 [docs/taste_zhouao.md](docs/taste_zhouao.md)，语料永不入库（`corpus_private/` 在 .gitignore）。
 
-**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，8 段分析语料 + 9 条改写探针 × 4 profile = 68 项逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
+**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，13 段分析语料 + 11 条改写探针 × 4 profile = 96 项逐字段对齐，含列表/表格/裸链接/列表符改写探针）；改了规则后用 `python tools/build_web.py` 重新生成。
 
-**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景）。构建产物（engine.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
+**在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景）；「human-vs-ai: 改写建议（个人口味）」给逐句删/改/留建议。构建产物（engine.js/rewrite.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
 ## 功能总览（全部已实现并实测）
 
 ### 分析引擎
 
-- **中文切分**：句末标点切句（引号内句末标点不算边界）、空行分段；Markdown 结构行与代码块自动剥离——格式伪影混进统计只会污染指标（CCL 2025 实测：格式标记会让检测指标虚高 23.66%）
+- **中文切分**：句末标点切句（引号内句末标点不算边界）、空行分段；标题与代码块整块剥离，**列表项与表格行内容照常分析**（问答/自媒体大量用列表写正文，整段丢弃会漏检），裸链接/邮箱剥离不污染字数——格式伪影混进统计只会污染指标（CCL 2025 实测：格式标记会让检测指标虚高 23.66%）
 - **三层规则**：词表层（模板连接词、意义拔高、无证据强化词、否定式排比、系动词回避、公式化开头/展望尾、政策腔大词、「进行X」填充、讲稿腔开场）→ 句式/形状层（首先其次套路、独句总结段）→ 统计层（句长 CV、连接词密度、段长一致性、4-gram 重复、破折号密度）
 - **四场景规则库**：`academic`（论文摘要/正文/实验报告，C-ReD 校准）、`general`（知乎/公众号/科普/问答，HC3 校准）、`official`（公文/公务文书，政府公开公文校准，误报率 0/15）、`personal`（个人口味短文案，私库标注链校准，被毙稿召回 31/31）。实测证明词表规则的区分度强依赖文体（学术套话在问答语料上区分度≈0；三连排比在学术摘要反向、在问答 +0.22；公文的"切实/进一步"是正体词，逐句标必然全误报——只做密度统计），所以词表按 profile 分治，统计底盘共用
 - **共现加权**：真人也会写的弱句式（单个连接词、单处否定式排比）单独命中只进"孤立弱命中"参考区，全文 ≥2 处才升为正式发现——这是 linter 与"误判机器"的分界线
-- **短文本统计保护**：全文统计判定最少 8 句（宁可不判，不给小样本数字）；HTML 标题、列表与代码块自动跳过，格式伪影不污染统计
+- **短文本统计保护**：全文统计判定最少 8 句（宁可不判，不给小样本数字）；标题与代码块跳过，格式伪影不污染统计
 
 ### 报告
 
@@ -53,7 +53,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 |---|---|---|---|---|
 | C-ReD 论文摘要（真人 80 vs 四模型 320） | 词表规则句均命中 | 0.170–0.307 | 0.046 | **0.804** |
 | C-ReD 论文摘要 | 句长 CV | 0.274–0.383 | 0.483 | **0.799** |
-| HC3-Chinese 问答（各 120） | TTR（MATTR） | 0.610 | 0.696 | 0.800 |
+| HC3-Chinese 问答（各 120） | TTR（MATTR） | 0.608 | 0.696 | 0.808 |
 | HC3-Chinese 问答（general 词表） | 三连排比命中率 | 43% | 22% | +0.22 |
 | 中国政府网公开公文 15 篇（official 词表） | 真公文误报率 | — | **0/15 = 0%** | 验收 <20% PASS |
 
@@ -80,7 +80,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q          # 64 项单元+边界+口味+私库回归测试（私库层缺语料自动跳过）
+python -m pytest tests/ -q          # 73 项单元+边界+口味+私库回归测试（私库层缺语料自动跳过）
 python tools/evaluate_cred.py       # C-ReD 学术语料评测（语料下载见 docs/rules.md）
 python tools/evaluate.py            # HC3-Chinese 问答语料评测
 python tools/evaluate_official.py   # 公文语料评测（误报率验收）

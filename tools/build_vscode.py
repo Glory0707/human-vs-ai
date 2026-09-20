@@ -29,6 +29,7 @@ def main() -> None:
         encoding="utf-8",
     )
     shutil.copyfile(ROOT / "web/engine.js", EXT / "engine.js")
+    shutil.copyfile(ROOT / "web/rewrite.js", EXT / "rewrite.js")
     # package.json 版本与主包对齐
     pkg_path = EXT / "package.json"
     pkg = pkg_path.read_text(encoding="utf-8")

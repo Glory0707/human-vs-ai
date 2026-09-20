@@ -26,19 +26,18 @@ RULES_DIR = Path(__file__).parent / "rules"
 SEVERITY_ORDER = {"high": 3, "medium": 2, "low": 1, "hint": 0}
 
 # YAML folded 块（>）把源码换行折叠成半角空格——中文行文里那是伪影
-# （"研究 里 142 条"）。清"中文-空格-中文"及中文与破折号/引号之间的空格，
-# 中英文之间的排版空格保留。
+# （"研究 里 142 条"）。清"中文-空格-中文"与中文标点两侧的空格
+# （"。 2023"、"—— “"都是折叠伪影；中文标点旁不存在合法排版空格），
+# 普通汉字与英文单词之间的排版空格保留。
 _CJK = "一-鿿　-ヿ＀-￯"
 _CJK_GAP = re.compile(rf"(?<=[{_CJK}]) +(?=[{_CJK}])")
-_QUOTE_DASH = "—“”‘’'"
-_CJK_PD_GAP = re.compile(
-    rf"(?<=[{_CJK}]) +(?=[{_QUOTE_DASH}])|(?<=[{_QUOTE_DASH}]) +(?=[{_CJK}])"
-)
+_CJK_PUNCT = "　-〿＀-￯—‘’“”"
+_CJK_PUNCT_GAP = re.compile(rf"(?<=[{_CJK_PUNCT}]) +| +(?=[{_CJK_PUNCT}])")
 
 
 def _clean_prose(text: str) -> str:
     """规则文案的统一清洗：直引号配对换中文引号 + 去中文间折叠空格。"""
-    return _CJK_PD_GAP.sub("", _CJK_GAP.sub("", _cn_quotes(text)))
+    return _CJK_PUNCT_GAP.sub("", _CJK_GAP.sub("", _cn_quotes(text)))
 
 
 def _cn_quotes(text: str) -> str:
@@ -210,14 +209,14 @@ def _doc_threshold(rule: Rule, n_chars: int) -> float:
 def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     rules = load_rules(profile)
     doc = segment.split_document(text)
-    para_texts = [[s.text for s in para] for para in doc]
+    para_texts = [[s.text for s in block.sents] for block in doc]
     result = AnalysisResult(profile=profile)
 
     raw_hits: dict[str, list[Finding]] = {}
 
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
-    for pi, para in enumerate(doc):
-        for sent in para:
+    for pi, block in enumerate(doc):
+        for sent in block.sents:
             for rule in rules:
                 if rule.scope != "sentence":
                     continue
@@ -240,6 +239,11 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                         taste=rule.taste,
                     )
                     raw_hits.setdefault(rule.id, []).append(f)
+        # 独句总结段只看普通段：列表/表格的条目天然又短又独立，
+        # 判成"盖章段"是格式误伤
+        if block.kind != "para":
+            continue
+        para = block.sents
         for rule in rules:
             if rule.scope != "shape":
                 continue

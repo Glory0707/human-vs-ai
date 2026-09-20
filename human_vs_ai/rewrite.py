@@ -42,6 +42,17 @@ _NOUN = re.compile(
 _MEME = re.compile(
     r"(牛马|摸鱼|摆烂|连滚带爬|火葬场|狠人|卷王|躺平)"
 )
+# 整句关怀腔：没有事实半句可留，截前半句仍是安慰——整句删，不截断
+_COMFORT_WHOLE = re.compile(
+    r"(你已经(很|够|超|挺|那么|这么)|你值得|好好(爱|善待|心疼)?自己"
+    r"|照顾好?自己|爱惜自己|犒劳(好)?自己|不要给自己.{0,4}(压力|负担)"
+    r"|(会一直|一直|永远)陪(着|在)?你|一切都会(好|过去))"
+)
+# 空铺垫半句：截出来没有信息量（"无论结果如何。""忙碌的日子里。"）
+_EMPTY_HEAD = re.compile(
+    r"^(无论|不管).{0,8}(如何|怎样|与否)$"
+    r"|^.{0,6}的日子里$"
+)
 
 # 腔调 → (口味条目, 处理动作) 的映射；动作用于产出候选
 _VOICE_RULES = {
@@ -140,9 +151,15 @@ def _mechanical_candidate(text: str, rule_ids: list[str]) -> tuple[str, str, str
     if "T-VOICE-05" in rule_ids:
         return "", "整句删；要表达关心就一句话，别加理由", "T-VOICE-05"
 
-    # 劝慰腔：砍掉逗号后的安慰半句，只留前半段事实
-    if "T-VOICE-01" in rule_ids and len(heads) >= 2:
-        return heads[0] + "。", "", "T-VOICE-01"
+    # 劝慰腔：先看整句是不是纯关怀（赞美/爱自己/陪伴/照顾自己）——
+    # 是则整句删；否则砍掉逗号后的安慰半句，只留前半段事实
+    if "T-VOICE-01" in rule_ids:
+        if _COMFORT_WHOLE.search(body):
+            return "", "整句删；纯关怀没有事实可留", "T-VOICE-01"
+        if len(heads) >= 2 and not _EMPTY_HEAD.search(heads[0]):
+            return heads[0] + "。", "", "T-VOICE-01"
+        if len(heads) >= 2:
+            return "", "整句删；前半句是空铺垫", "T-VOICE-01"
 
     # 抒情升华：升华句是逗号后的那半句，删掉它
     if "T-VOICE-02" in rule_ids and len(heads) >= 2:
@@ -207,15 +224,15 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
     tastes = [r.taste for r in hits if r.taste]
     cand, direction, driver = _mechanical_candidate(line, ids)
 
-    # 判档：功能说明腔一律删（本人口径）；有候选就改；其余按有无候选定
+    # 判档：功能说明腔一律删（本人口径）；机械结果明示整句删也进删档；
+    # 有候选就改；其余长句给方向让人改，短腔调整句删
     manual = any(i.startswith("T-MANUAL") for i in ids)
-    if manual:
+    if manual or (not cand and direction.startswith("整句删")):
         action = DELETE
     elif cand:
         action = REWRITE
     else:
-        # 无候选：整句都是腔调（不含数字/结论、也不长）→ 删，否则给方向让人改
-        has_substance = bool(_IMPORTANT.search(line)) or len(_strip_trailing_paren(line)) > 14
+        has_substance = len(_strip_trailing_paren(line)) > 14
         action = REWRITE if has_substance else DELETE
 
     # 理由取驱动本次建议的那条规则；没有驱动规则时退回最高严重级
@@ -228,13 +245,17 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
     )
 
 
+_LEAD_MARKER = re.compile(r"^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*")
+
+
 def rewrite_text(text: str, profile: str = "personal") -> RewriteResult:
     """逐行给建议。文案池的惯例是一行一条——按行判定与 JS 端同构，
-    避免两端在"一行多句"上出现口径漂移（一致性探针会抓）。"""
+    避免两端在"一行多句"上出现口径漂移（一致性探针会抓）。
+    行首的列表符（- / * / 1. / 1、）剥掉再判，避免锚定模式漏匹配。"""
     rules = engine.load_rules(profile)
     result = RewriteResult(profile=profile)
     for raw in text.splitlines():
-        line = raw.strip()
+        line = _LEAD_MARKER.sub("", raw.strip())
         if not line:
             continue
         result.advices.append(classify_line(line, rules))

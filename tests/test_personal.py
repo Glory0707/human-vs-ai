@@ -84,6 +84,21 @@ class TestRewriteRules:
         assert adv.action == rewrite.REWRITE
         assert adv.candidate == "别急。"
 
+    @pytest.mark.parametrize("line", [
+        "你已经很棒了，不要给自己太大压力。",
+        "记得好好爱自己，你值得世间所有美好。",
+        "无论结果如何，我都会一直陪着你。",
+        "忙碌的日子里，也请记得照顾好自己的身体哦。",
+    ])
+    def test_generic_llm_comfort_detected_and_deleted(self, line):
+        # 通用 LLM 关怀腔（种子池之外的高频形态）：T1 必须检出，
+        # 且整句没有事实半句可留——进删档，不能截出残句
+        result = engine.analyze(line, "personal")
+        assert "T1" in {f.taste for f in result.findings + result.hints}
+        adv = rewrite.classify_line(line)
+        assert adv.action == rewrite.DELETE, f"应整句删，实际 {adv.action}"
+        assert not adv.candidate
+
     def test_line_with_meme_is_kept(self):
         # 合成样例：含梗 + 具体名词，未命中腔调 → 保留
         adv = rewrite.classify_line("摸鱼一时爽，组会火葬场。")

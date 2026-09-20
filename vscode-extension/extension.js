@@ -11,7 +11,13 @@
  */
 const path = require("path");
 const HvA = require("./engine.js");
+let HvARewrite = null;
+try { HvARewrite = require("./rewrite.js"); } catch (e) { HvARewrite = null; }
 const RULES = require("./rules.json");
+
+const PROFILE_LABEL = {
+  academic: "学术", general: "问答", official: "公文", personal: "我的口味",
+};
 
 const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E", hint: "#8A8A86" };
 const SEV_LABEL = { high: "高", medium: "中", low: "低", hint: "弱" };
@@ -33,7 +39,7 @@ function renderReportHtml(fileName, profile, result) {
   parts.push(`<div class="stats">
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
     <div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b>（人类基线 ≈0.45，越低越平） · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
-    <div class="row">词汇：连接词密度 <b>${fmt(s.conn_density)}</b> 条/句 · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
+    <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>
   </div>`);
 
   const F = result.findings;
@@ -97,7 +103,77 @@ blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid 
               color: #8A8A86; border-radius: 3px; }
 .docname { font-size: 10.5px; color: #8A8A86; padding-bottom: 8px; }
 </style></head>
-<body><div class="docname">${esc(fileName)} · ${esc(profile)} profile</div>${parts.join("")}</body></html>`;
+<body><div class="docname">${esc(fileName)} · ${esc(PROFILE_LABEL[profile] || profile)}</div>${parts.join("")}</body></html>`;
+}
+
+function renderAdviceHtml(fileName, result) {
+  const A = result.advices;
+  const n = k => A.filter(a => a.action === k).length;
+  const META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
+  const rows = A.map(a => {
+    const [cls, label] = META[a.action] || ["keep", "?"];
+    const taste = a.taste && a.taste.length
+      ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
+    return `<div class="advice ${cls}">
+      <div class="line"><span class="tag">${label}</span>${esc(a.text)}${taste}</div>
+      ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
+      ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : ""}
+      ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
+    </div>`;
+  }).join("");
+  const counts = `<div class="counts">共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></div>`;
+  const footer = `<div class="disclaimer">改写准则：重要数据和结论要保留；梗得人来补——只给规则化建议，不替你造梗。</div>`;
+
+  return `<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<style>
+body { font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; color: #1A1A18;
+       font-size: 13px; line-height: 1.6; background: #FFFFFF; padding: 12px 18px 24px; }
+b { font-variant-numeric: tabular-nums; }
+.docname { font-size: 10.5px; color: #8A8A86; padding-bottom: 8px; }
+.counts { padding: 6px 0 12px; font-size: 12px; color: #6E6E6A; border-bottom: 1px solid #E5E5E3; }
+.advice { padding: 10px 0; border-bottom: 1px solid #E5E5E3; }
+.tag { display: inline-block; min-width: 18px; text-align: center; font-size: 10.5px; font-weight: 600;
+       border-radius: 2px; padding: 1px 5px; margin-right: 8px; background: #F4F4F2; color: #6E6E6A; }
+.advice.del .tag { background: #FBE9E7; color: #B3261E; }
+.advice.chg .tag { background: #FFF4E0; color: #9A6B00; }
+.advice.keep .tag { background: #E6F4F2; color: #0F766E; }
+.taste { font-size: 10.5px; color: #8A8A86; margin-left: 6px; }
+.why { color: #6E6E6A; margin: 4px 0 0 26px; }
+.cand { color: #0F766E; margin: 3px 0 0 26px; }
+.dir { color: #8A8A86; margin: 3px 0 0 26px; font-size: 12px; }
+.disclaimer { margin-top: 18px; padding: 10px 14px; background: #FAFAF8; font-size: 10.5px;
+              color: #8A8A86; border-radius: 3px; }
+</style></head>
+<body><div class="docname">${esc(fileName)} · personal（我的口味）</div>${counts}${rows}${footer}</body></html>`;
+}
+
+function rewriteActive() {
+  const vscode = require("vscode");
+  const editor = vscode.window.activeTextEditor;
+  if (!editor) {
+    vscode.window.showInformationMessage("human-vs-ai：先打开一个文本文件。");
+    return;
+  }
+  if (!HvARewrite) {
+    vscode.window.showErrorMessage("human-vs-ai：改写模块缺失（请重跑 build_vscode.py 同步 rewrite.js）。");
+    return;
+  }
+  const text = editor.document.getText();
+  const result = HvARewrite.rewriteText(text, RULES.personal);
+  const fileName = path.basename(editor.document.fileName);
+  const panel = vscode.window.createWebviewPanel(
+    "humanVsAiRewrite", "human-vs-ai 改写建议 · " + fileName,
+    vscode.ViewColumn.Beside, { enableScripts: false }
+  );
+  panel.webview.html = renderAdviceHtml(fileName, result);
+  const nDel = result.advices.filter(a => a.action === "删").length;
+  const nChg = result.advices.filter(a => a.action === "改").length;
+  vscode.window.setStatusBarMessage(
+    `human-vs-ai：${fileName} 改写建议 删 ${nDel} · 改 ${nChg}`, 8000
+  );
 }
 
 function analyzeActive() {
@@ -134,10 +210,11 @@ function analyzeActive() {
 
 function activate(context) {
   context.subscriptions.push(
-    vscode.commands.registerCommand("human-vs-ai.analyze", analyzeActive)
+    vscode.commands.registerCommand("human-vs-ai.analyze", analyzeActive),
+    vscode.commands.registerCommand("human-vs-ai.rewrite", rewriteActive)
   );
 }
 
 function deactivate() {}
 
-module.exports = { activate, deactivate, renderReportHtml };
+module.exports = { activate, deactivate, renderReportHtml, renderAdviceHtml };
