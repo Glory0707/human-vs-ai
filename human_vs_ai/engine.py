@@ -25,6 +25,16 @@ RULES_DIR = Path(__file__).parent / "rules"
 
 SEVERITY_ORDER = {"high": 3, "medium": 2, "low": 1, "hint": 0}
 
+# YAML folded 块（>）把源码换行折叠成半角空格——中文行文里那是伪影
+# （"研究 里 142 条"）。只清"中文-空格-中文"，中英文之间的排版空格保留。
+_CJK = "\u4e00-\u9fff\u3000-\u303f\uff00-\uffef"
+_CJK_GAP = re.compile(rf"(?<=[{_CJK}]) +(?=[{_CJK}])")
+
+
+def _clean_prose(text: str) -> str:
+    """规则文案的统一清洗：直引号配对换中文引号 + 去中文间折叠空格。"""
+    return _CJK_GAP.sub("", _cn_quotes(text))
+
 
 def _cn_quotes(text: str) -> str:
     """prose 里的 ASCII 直引号按行配对换成中文引号——中文排版不用直引号。
@@ -134,13 +144,13 @@ def load_rules(profile: str) -> list[Rule]:
         rules.append(
             Rule(
                 id=item["id"],
-                name=_cn_quotes(item["name"]),
+                name=_clean_prose(item["name"]),
                 tier=item.get("tier", "lexical"),
                 scope=item.get("scope", "sentence"),
                 severity=item.get("severity", "medium"),
                 patterns=patterns,
-                explanation=_cn_quotes(item.get("explanation", "")).strip(),
-                suggestion=_cn_quotes(item.get("suggestion", "")).strip(),
+                explanation=_clean_prose(item.get("explanation", "")).strip(),
+                suggestion=_clean_prose(item.get("suggestion", "")).strip(),
                 example_before=_cn_quotes(item.get("example_before", "")),
                 example_after=_cn_quotes(item.get("example_after", "")),
                 references=item.get("references", []),
@@ -149,7 +159,7 @@ def load_rules(profile: str) -> list[Rule]:
                 doc_threshold=float(item.get("doc_threshold", "nan")),
                 doc_tiers=[(t[0], float(t[1])) for t in item.get("doc_tiers", [])],
                 min_sentences=int(item.get("min_sentences", 8)),
-                human_ref=_cn_quotes(item.get("human_ref", "")),
+                human_ref=_clean_prose(item.get("human_ref", "")),
             )
         )
     return rules

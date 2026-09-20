@@ -28,9 +28,14 @@ check("profiles injected", ["academic", "general", "official"].every(p => Array.
 const aiText = fs.readFileSync(path.join(ROOT, "tests/data/ai_academic.txt"), "utf-8");
 const aiResult = HvA.analyze(aiText, RULES.academic);
 check("ai fixture has findings", aiResult.findings.length >= 5, `got ${aiResult.findings.length}`);
-const aiHtml = renderReportHtml("ai_academic.txt", "academic", aiResult, "testnonce");
+const aiHtml = renderReportHtml("ai_academic.txt", "academic", aiResult);
 check("html contains rule ids", aiHtml.includes("L-FORM-01"));
 check("html contains disclaimer", aiHtml.includes("不是 AI 生成判定"));
+// 同一规则的解释全文只讲一次(与 CLI/网页口径一致)
+const lconnHits = aiResult.findings.filter(f => f.rule_id === "L-CONN-01").length;
+const lconnExplained = aiHtml.split("这批词本身没有错").length - 1;
+check("rule explanation deduped", lconnHits >= 2 ? lconnExplained === 1 : true,
+  `hits=${lconnHits} explanations=${lconnExplained}`);
 
 // 3. 词表分治:official 的 O-* 词表规则对学术人类 fixture 零句级命中
 //    (统计底盘共用,D-PARA/D-DASH 对均匀段落照常提示是预期行为)
@@ -43,13 +48,13 @@ check("official lexicon silent on academic human text", oHits.length === 0,
 // 4. 空/极短输入不炸
 const emptyResult = HvA.analyze("", RULES.academic);
 check("empty input safe", Array.isArray(emptyResult.findings));
-const emptyHtml = renderReportHtml("empty.txt", "academic", emptyResult, "n");
+const emptyHtml = renderReportHtml("empty.txt", "academic", emptyResult);
 check("empty report renders", emptyHtml.includes("未发现明显"));
 
 // 5. 输出预览文件(视觉审查用)
 const previewText = fs.readFileSync(path.join(ROOT, "tests/data/ai_official.txt"), "utf-8");
 const previewResult = HvA.analyze(previewText, RULES.official);
-const previewHtml = renderReportHtml("ai_official.txt", "official", previewResult, "n");
+const previewHtml = renderReportHtml("ai_official.txt", "official", previewResult);
 const out = path.join(ROOT, "_qa", "vscode-preview.html");
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, previewHtml, "utf-8");

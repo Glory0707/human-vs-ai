@@ -25,7 +25,7 @@ human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
 human-vs-ai profiles                 # academic（学术）· general（问答/自媒体）· official（公文）
 ```
 
-**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，21 项语料逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
+**不想装命令行？** 双击 [web/index.html](web/index.html)——单文件网页版，浏览器打开即用，粘贴即析，同样纯本地（无后端、无网络请求、可离线）。规则与命令行版完全一致，由双引擎一致性测试守护（`python tools/check_web_consistency.py`，24 项语料逐字段对齐）；改了规则后用 `python tools/build_web.py` 重新生成。
 
 **在 VS Code 里用**：把 [vscode-extension/](vscode-extension/) 整个目录放进 `%USERPROFILE%\.vscode\extensions\`，重载窗口，命令面板执行「human-vs-ai: 分析当前文档」——当前文档在旁边面板出完整报告（设置里选场景）。构建产物（engine.js/rules.json）已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
@@ -48,8 +48,8 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 | 语料 | 指标 | AI | 真人 | AUROC |
 |---|---|---|---|---|
-| C-ReD 论文摘要（真人 80 vs 四模型 320） | 词表规则句均命中 | 0.185–0.338 | 0.053 | **0.804** |
-| C-ReD 论文摘要 | 句长 CV | 0.275–0.392 | 0.491 | **0.798** |
+| C-ReD 论文摘要（真人 80 vs 四模型 320） | 词表规则句均命中 | 0.170–0.307 | 0.046 | **0.804** |
+| C-ReD 论文摘要 | 句长 CV | 0.274–0.383 | 0.483 | **0.799** |
 | HC3-Chinese 问答（各 120） | TTR（MATTR） | 0.610 | 0.696 | 0.800 |
 | HC3-Chinese 问答（general 词表） | 三连排比命中率 | 43% | 22% | +0.22 |
 | 中国政府网公开公文 15 篇（official 词表） | 真公文误报率 | — | **0/15 = 0%** | 验收 <20% PASS |
@@ -77,7 +77,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q          # 32 项单元+边界+区分度测试
+python -m pytest tests/ -q          # 35 项单元+边界+区分度测试
 python tools/evaluate_cred.py       # C-ReD 学术语料评测（语料下载见 docs/rules.md）
 python tools/evaluate.py            # HC3-Chinese 问答语料评测
 python tools/evaluate_official.py   # 公文语料评测（误报率验收）

@@ -86,7 +86,7 @@ def main() -> None:
 
     rows = []
     for s in samples:
-        result = engine.analyze(s["text"], "academic")
+        result = engine.analyze(s["text"], args.profile)
         # low 规则孤立命中降级在 hints 里——评测要计入，否则弱规则的区分度被系统性漏算
         all_f = result.findings + result.hints
         sent_hits = sum(1 for f in all_f if f.para >= 0)

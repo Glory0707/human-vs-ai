@@ -19,10 +19,14 @@ def _read_file(path: str) -> str:
     p = Path(path)
     if not p.exists():
         sys.exit(f"错误：文件不存在 {p}")
+    if p.is_dir():
+        sys.exit(f"错误：{p} 是目录，请传入文本文件")
     try:
         return p.read_text(encoding="utf-8-sig")
     except UnicodeDecodeError:
         return p.read_text(encoding="gb18030", errors="replace")
+    except OSError as e:
+        sys.exit(f"错误：无法读取 {p}（{e.strerror}）")
 
 
 def main(argv: list[str] | None = None) -> None:

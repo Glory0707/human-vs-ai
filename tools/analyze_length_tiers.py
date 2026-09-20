@@ -58,20 +58,21 @@ def main() -> None:
     paper = load("paper", ["human", "gpt-4o", "deepseek-v3", "qwen-3"], per)
     news = load("news", ["human", "gpt-4o"], per)
     rows = []
-    for s in paper + news:
-        res = engine.analyze(s["text"], "academic")
-        st = res.doc_stats
-        rows.append(
-            {
-                "domain": "paper" if s in paper else "news",
-                "is_ai": s["is_ai"],
-                "chars": st.n_chars,
-                "cv": st.sentence_cv,
-                "conn": st.conn_density,
-                "ngram": st.ngram_repeat,
-                "dash": st.dash_density,
-            }
-        )
+    for domain, samples in (("paper", paper), ("news", news)):
+        for s in samples:
+            res = engine.analyze(s["text"], "academic")
+            st = res.doc_stats
+            rows.append(
+                {
+                    "domain": domain,
+                    "is_ai": s["is_ai"],
+                    "chars": st.n_chars,
+                    "cv": st.sentence_cv,
+                    "conn": st.conn_density,
+                    "ngram": st.ngram_repeat,
+                    "dash": st.dash_density,
+                }
+            )
 
     def auroc(ai_s: list[float], hu_s: list[float]) -> float:
         pair = [(v, 1) for v in ai_s if v == v] + [(v, 0) for v in hu_s if v == v]

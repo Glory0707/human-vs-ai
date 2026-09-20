@@ -6,7 +6,7 @@
 # 一篇知乎科普用 general。
 #
 # 校准记录（2026-09 首轮，详见 docs/rules.md）：
-#   - academic 词表在问答文体 AUROC 仅 0.558——词表规则不跨文体复用的实证
+#   - academic 词表在问答文体 AUROC 仅 0.476——词表规则不跨文体复用的实证
 #   - 三连排比在问答文体 +0.22 有效（学术摘要是真人方法列举，方向相反），
 #     从 academic 移入本库复活
 #   - 模板连接词密度在问答文体反向（真人医疗回答 0.030 > AI 0.010，
@@ -184,7 +184,7 @@ rules:
     doc_metric: sentence_cv
     doc_compare: below
     doc_threshold: 0.35
-    human_ref: HC3-Chinese 校准（2026-09）：人类回答 CV 均值 0.526，ChatGPT 回答 0.337（单指标 AUROC 0.763）
+    human_ref: HC3-Chinese 校准（2026-09）：人类回答 CV 均值 0.521，ChatGPT 回答 0.337（单指标 AUROC 0.760）
     explanation: >
       全文句长的变异系数（标准差/均值）低于 0.35，说明句子长度高度
       均匀——"每句都差不多长"。问答文体的真人差距比学术更大

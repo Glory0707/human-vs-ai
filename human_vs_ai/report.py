@@ -78,6 +78,7 @@ def render_terminal(result: AnalysisResult) -> str:
     if not result.findings:
         out.append(C("32", "未发现明显的模板化写作模式。"))
     else:
+        explained: set[str] = set()
         groups, doc_level = _group_by_sentence(result.findings)
         n_hi, n_md, n_lo = result.n_high, result.n_medium, result.n_low
         out.append(
@@ -94,6 +95,10 @@ def render_terminal(result: AnalysisResult) -> str:
             matches = [m for f in group for m in f.matches]
             out.append(C("90", f"  命中：{'、'.join(dict.fromkeys(matches))}"))
             for f in group:
+                # 同一规则的解释全文只讲一次——第 6 次"首先"不需要重读同一段话
+                if f.rule_id in explained:
+                    continue
+                explained.add(f.rule_id)
                 out.append(f"  · {f.explanation}")
                 if f.suggestion:
                     out.append(C("32", f"    → {f.suggestion}"))
@@ -128,6 +133,7 @@ def render_markdown(result: AnalysisResult) -> str:
     out.append("")
     if not result.findings:
         out.append("未发现明显的模板化写作模式。")
+    explained: set[str] = set()
     groups, doc_level = _group_by_sentence(result.findings)
     for group in groups:
         out.append(f"### {_group_title(group)}")
@@ -138,6 +144,9 @@ def render_markdown(result: AnalysisResult) -> str:
         out.append(f"**命中**：{'、'.join(dict.fromkeys(matches))}")
         out.append("")
         for f in group:
+            if f.rule_id in explained:
+                continue  # 同一规则的解释全文只讲一次（与 terminal 口径一致）
+            explained.add(f.rule_id)
             out.append(f"**{f.rule_id}** {f.explanation}")
             if f.suggestion:
                 out.append("")

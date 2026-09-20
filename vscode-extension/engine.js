@@ -224,13 +224,15 @@
         }
       stats.conn_density = allSents.length ? count / allSents.length : NaN;
     }
-    var nDouble = 0, ch, prev = "";
-    for (var ci = 0; ci < fullText.length; ci++) {
-      ch = fullText[ci];
-      if (ch === "—" && prev !== "—") nDouble++;
-      prev = ch;
+    /* 破折号计数与 Python 同口径：非重叠"——"对数 + 落单的"—"。
+       连跑三个以上时按 run 拆（"———"= 1 对 + 1 单），不能数 run 数——
+       数 run 数会让 "———" 在两端各算各的（一致性检查实证过的漂移） */
+    var nDouble = 0, nSingle = 0, run = 0;
+    for (var ci = 0; ci <= fullText.length; ci++) {
+      if (fullText[ci] === "—") { run++; continue; }
+      if (run) { nDouble += Math.floor(run / 2); nSingle += run % 2; run = 0; }
     }
-    stats.dash_density = allSents.length ? nDouble / allSents.length : NaN;
+    stats.dash_density = allSents.length ? (nDouble + nSingle) / allSents.length : NaN;
     return stats;
   }
 

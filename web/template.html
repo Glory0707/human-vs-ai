@@ -37,8 +37,9 @@ header {
   gap: 16px;
   padding: 14px 24px 12px;
   border-bottom: 1px solid var(--hairline);
+  flex-wrap: wrap;
 }
-.wordmark { font-weight: 600; letter-spacing: -0.01em; }
+.wordmark { font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
 .wordmark .v { color: var(--ink-3); font-weight: 400; font-size: var(--fs-xs); margin-left: 6px; font-variant-numeric: tabular-nums; }
 .profiles { display: flex; gap: 2px; }
 .profiles button {
@@ -93,6 +94,8 @@ main { flex: 1; display: flex; min-height: 0; }
   main { flex-direction: column; }
   .pane { min-height: 45vh; }
   .pane + .pane { border-left: none; border-top: 1px solid var(--hairline); }
+  header { row-gap: 4px; }
+  header .note { flex-basis: 100%; margin-left: 0; }
 }
 </style>
 </head>
@@ -107,7 +110,7 @@ main { flex: 1; display: flex; min-height: 0; }
     <div class="pane-label">粘贴文本</div>
     <textarea id="input" placeholder="把文章、论文段落或回答粘贴到这里。
 
-左侧粘贴，右侧即析。规则与阈值和命令行版完全一致；Markdown 标题、列表与代码块会自动跳过，只分析正文。"></textarea>
+粘贴后自动分析。规则与阈值和命令行版完全一致；Markdown 标题、列表与代码块会自动跳过，只分析正文。"></textarea>
   </section>
   <section class="pane">
     <div class="pane-label">分析报告</div>
@@ -151,21 +154,26 @@ function renderReport(result) {
   </div>`);
 
   const F = result.findings;
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处` : "未发现明显的模板化写作模式"}</div>`);
-
   const bySev = { high: [], medium: [], low: [] };
   F.forEach(f => bySev[f.severity].push(f));
   const sevName = { high: "高", medium: "中", low: "低" };
+  const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
+    .map(sv => `${sevName[sv]} ${bySev[sv].length}`).join(" · ");
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式"}</div>`);
+
+  const explained = new Set();
   ["high", "medium", "low"].forEach(sev => {
     bySev[sev].sort((a, b) => a.para - b.para).forEach(f => {
       const sent = f.sentence.length > 66 ? f.sentence.slice(0, 63) + "…" : f.sentence;
       const loc = f.para >= 0 ? `¶${f.para + 1}` : "全文";
+      // 同一规则的解释全文只讲一次——与 CLI 报告口径一致
+      const showWhy = !explained.has(f.rule_id);
+      if (showWhy) explained.add(f.rule_id);
       parts.push(`<div class="found">
         <div class="head"><span class="dot" style="background:var(--sev-${sev})"></span>${sevName[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
         ${f.sentence ? `<blockquote>${esc(sent)}</blockquote>` : ""}
         ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
-        <div class="why">${esc(f.explanation.trim())}</div>
-        ${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}
+        ${showWhy ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
     });
   });
@@ -176,12 +184,19 @@ function renderReport(result) {
       `</div>`);
   }
 
-  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。规则与校准说明见项目 docs/rules.md。</div>`);
+  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。</div>`);
   el.innerHTML = parts.join("");
 }
 
+const EMPTY_REPORT = '<div class="empty">粘贴文本后自动分析。</div>';
+
 function analyzeNow() {
   const text = document.getElementById("input").value;
+  if (!text.trim()) {
+    // 空文本不给"未发现"的假全清判定，回到初始提示
+    document.getElementById("report").innerHTML = EMPTY_REPORT;
+    return;
+  }
   const rules = RULES_BY_PROFILE[currentProfile];
   const result = HvA.analyze(text, rules);
   renderReport(result);

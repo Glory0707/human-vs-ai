@@ -79,7 +79,7 @@
 |---|---|---|---|
 | T5.1 | VS Code 扩展：当前文档一键分析 + Webview 报告面板，纯本地 | node 冒烟 7/7（三 profile 规则注入/引擎命中/HTML 生成/空输入安全）；报告预览视觉审查通过；手动验收：目录放 `.vscode/extensions` → 重载窗口 → 命令面板「human-vs-ai: 分析当前文档」→ 旁边面板出报告 | ✅（2026-09-20） |
 
-**T5.1 实现注记**：扩展直接 require web/engine.js（21 项一致性背书）+ 构建时注入 rules.json（`tools/build_vscode.py`，与 build_web 同一事实源）；vscode 模块延迟 require 使报告渲染逻辑可被 node 冒烟直测；构建产物入库（clone 即用，零 npm 依赖）。
+**T5.1 实现注记**：扩展直接 require web/engine.js（24 项一致性背书）+ 构建时注入 rules.json（`tools/build_vscode.py`，与 build_web 同一事实源）；vscode 模块延迟 require 使报告渲染逻辑可被 node 冒烟直测；构建产物入库（clone 即用，零 npm 依赖）。
 
 ### M5 排队（按需启动）
 

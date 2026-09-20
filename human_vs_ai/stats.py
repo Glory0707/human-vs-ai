@@ -13,6 +13,7 @@
 """
 from __future__ import annotations
 
+import logging
 import math
 import re
 from dataclasses import dataclass, field
@@ -20,6 +21,10 @@ from dataclasses import dataclass, field
 try:
     import jieba  # type: ignore
 
+    if hasattr(jieba, "setLogLevel"):
+        # 压掉每次进程启动的 "Building prefix dict..." 四行日志——那是
+        # 初始化噪音，会污染每次 CLI 调用的终端输出
+        jieba.setLogLevel(logging.ERROR)
     _HAS_JIEBA = True
 except ImportError:  # pragma: no cover - 环境相关
     _HAS_JIEBA = False

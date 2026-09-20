@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from human_vs_ai import engine, segment, stats
+from human_vs_ai import engine, report, segment, stats
 
 DATA = Path(__file__).parent / "data"
 AI_TEXT = (DATA / "ai_academic.txt").read_text(encoding="utf-8")
@@ -127,6 +127,41 @@ class TestEngine:
     def test_nan_safe_on_tiny_input(self):
         result = engine.analyze("很短。", "academic")
         assert isinstance(result.doc_stats.n_sentences, int)
+
+
+# ---------- 报告与规则文案 ----------
+
+class TestProseQuality:
+    def test_folded_yaml_no_cjk_gap(self):
+        # YAML folded 块把换行折成空格——中文之间的空格是伪影，加载时必须清掉
+        import re
+        cjk = r"[\u4e00-\u9fff\u3000-\u303f\uff00-\uffef]"
+        pat = re.compile(rf"(?<={cjk}) +(?={cjk})")
+        for profile in engine.available_profiles():
+            for r in engine.load_rules(profile):
+                for field in ("name", "explanation", "suggestion", "human_ref"):
+                    v = getattr(r, field)
+                    assert not pat.search(v), f"{profile}/{r.id}.{field}: {v[:50]!r}"
+
+    def test_report_explains_each_rule_once(self):
+        # 同一规则命中多句时，解释只出现一次（界面减法）
+        text = "\n\n".join(
+            f"第{i}段首先给出一个论点，其次展开论证，此外还补充了旁证，与此同时保持行文完整，"
+            f"最后综上所述收束全段，让全文句数充足到统计判定可以正常进行，不至于触发短文本保护。"
+            for i in range(4)
+        )
+        result = engine.analyze(text, "academic")
+        hits = [f for f in result.findings if f.rule_id == "L-CONN-01"]
+        assert len(hits) >= 2, "前置条件：L-CONN-01 多句命中"
+        md = report.render_markdown(result)
+        assert md.count("这批词本身没有错") == 1
+
+    def test_dir_input_clean_error(self, tmp_path, capsys):
+        # 目录当输入：干净报错，不抛裸堆栈
+        from human_vs_ai import cli
+        with pytest.raises(SystemExit) as ei:
+            cli.main(["check", str(tmp_path)])
+        assert "目录" in str(ei.value)
 
 
 # ---------- 端到端区分度冒烟 ----------

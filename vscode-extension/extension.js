@@ -26,7 +26,7 @@ function fmt(v) {
 
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
    样式对齐网页版（纯白纸、发丝线、severity 色点）。 */
-function renderReportHtml(fileName, profile, result, nonce) {
+function renderReportHtml(fileName, profile, result) {
   const s = result.stats;
   const parts = [];
 
@@ -37,20 +37,26 @@ function renderReportHtml(fileName, profile, result, nonce) {
   </div>`);
 
   const F = result.findings;
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处` : "未发现明显的模板化写作模式。"}</div>`);
-
   const bySev = { high: [], medium: [], low: [] };
   F.forEach(f => bySev[f.severity].push(f));
+  const sevName = { high: "高", medium: "中", low: "低" };
+  const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
+    .map(sv => `${sevName[sv]} ${bySev[sv].length}`).join(" · ");
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现明显的模板化写作模式。"}</div>`);
+
+  const explained = new Set();
   ["high", "medium", "low"].forEach(sev => {
     bySev[sev].sort((a, b) => a.para - b.para).forEach(f => {
       const sent = f.sentence.length > 66 ? f.sentence.slice(0, 63) + "…" : f.sentence;
       const loc = f.para >= 0 ? `¶${f.para + 1}` : "全文";
+      // 同一规则的解释全文只讲一次——与 CLI/网页版口径一致
+      const showWhy = !explained.has(f.rule_id);
+      if (showWhy) explained.add(f.rule_id);
       parts.push(`<div class="found">
-        <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${SEV_LABEL[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
+        <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${sevName[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
         ${f.sentence ? `<blockquote>${esc(sent)}</blockquote>` : ""}
         ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
-        <div class="why">${esc(f.explanation.trim())}</div>
-        ${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}
+        ${showWhy ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
     });
   });
@@ -61,7 +67,7 @@ function renderReportHtml(fileName, profile, result, nonce) {
       `</div>`);
   }
 
-  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。场景：${esc(profile)}。</div>`);
+  parts.push(`<div class="disclaimer">以上为写作风格提示，不是 AI 生成判定。命中≠AI——人类同样会写这些句式，单独任何一条都不构成证据。</div>`);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -117,8 +123,7 @@ function analyzeActive() {
     vscode.ViewColumn.Beside,
     { enableScripts: false }
   );
-  const nonce = Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
-  panel.webview.html = renderReportHtml(fileName, profile, result, nonce);
+  panel.webview.html = renderReportHtml(fileName, profile, result);
 
   const n = result.findings.length;
   vscode.window.setStatusBarMessage(
