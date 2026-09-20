@@ -53,12 +53,19 @@ def _group_by_sentence(findings: list[Finding]):
     return list(groups.values()), doc_level
 
 
+def _taste_suffix(group: list[Finding]) -> str:
+    """口味条目编号（personal profile 专有）——指向 docs/taste_zhouao.md。"""
+    tags = [t for f in group for t in ([f.taste] if f.taste else [])]
+    tags = list(dict.fromkeys(tags))
+    return f" · {'/'.join(tags)}" if tags else ""
+
+
 def _group_title(group: list[Finding]) -> str:
     top = min((f.severity for f in group), key=lambda s: _SEV_RANK[s])
     ids = " + ".join(f.rule_id for f in group)
     names = " + ".join(f.rule_name for f in group)
     loc = f"¶{group[0].para + 1}"
-    return f"[{_SEV_LABEL[top]}] {ids} {names} · {loc}"
+    return f"[{_SEV_LABEL[top]}] {ids} {names}{_taste_suffix(group)} · {loc}"
 
 
 def render_terminal(result: AnalysisResult) -> str:
@@ -104,7 +111,8 @@ def render_terminal(result: AnalysisResult) -> str:
                     out.append(C("32", f"    → {f.suggestion}"))
             out.append("")
         for f in doc_level:
-            out.append(C(sev_color[f.severity], f"[{_SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name} · 全文"))
+            tag = f" · {f.taste}" if f.taste else ""
+            out.append(C(sev_color[f.severity], f"[{_SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag} · 全文"))
             out.append(C("90", f"  命中：{f.matches[0]}"))
             out.append(f"  {f.explanation}")
             if f.suggestion:
@@ -153,7 +161,8 @@ def render_markdown(result: AnalysisResult) -> str:
                 out.append(f"**建议**：{f.suggestion}")
             out.append("")
     for f in doc_level:
-        out.append(f"### [{_SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}（全文）")
+        tag = f" · {f.taste}" if f.taste else ""
+        out.append(f"### [{_SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag}（全文）")
         out.append("")
         out.append(f"**命中**：{f.matches[0]}")
         out.append("")

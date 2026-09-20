@@ -79,6 +79,7 @@ class Rule:
     doc_tiers: list = field(default_factory=list)  # [[chars上限, 阈值], ...] 按文本长度分档；None 上限=兜底档
     min_sentences: int = 8  # doc 统计判定的最小句数——短文本统计无意义，宁可不判
     human_ref: str = ""  # 人类基线的可读描述，进报告
+    taste: str = ""  # 口味条目编号（T1…T12）——personal profile 用，指向 docs/taste_zhouao.md
 
 
 @dataclass
@@ -92,6 +93,7 @@ class Finding:
     matches: list[str]  # 命中的模式文本
     explanation: str
     suggestion: str
+    taste: str = ""  # 口味条目编号，指向 docs/taste_zhouao.md
 
     def to_dict(self) -> dict:
         return {
@@ -104,6 +106,7 @@ class Finding:
             "matches": self.matches,
             "explanation": self.explanation,
             "suggestion": self.suggestion,
+            "taste": self.taste,
         }
 
 
@@ -160,6 +163,7 @@ def load_rules(profile: str) -> list[Rule]:
                 doc_tiers=[(t[0], float(t[1])) for t in item.get("doc_tiers", [])],
                 min_sentences=int(item.get("min_sentences", 8)),
                 human_ref=_clean_prose(item.get("human_ref", "")),
+                taste=item.get("taste", ""),
             )
         )
     return rules
@@ -228,6 +232,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                         matches=matches,
                         explanation=rule.explanation,
                         suggestion=rule.suggestion,
+                        taste=rule.taste,
                     )
                     raw_hits.setdefault(rule.id, []).append(f)
         for rule in rules:
@@ -245,6 +250,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                         matches=[f"独句段（{len(para[0].text)} 字）"],
                         explanation=rule.explanation,
                         suggestion=rule.suggestion,
+                        taste=rule.taste,
                     )
                 )
 
@@ -289,6 +295,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
                     matches=[f"{rule.doc_metric}={value:.3f}（阈值 {threshold:.2f}）"],
                     explanation=rule.explanation,
                     suggestion=rule.suggestion,
+                    taste=rule.taste,
                 )
             )
 

@@ -282,6 +282,7 @@
               rule_id: rule.id, rule_name: rule.name, severity: rule.severity,
               tier: rule.tier, para: pi, sentence: sent.text, matches: matches,
               explanation: rule.explanation || "", suggestion: rule.suggestion || "",
+              taste: rule.taste || "",
             });
           }
         }
@@ -295,6 +296,7 @@
             tier: rule2.tier, para: pi, sentence: para[0].text,
             matches: ["独句段（" + para[0].text.length + " 字）"],
             explanation: rule2.explanation || "", suggestion: rule2.suggestion || "",
+            taste: rule2.taste || "",
           });
         }
       }
@@ -332,6 +334,7 @@
           tier: drule.tier, para: -1, sentence: "",
           matches: [drule.doc_metric + "=" + value.toFixed(3) + "（阈值 " + thr.toFixed(2) + "）"],
           explanation: drule.explanation || "", suggestion: drule.suggestion || "",
+          taste: drule.taste || "",
         });
       }
     }

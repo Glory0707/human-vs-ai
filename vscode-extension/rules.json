@@ -29,6 +29,7 @@
    "suggestion": "删掉读一遍——句子之间的逻辑如果本来就通，连接词就是赘余；如果删掉就不通，说明缺的是论证不是连接词。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -46,6 +47,7 @@
    "suggestion": "换成编号列表或小节标题，或者干脆按实验/论证的自然顺序直陈。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -72,6 +74,7 @@
    "suggestion": "只留事实和数字。“为…提供了新思路”改为具体说明新在哪：跟哪个已知方法的差别是什么。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -94,6 +97,7 @@
    "suggestion": "每个强化词二选一：给出证据（数字、检验、对照），或删掉降为中性陈述。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -115,6 +119,7 @@
    "suggestion": "开头直接进研究缺口：谁的问题、卡在哪、本文接哪一棒。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -136,6 +141,7 @@
    "suggestion": "展望只写有具体理由的方向：哪个已知限制准备怎么解决，或哪个结果暗示了哪条路。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -159,6 +165,7 @@
    "suggestion": "换成领域术语或具体动作。“AI 赋能实验教学”→“AI 用于预判滴定终点，减少 30% 重做率”。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -178,6 +185,7 @@
    "suggestion": "砍掉否定半句，直接说 Y；如果 Y 确实反驳了某个常见误解，把那个误解明确写出来。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -196,6 +204,7 @@
    "suggestion": "换回“是/有/在…中很关键”。朴素的动词不是水平低，是自信。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -215,6 +224,7 @@
    "suggestion": "动词直接上。“对三组样品进行了系统的表征分析”→“表征了三组样品”。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -234,6 +244,7 @@
    "suggestion": "删掉舞台指示，让内容自己开场。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -248,6 +259,7 @@
    "suggestion": "独句段承载新事实就并回上文；只是总结腔调就整段删掉。",
    "doc_metric": "one_liner",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -262,6 +274,7 @@
    "suggestion": "检查每段：论据句可以更长更密，结论句可以极短。把连续等长的句子合并或拆分。",
    "doc_metric": "sentence_cv",
    "doc_compare": "below",
+   "taste": "",
    "doc_threshold": 0.37,
    "doc_tiers": [
     [
@@ -289,6 +302,7 @@
    "suggestion": "按段清理：先删所有连接词读一遍，补不回逻辑的地方才补词。",
    "doc_metric": "conn_density",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.08,
    "doc_tiers": []
   },
@@ -303,6 +317,7 @@
    "suggestion": "按论证单元重新切段：一个主张一个段，主张弱段落就短，不用凑。",
    "doc_metric": "para_len_cv",
    "doc_compare": "below",
+   "taste": "",
    "doc_threshold": 0.25,
    "doc_tiers": []
   },
@@ -317,6 +332,7 @@
    "suggestion": "找出重复 3 次以上的非术语短语，逐个替换或删除。",
    "doc_metric": "ngram_repeat",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.15,
    "doc_tiers": []
   },
@@ -331,6 +347,7 @@
    "suggestion": "破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。",
    "doc_metric": "dash_density",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.15,
    "doc_tiers": []
   }
@@ -359,6 +376,7 @@
    "suggestion": "开头直接给信息增量：一个具体事实、一个反常识结论、或一个真实场景。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -387,6 +405,7 @@
    "suggestion": "尾巴要么是内容（收束观点、留一个真问题），要么删掉；运营话术放评论区置顶。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -414,6 +433,7 @@
    "suggestion": "每个热词替换成具体的比较或数字；替代不出来，说明这句话本来就没有信息。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -437,6 +457,7 @@
    "suggestion": "删掉保险腔直接说结论；说不出口，说明论据不够，补论据而不是补对冲。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -453,6 +474,7 @@
    "suggestion": "逐项检查：能合并的合并，能展开的展开成句，凑数的删掉。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -467,6 +489,7 @@
    "suggestion": "独句段承载新事实就并回上文；只是总结腔调就整段删掉。",
    "doc_metric": "one_liner",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -481,6 +504,7 @@
    "suggestion": "检查每段：论据句可以更长更密，结论句可以极短。把连续等长的句子合并或拆分。",
    "doc_metric": "sentence_cv",
    "doc_compare": "below",
+   "taste": "",
    "doc_threshold": 0.35,
    "doc_tiers": []
   },
@@ -495,6 +519,7 @@
    "suggestion": "按内容单元重新分段：一个意思一个段。",
    "doc_metric": "para_len_cv",
    "doc_compare": "below",
+   "taste": "",
    "doc_threshold": 0.25,
    "doc_tiers": []
   },
@@ -509,6 +534,7 @@
    "suggestion": "找出重复 3 次以上的非术语短语，逐个替换或删除。",
    "doc_metric": "ngram_repeat",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.15,
    "doc_tiers": []
   },
@@ -523,6 +549,7 @@
    "suggestion": "破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。",
    "doc_metric": "dash_density",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.15,
    "doc_tiers": []
   }
@@ -552,6 +579,7 @@
    "suggestion": "密度过高时逐段清理：保留真正需要强调的动词修饰，其余直陈动作。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -578,6 +606,7 @@
    "suggestion": "删掉收束套话；确需表态的部分给出可考核的具体目标。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -597,6 +626,7 @@
    "suggestion": "三个变体保留信息量最大的那个，落到具体措施；其余删除。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -618,6 +648,7 @@
    "suggestion": "通知以要求或“特此通知”收尾；确需动员表述，那是讲话稿的事，换文体写。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -634,6 +665,7 @@
    "suggestion": "感叹号改句号；语气强度不该由标点承担。",
    "doc_metric": "",
    "doc_compare": "",
+   "taste": "",
    "doc_threshold": null,
    "doc_tiers": []
   },
@@ -648,6 +680,7 @@
    "suggestion": "按“动词 + 宾语”直陈改写，强化词只留给真正需要加压的要求句。",
    "doc_metric": "conn_density",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.55,
    "doc_tiers": []
   },
@@ -662,6 +695,7 @@
    "suggestion": "按内容单元重新分段：一个要求一个条，要求多寡决定段落长短。",
    "doc_metric": "para_len_cv",
    "doc_compare": "below",
+   "taste": "",
    "doc_threshold": 0.25,
    "doc_tiers": []
   },
@@ -676,7 +710,305 @@
    "suggestion": "破折号换成括号或“即”。",
    "doc_metric": "dash_density",
    "doc_compare": "above",
+   "taste": "",
    "doc_threshold": 0.15,
+   "doc_tiers": []
+  }
+ ],
+ "personal": [
+  {
+   "id": "T-VOICE-01",
+   "name": "劝慰腔",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "high",
+   "patterns": [
+    "[，,].{0,14}(跑不了|还在原地|不丢人|不算熬夜|是正常|别硬撑|又不会跑|不会跑)",
+    "[，,——]{1,2}(正常|没关系|没事的)[。！]?$",
+    "(谁也躲不过|躲不过|都这样|都会过去)[。！]?$",
+    "(别急|别慌|慢慢来)[，,].{0,12}(还|总|会|能)"
+   ],
+   "explanation": "劝慰句的结构是「陈述状况 + 给个台阶」，它替读者完成了情绪管理：读者没拿到信息，只收到安慰。文案池里这类句式被毙得最多（首轮 15 条被毙稿中 3 条），定稿 37 条里一条不剩。判别要点是逗号/破折号后那半句的功能—— 是「继续做事」的借口或「这很正常」的宽慰，而不是新信息。",
+   "suggestion": "删。真要缓解情绪，用一个梗或自嘲，别用安慰。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T1",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-02",
+   "name": "抒情升华",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "high",
+   "patterns": [
+    "[，,](就是|才是|是)(最好的|你的|一场|偷来的|属于)",
+    "陪你|伴你|照亮你的",
+    "[，,][^，,]{0,4}越[^，,]{1,8}"
+   ],
+   "explanation": "把日常动作升格成有意义的意象（“窗口一开，就是你的战场”）：不增加信息，只增加修辞密度。定稿 37 条中 0 条含此结构，而被毙稿里它是稳定的默认收尾方式。也包含「越…越…」式对偶抒情。",
+   "suggestion": "删升华半句，只留动作本身。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T2",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-03",
+   "name": "说理解释腔",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "不是.{0,8}(问题|错|摆烂|态度|罪|偷懒|偷闲)",
+    "(是科学|是生理学|不心虚|才怪)"
+   ],
+   "explanation": "给一个不需要辩护的行为做辩护（“发呆不是偷懒，是给大脑整理碎片”）。在界面文案里它通常是“我为什么这么设计”的自白，本质是把设计者的问题写进用户界面。文案池：被毙稿 10%，定稿 0%。",
+   "suggestion": "删。设计理由写在设计文档里，不写在界面上。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T3",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-04",
+   "name": "效率承诺",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "(效率|产出)(翻倍|提升|暴涨)",
+    "(十倍|翻番).{0,4}(效率|速度)"
+   ],
+   "explanation": "无法验证的收益承诺，与“功能说明腔”同源：都在向用户说明效果而不是给用户结果。被毙稿中出现一次，定稿零。",
+   "suggestion": "删；确有收益就用具体数字与条件说明。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T4",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-05",
+   "name": "劝诫长句",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    ".{2,}[，,].{0,10}(早点睡|早点休息|注意身体|保重身体|照顾好身体)",
+    "(别|不要)(熬太晚|熬夜|硬撑|逞强).{0,12}[，,].{1,20}",
+    "(记得|要)(喝水|吃饭|休息)[，,]"
+   ],
+   "explanation": "对用户下健康指令。判别要点是**结构**而非题材：一句话的短问候在定稿里存活，而“铺垫 + 祈使 + 理由”的劝诫长句全被毙。关心如果需要一个理由才成立，那个理由通常是在替读者做决定。",
+   "suggestion": "删或压到最短；一句话的关心可以留，带理由的劝诫要删。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T5",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-06",
+   "name": "夸张赞美",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "(太阳|月亮|星星|别人)还没你",
+    "比(月亮|太阳|谁都)还?",
+    "(最棒|最强|最努力|最优秀)的?你"
+   ],
+   "explanation": "把读者往高处架。本人的口味方向是吐槽与自嘲，不是捧——文案池里“赞美读者”的句子被毙，定稿里取而代之的是“把你写成搞笑角色”的反讽。",
+   "suggestion": "改成吐槽或自嘲；要夸就夸具体动作。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T6",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-07",
+   "name": "把你句式",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "high",
+   "patterns": [
+    "^[^，,]{0,10}的你[，,]",
+    "(凌晨|深夜|清晨|此刻|现在)的?你[，,]"
+   ],
+   "explanation": "「X 的你，Y」把读者推成第三人称观察对象，是抒情腔的固定句法载体。首轮 15 条被毙稿里 4 条是这个句式，定稿 0 条。字幕腔、宣传片旁白腔都属于这一类。",
+   "suggestion": "改回第二人称直说，或直接写动作。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T7",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-08",
+   "name": "宏大升格",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "(人类|世界|宇宙|所有人|全场|打工人|社畜)的?(至暗|巅峰|终极|最高|最低|荣光)"
+   ],
+   "explanation": "把一件小事说成宏大概念（“周一的至暗时刻”）。夸张到脱离语境就失去可信度——而本人的梗是往具体方向夸张，不是往宏大方向。",
+   "suggestion": "降到具体名词：谁、在哪、什么事。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T8",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-09",
+   "name": "揭短说教",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "——\\s*你.{0,4}(也|又|总是|还是)",
+    "你不是(说|讲)过"
+   ],
+   "explanation": "破折号后直接把矛头指向读者的行为。注意同结构但把读者的**话**当梗复述的句子在定稿里存活——差别在主体：指向读者是揭短，复述自己的话是共谋。真人语料里的破折号密度只有 AI 产线的 0.14 倍，破折号+第二人称是双料信号。",
+   "suggestion": "删；这个梗要玩就把矛头指向自己。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T9",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-10",
+   "name": "空泛鼓励与打气",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "(好好|认真)(读|学|干|写)",
+    "(加油|稳住|你可以的|冲鸭)",
+    "(这波|这把|这次)稳",
+    "(都|也)没倒下",
+    "主打一个",
+    "(主线|支线|日常|今日)任务[:：]",
+    "(喝口水|歇一会|喘口气).{0,6}(再战|再来|继续)"
+   ],
+   "explanation": "没有具体对象的鼓励与打气：口号式表达，念着顺口但零信息。文案池里被毙稿含游戏化任务腔、流行语打气等多种形态，定稿 0 条——本人要的是吐槽与自嘲，不是给人打气。弱规则：共现机制下单独一次只提示。",
+   "suggestion": "删。鼓励要有具体对象才有信息量。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T10",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-11",
+   "name": "收束保险腔",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "(综上所述|总而言之|总的来说|由此可见|不得不说)"
+   ],
+   "explanation": "真人基线每千字 0.01 次 vs AI 产线 0.05 次（差 10 倍），是本人文本里最稀缺的标记之一。收束词的功能是宣布“下面这句不用论证”。",
+   "suggestion": "删掉收束词直接说结论。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T12",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-VOICE-12",
+   "name": "顺口溜告诫",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "(不|没).{1,6}[，,].{1,8}(崩溃|完蛋|报废|废了|白搭)"
+   ],
+   "explanation": "押韵对仗的短劝诫（“不睡午觉，下午报废”）：念着顺口，但内容是人人都知道的常识，不提供任何决策信息。与空泛鼓励同族——都是“口号式” 表达，被毙稿里有、定稿里没有。",
+   "suggestion": "删；要留下就必须带具体对象或数字。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T10",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-MANUAL-01",
+   "name": "功能说明腔",
+   "tier": "structural",
+   "scope": "sentence",
+   "severity": "high",
+   "patterns": [
+    "(自动|智能)(挑|选|匹配|生成|识别|分析).{0,6}(相关|内容|结果)?",
+    "先.{1,4}再.{1,4}(作答|回答|生成|处理)",
+    "一次最多.{0,6}(篇|条|个|张)",
+    "(请直接|直接)(问|输入|点)",
+    "(勾选|选中)的.{0,8}(以|用).{0,6}(参与|加入)"
+   ],
+   "explanation": "解释“产品怎么工作”的文案。用户用一次就懂，写出来只是噪声——本人对这类文案的处理一律是整句删，从不压缩或换说法（事件 79085432a6b4 点名了三条此类文案“不要有无用文案”；e9c030c5a88e、63cbaaa6f270、 fe6c60314e3a 各有一处整句删除的实例）。",
+   "suggestion": "整句删。操作确实非直觉时，才压成最短的操作指令。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T11",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-MANUAL-02",
+   "name": "操作指引冗余",
+   "tier": "structural",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "(点击|单击|拖入|拖拽|勾选|按下|右键).{0,12}(选择|上传|导入|打开|完成)",
+    "(esc|Esc|回车|快捷键).{0,6}(取消|确认)",
+    "(支持|可以|可)先?.{0,6}(导入|导出|批量|离线|多选)"
+   ],
+   "explanation": "操作指引类文案。除非该动作反直觉，否则属于“用户自己会试出来”的冗余说明（事件 2c822c5e3b78：一段拖拽说明被压成最短指令； 63cbaaa6f270：一条框选说明整句删）。",
+   "suggestion": "整句删；必须保留时压到最短，去掉修饰与解释。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T11",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-MANUAL-03",
+   "name": "功能名当文案",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "(批注台|工作台|控制台|中枢|引擎|模块)$"
+   ],
+   "explanation": "把功能名当界面文案用（事件 2c822c5e3b78：一个界面标题被要求删除—— 用户已经在用了，不需要标题告诉他这是哪）。本规则只匹配整行结尾，避免误伤正文里的正常用法。",
+   "suggestion": "删标题；界面本身即说明。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "T11",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "T-DASH-01",
+   "name": "破折号超我基线",
+   "tier": "statistical",
+   "scope": "doc",
+   "severity": "low",
+   "patterns": [],
+   "explanation": "破折号是本人语料里与 AI 产线差距最大的标点标记（0.14 倍）。它让作者免于说明两个分句的逻辑关系，因此是“解释性偷懒”的载体。阈值按每句 0.2 个（远高于我的基线，只在异常密集时提示）。",
+   "suggestion": "换成逗号、冒号或括号，或者把两个分句的关系写清楚。",
+   "doc_metric": "dash_density",
+   "doc_compare": "above",
+   "taste": "T12",
+   "doc_threshold": 0.2,
    "doc_tiers": []
   }
  ]

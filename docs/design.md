@@ -71,7 +71,7 @@ node smoke-test.js 冒烟 + 一致性测试守护）
 
 ## 6. 验证基线（实测记录）
 
-- **单元测试**：35 项（切分 6 / 统计 4 / 引擎 10 / 边界 9 / 报告与文案 3 / 端到端区分度 3），`python -m pytest tests/ -q` 全绿
+- **单元测试**：64 项（切分 6 / 统计 4 / 引擎 10 / 边界 9 / 报告与文案 3 / 端到端区分度 3 / 口味与改写 29），`python -m pytest tests/ -q` 全绿；其中私库回归 5 项在无 corpus_private/ 时自动跳过
 - **C-ReD paper 域首轮校准**（2026-09，真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：
   - 词表规则句均命中：真人 0.046 vs AI 0.170–0.307，AUROC **0.804**（删除反向规则前 0.626）
   - 句长 CV：真人 0.483 vs AI 0.274–0.383（四模型全部低于真人），AUROC **0.799**
@@ -82,7 +82,8 @@ node smoke-test.js 冒烟 + 一致性测试守护）
 - **fixture 冒烟**：AI 样本 20 处命中（高 4）vs 人类样本 0 高 0 中（tests/data/）
 - **全面审计一轮**（v0.6.1，2026-09-20）：pyflakes 清零；修复切分器单引号 bug（ASCII 撇号翻转引号深度吞句号，Python+JS 同步，新增回归用例）；删除死代码（Sentence.start/end 死字段、offset 死变量）；恢复 evaluate_official --show；性能基准 mattr 2 万 token 88ms，无瓶颈
 - **全面审计二轮**（v0.6.2，2026-09-20）：清理 YAML 折叠说明里中文间的折叠空格（加载时统一清洗，三端生效）；四端渲染对同一规则只解释一次；修复 evaluate.py 硬编码 academic 导致 --profile general 逐规则区分度恒 0；修复 JS 破折号计数与 Python 在"———"连跑上的漂移（一致性语料补探针）；CLI 目录输入与不可读文件干净报错；压制 jieba 启动日志；网页空文本不再显示假"全清"、移动端 header 修复；移除扩展 nonce 死参数；同步 v0.6.1 切分修复后未跟进的全部校准数字
-- **双引擎一致性**：8 段语料 × 3 profile = 24 项逐字段 diff 全绿（`tools/check_web_consistency.py`，含破折号连跑探针）
+- **双引擎一致性**：8 段语料 + 9 条改写探针 × 4 profile = 68 项逐字段 diff 全绿（`tools/check_web_consistency.py`，含破折号连跑与改写器探针）
+- **口味校准层**（2026-09，私库标注链）：personal profile 12 条口味条目 + rewrite 模块；被毙稿召回 31/31、定稿误报 0/37、改写维度三中其二 5/6；边界由 `tools/check_private_leak.py` 守护（入库文件不许出现语料 6 字级片段）
 
 ## 7. 已知限制
 

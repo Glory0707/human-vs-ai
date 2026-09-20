@@ -79,6 +79,8 @@
 |---|---|---|---|
 | T5.1 | VS Code 扩展：当前文档一键分析 + Webview 报告面板，纯本地 | node 冒烟 7/7（三 profile 规则注入/引擎命中/HTML 生成/空输入安全）；报告预览视觉审查通过；手动验收：目录放 `.vscode/extensions` → 重载窗口 → 命令面板「human-vs-ai: 分析当前文档」→ 旁边面板出报告 | ✅（2026-09-20） |
 
+**T6.1 口味校准层实现注记**（2026-09-20）：私库事件流 → `tools/extract_private_corpus.py`（源目录只读，产出全在 `corpus_private/`）→ 标注链 31 被毙 / 37 定稿 / 8 亲改 → 归纳 `docs/taste_zhouao.md`（T1–T12 口味条目 + R1–R5 改写准则）→ 落成 `personal` profile（规则带 `taste` 字段）+ `human_vs_ai/rewrite.py`（CLI `rewrite` 子命令 + 网页「改写建议」模式，双端同构由一致性探针守护）。先验对账：快照口径中位 191 字（先验 188，偏差 1.6%）、中英混用 76.2%（先验 73.7%）。验收：被毙召回 31/31、定稿误报 0/37、改写维度 5/6。自检项目自身文案 33 条，命中 1 条已修；R3 因自检发现误伤面过大（47/53）从判据降为提示。
+
 **T5.1 实现注记**：扩展直接 require web/engine.js（24 项一致性背书）+ 构建时注入 rules.json（`tools/build_vscode.py`，与 build_web 同一事实源）；vscode 模块延迟 require 使报告渲染逻辑可被 node 冒烟直测；构建产物入库（clone 即用，零 npm 依赖）。
 
 ### M5 排队（按需启动）

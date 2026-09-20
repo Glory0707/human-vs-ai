@@ -20,3 +20,6 @@ venv/
 _qa/_web_*.js
 _qa/_web_*.json
 _qa/_mini*.js
+
+# 私人语料（口味校准层）——永不入库
+corpus_private/

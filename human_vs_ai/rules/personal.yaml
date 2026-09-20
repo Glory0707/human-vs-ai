@@ -1,0 +1,312 @@
+# human-vs-ai 个人口味规则库（personal profile）
+# ============================
+# 定位：短文案审查器——界面文案、提示语、标题、自媒体短句。
+# 校准语料：私人标注链（同一位作者、同一批产品文案，AI 交稿 → 我逐条毙或
+# 亲改 → 定稿落盘）。被毙 31 条 vs 定稿存活 37 条，构成天然正负样本。
+#
+# 本文件是规则库，不含语料原文：证据以事件 id 与统计量形式引用，
+# 示例全部合成（边界：私人语料永不入库，见 .gitignore 的 corpus_private/）。
+# 完整依据与逐条证据索引：docs/taste_zhouao.md。
+#
+# 与公开三 profile 的根本不同：这里判的不是「像不像 AI」，是「像不像我」。
+# 「关怀腔」在通用语料里是中性甚至加分的，在本人口味里是被毙第一名——
+# 规则方向不能从公开语料外推，只能从标注链归纳。
+#
+# 判别力的量化事实（文案池 31 被毙 vs 37 定稿）：
+#   劝慰/抒情/说理/效率承诺/夸张赞美/「X的你」/空泛鼓励 合计 55% vs 0%
+#   具体名词 19% vs 60% · 网络梗口语 16% vs 40%
+#   平均字数 12.4 vs 13.2——长度不是判别项，句子功能才是。
+
+meta:
+  name: personal
+  description: 个人口味（短文案）——界面文案、提示语、标题、自媒体短句的"不像我"检测
+
+rules:
+  # ============ 腔调层：被毙稿的句式家族 ============
+
+  - id: T-VOICE-01
+    name: 劝慰腔
+    taste: T1
+    tier: syntactic
+    scope: sentence
+    severity: high
+    patterns:
+      - '[，,].{0,14}(跑不了|还在原地|不丢人|不算熬夜|是正常|别硬撑|又不会跑|不会跑)'
+      - '[，,——]{1,2}(正常|没关系|没事的)[。！]?$'
+      - '(谁也躲不过|躲不过|都这样|都会过去)[。！]?$'
+      - '(别急|别慌|慢慢来)[，,].{0,12}(还|总|会|能)'
+    explanation: >
+      劝慰句的结构是「陈述状况 + 给个台阶」，它替读者完成了情绪管理：读者没
+      拿到信息，只收到安慰。文案池里这类句式被毙得最多（首轮 15 条被毙稿中
+      3 条），定稿 37 条里一条不剩。判别要点是逗号/破折号后那半句的功能——
+      是「继续做事」的借口或「这很正常」的宽慰，而不是新信息。
+    suggestion: 删。真要缓解情绪，用一个梗或自嘲，别用安慰。
+    example_before: '别急，代码明天还在仓库里。'
+    example_after: '今天就到这，明天我盯着这条报错。'
+
+  - id: T-VOICE-02
+    name: 抒情升华
+    taste: T2
+    tier: syntactic
+    scope: sentence
+    severity: high
+    patterns:
+      - '[，,](就是|才是|是)(最好的|你的|一场|偷来的|属于)'
+      - '陪你|伴你|照亮你的'
+      - '[，,][^，,]{0,4}越[^，,]{1,8}'
+    explanation: >
+      把日常动作升格成有意义的意象（"窗口一开，就是你的战场"）：不增加信息，
+      只增加修辞密度。定稿 37 条中 0 条含此结构，而被毙稿里它是稳定的默认
+      收尾方式。也包含「越…越…」式对偶抒情。
+    suggestion: 删升华半句，只留动作本身。
+    example_before: '窗口一开，就是你的战场。'
+    example_after: '打开文档，继续改。'
+
+  - id: T-VOICE-03
+    name: 说理解释腔
+    taste: T3
+    tier: syntactic
+    scope: sentence
+    severity: medium
+    patterns:
+      - '不是.{0,8}(问题|错|摆烂|态度|罪|偷懒|偷闲)'
+      - '(是科学|是生理学|不心虚|才怪)'
+    explanation: >
+      给一个不需要辩护的行为做辩护（"发呆不是偷懒，是给大脑整理碎片"）。在
+      界面文案里它通常是"我为什么这么设计"的自白，本质是把设计者的问题写进
+      用户界面。文案池：被毙稿 10%，定稿 0%。
+    suggestion: 删。设计理由写在设计文档里，不写在界面上。
+    example_before: '发呆不是偷懒，是给大脑整理碎片。'
+    example_after: '（整句删除）'
+
+  - id: T-VOICE-04
+    name: 效率承诺
+    taste: T4
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - '(效率|产出)(翻倍|提升|暴涨)'
+      - '(十倍|翻番).{0,4}(效率|速度)'
+    explanation: >
+      无法验证的收益承诺，与"功能说明腔"同源：都在向用户说明效果而不是给
+      用户结果。被毙稿中出现一次，定稿零。
+    suggestion: 删；确有收益就用具体数字与条件说明。
+    example_before: '早起十分钟，一天效率翻倍。'
+    example_after: '（整句删除）'
+
+  - id: T-VOICE-05
+    name: 劝诫长句
+    taste: T5
+    tier: syntactic
+    scope: sentence
+    severity: medium
+    patterns:
+      # 判的是「铺垫/理由 + 祈使」的组合结构，不是题材：极短问候式在定稿里
+      # 存活，带理由的劝诫长句全被毙
+      - '.{2,}[，,].{0,10}(早点睡|早点休息|注意身体|保重身体|照顾好身体)'
+      - '(别|不要)(熬太晚|熬夜|硬撑|逞强).{0,12}[，,].{1,20}'
+      - '(记得|要)(喝水|吃饭|休息)[，,]'
+    explanation: >
+      对用户下健康指令。判别要点是**结构**而非题材：一句话的短问候在定稿里
+      存活，而"铺垫 + 祈使 + 理由"的劝诫长句全被毙。关心如果需要一个理由
+      才成立，那个理由通常是在替读者做决定。
+    suggestion: 删或压到最短；一句话的关心可以留，带理由的劝诫要删。
+    example_before: '夜深了，字也看不清了，早点睡。'
+    example_after: '太晚了，就明天再读。'
+
+  - id: T-VOICE-06
+    name: 夸张赞美
+    taste: T6
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - '(太阳|月亮|星星|别人)还没你'
+      - '比(月亮|太阳|谁都)还?'
+      - '(最棒|最强|最努力|最优秀)的?你'
+    explanation: >
+      把读者往高处架。本人的口味方向是吐槽与自嘲，不是捧——文案池里"赞美
+      读者"的句子被毙，定稿里取而代之的是"把你写成搞笑角色"的反讽。
+    suggestion: 改成吐槽或自嘲；要夸就夸具体动作。
+    example_before: '月亮都下班了，你还在。'
+    example_after: '这个点还开着文档，你比我狠。'
+
+  - id: T-VOICE-07
+    name: 把你句式
+    taste: T7
+    tier: syntactic
+    scope: sentence
+    severity: high
+    patterns:
+      - '^[^，,]{0,10}的你[，,]'
+      - '(凌晨|深夜|清晨|此刻|现在)的?你[，,]'
+    explanation: >
+      「X 的你，Y」把读者推成第三人称观察对象，是抒情腔的固定句法载体。
+      首轮 15 条被毙稿里 4 条是这个句式，定稿 0 条。字幕腔、宣传片旁白腔
+      都属于这一类。
+    suggestion: 改回第二人称直说，或直接写动作。
+    example_before: '深夜的你，还在改这一版。'
+    example_after: '这版你改到深夜。'
+
+  - id: T-VOICE-08
+    name: 宏大升格
+    taste: T8
+    tier: lexical
+    scope: sentence
+    severity: medium
+    patterns:
+      - '(人类|世界|宇宙|所有人|全场|打工人|社畜)的?(至暗|巅峰|终极|最高|最低|荣光)'
+    explanation: >
+      把一件小事说成宏大概念（"周一的至暗时刻"）。夸张到脱离语境就失去
+      可信度——而本人的梗是往具体方向夸张，不是往宏大方向。
+    suggestion: 降到具体名词：谁、在哪、什么事。
+    example_before: '周一上午，打工人的至暗时刻。'
+    example_after: '周一九点，会议室里坐着 12 个人和 47 条待办。'
+
+  - id: T-VOICE-09
+    name: 揭短说教
+    taste: T9
+    tier: syntactic
+    scope: sentence
+    severity: medium
+    patterns:
+      - '——\s*你.{0,4}(也|又|总是|还是)'
+      - '你不是(说|讲)过'
+    explanation: >
+      破折号后直接把矛头指向读者的行为。注意同结构但把读者的**话**当梗复述
+      的句子在定稿里存活——差别在主体：指向读者是揭短，复述自己的话是共谋。
+      真人语料里的破折号密度只有 AI 产线的 0.14 倍，破折号+第二人称是双料信号。
+    suggestion: 删；这个梗要玩就把矛头指向自己。
+    example_before: '说好只改一行——你上次也是这么说的。'
+    example_after: '说好只改一行，结果我改了一晚上。'
+
+  - id: T-VOICE-10
+    name: 空泛鼓励与打气
+    taste: T10
+    tier: lexical
+    scope: sentence
+    severity: low
+    patterns:
+      - '(好好|认真)(读|学|干|写)'
+      - '(加油|稳住|你可以的|冲鸭)'
+      - '(这波|这把|这次)稳'
+      - '(都|也)没倒下'
+      - '主打一个'
+      - '(主线|支线|日常|今日)任务[:：]'
+      - '(喝口水|歇一会|喘口气).{0,6}(再战|再来|继续)'
+    explanation: >
+      没有具体对象的鼓励与打气：口号式表达，念着顺口但零信息。文案池里
+      被毙稿含游戏化任务腔、流行语打气等多种形态，定稿 0 条——本人要的是
+      吐槽与自嘲，不是给人打气。弱规则：共现机制下单独一次只提示。
+    suggestion: 删。鼓励要有具体对象才有信息量。
+    example_before: '继续加油，你可以的。'
+    example_after: '（整句删除）'
+
+  - id: T-VOICE-11
+    name: 收束保险腔
+    taste: T12
+    tier: lexical
+    scope: sentence
+    severity: low
+    patterns:
+      - '(综上所述|总而言之|总的来说|由此可见|不得不说)'
+    explanation: >
+      真人基线每千字 0.01 次 vs AI 产线 0.05 次（差 10 倍），是本人文本里
+      最稀缺的标记之一。收束词的功能是宣布"下面这句不用论证"。
+    suggestion: 删掉收束词直接说结论。
+    example_before: '总而言之，这版更稳。'
+    example_after: '这版更稳：三条报错路径都补了用例。'
+
+  - id: T-VOICE-12
+    name: 顺口溜告诫
+    taste: T10
+    tier: syntactic
+    scope: sentence
+    severity: low
+    patterns:
+      - '(不|没).{1,6}[，,].{1,8}(崩溃|完蛋|报废|废了|白搭)'
+    explanation: >
+      押韵对仗的短劝诫（"不睡午觉，下午报废"）：念着顺口，但内容是人人
+      都知道的常识，不提供任何决策信息。与空泛鼓励同族——都是"口号式"
+      表达，被毙稿里有、定稿里没有。
+    suggestion: 删；要留下就必须带具体对象或数字。
+    example_before: '不睡午觉，下午报废。'
+    example_after: '（整句删除）'
+
+  # ============ 功能说明层：处理方式是整句删（不是压缩） ============
+
+  - id: T-MANUAL-01
+    name: 功能说明腔
+    taste: T11
+    tier: structural
+    scope: sentence
+    severity: high
+    patterns:
+      - '(自动|智能)(挑|选|匹配|生成|识别|分析).{0,6}(相关|内容|结果)?'
+      - '先.{1,4}再.{1,4}(作答|回答|生成|处理)'
+      - '一次最多.{0,6}(篇|条|个|张)'
+      - '(请直接|直接)(问|输入|点)'
+      - '(勾选|选中)的.{0,8}(以|用).{0,6}(参与|加入)'
+    explanation: >
+      解释"产品怎么工作"的文案。用户用一次就懂，写出来只是噪声——本人
+      对这类文案的处理一律是整句删，从不压缩或换说法（事件 79085432a6b4
+      点名了三条此类文案"不要有无用文案"；e9c030c5a88e、63cbaaa6f270、
+      fe6c60314e3a 各有一处整句删除的实例）。
+    suggestion: 整句删。操作确实非直觉时，才压成最短的操作指令。
+    example_before: '自动匹配相关段落，一次最多三条。'
+    example_after: '（整句删除）'
+
+  - id: T-MANUAL-02
+    name: 操作指引冗余
+    taste: T11
+    tier: structural
+    scope: sentence
+    severity: medium
+    patterns:
+      - '(点击|单击|拖入|拖拽|勾选|按下|右键).{0,12}(选择|上传|导入|打开|完成)'
+      - '(esc|Esc|回车|快捷键).{0,6}(取消|确认)'
+      - '(支持|可以|可)先?.{0,6}(导入|导出|批量|离线|多选)'
+    explanation: >
+      操作指引类文案。除非该动作反直觉，否则属于"用户自己会试出来"的
+      冗余说明（事件 2c822c5e3b78：一段拖拽说明被压成最短指令；
+      63cbaaa6f270：一条框选说明整句删）。
+    suggestion: 整句删；必须保留时压到最短，去掉修饰与解释。
+    example_before: '拖拽框选要截取的区域，esc 取消。'
+    example_after: '（整句删除）'
+
+  - id: T-MANUAL-03
+    name: 功能名当文案
+    taste: T11
+    tier: lexical
+    scope: sentence
+    severity: low
+    patterns:
+      - '(批注台|工作台|控制台|中枢|引擎|模块)$'
+    explanation: >
+      把功能名当界面文案用（事件 2c822c5e3b78：一个界面标题被要求删除——
+      用户已经在用了，不需要标题告诉他这是哪）。本规则只匹配整行结尾，
+      避免误伤正文里的正常用法。
+    suggestion: 删标题；界面本身即说明。
+    example_before: '本地笔记工作台'
+    example_after: '（删除标题）'
+
+  # ============ 统计层：与我的真人基线对齐 ============
+
+  - id: T-DASH-01
+    name: 破折号超我基线
+    taste: T12
+    tier: statistical
+    scope: doc
+    severity: low
+    doc_metric: dash_density
+    doc_compare: above
+    doc_threshold: 0.2
+    human_ref: 真人基线每千字 0.99 次 vs AI 产线 6.91 次（0.14 倍）——破折号是本人文本里区分度最大的单个标记
+    explanation: >
+      破折号是本人语料里与 AI 产线差距最大的标点标记（0.14 倍）。它让作者
+      免于说明两个分句的逻辑关系，因此是"解释性偷懒"的载体。阈值按每句
+      0.2 个（远高于我的基线，只在异常密集时提示）。
+    suggestion: 换成逗号、冒号或括号，或者把两个分句的关系写清楚。
+    references:
+      - https://github.com/blader/humanizer

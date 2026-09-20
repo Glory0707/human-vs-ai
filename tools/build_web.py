@@ -40,6 +40,7 @@ def _strip_calibration_notes(rules: list[dict]) -> list[dict]:
 def main() -> None:
     template = (ROOT / "web/template.html").read_text(encoding="utf-8")
     engine_js = (ROOT / "web/engine.js").read_text(encoding="utf-8")
+    rewrite_js = (ROOT / "web/rewrite.js").read_text(encoding="utf-8")
     rules = {
         p: _strip_calibration_notes(rules_to_json(p))
         for p in engine.available_profiles()
@@ -49,6 +50,7 @@ def main() -> None:
     html = (
         template.replace("__VERSION__", __version__)
         .replace("__ENGINE__", engine_js.replace("</", "<\\/"))
+        .replace("__REWRITE__", rewrite_js.replace("</", "<\\/"))
         .replace("__RULES_JSON__", rules_json)
     )
     out = ROOT / "web/index.html"

@@ -1,7 +1,8 @@
 """命令行入口。
 
-四个子命令，没有第五个：
+五个子命令：
   check     分析文件（主命令）
+  rewrite   按个人口味给逐句改写建议（删/改/保留）
   stats     只看统计特征（调阈值/做研究用）
   explain   打印一条规则的完整说明（报告里看到 ID 想深究时用）
   profiles  列出可用场景
@@ -9,10 +10,11 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
-from . import __version__, engine, report
+from . import __version__, engine, report, rewrite
 
 
 def _read_file(path: str) -> str:
@@ -53,6 +55,15 @@ def main(argv: list[str] | None = None) -> None:
     p_stats.add_argument("file")
     p_stats.add_argument("-p", "--profile", default="academic")
 
+    p_rw = sub.add_parser(
+        "rewrite",
+        help="按个人口味给逐句改写建议（删/改/保留三档，personal profile）",
+    )
+    p_rw.add_argument("file", help="txt / md 文件；或 - 从标准输入读")
+    p_rw.add_argument("-p", "--profile", default="personal")
+    p_rw.add_argument("-f", "--format", default="terminal", choices=["terminal", "json"])
+    p_rw.add_argument("-o", "--output", help="写入文件（默认打印）")
+
     sub.add_parser("profiles", help="列出可用场景")
 
     p_explain = sub.add_parser("explain", help="打印一条规则的完整说明")
@@ -84,6 +95,23 @@ def main(argv: list[str] | None = None) -> None:
                 print("\n".join(parts))
                 return
         sys.exit(f"规则不存在：{args.rule_id}（profile={args.profile}）")
+
+    if args.command == "rewrite":
+        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        result = rewrite.rewrite_text(text, args.profile)
+        if args.format == "json":
+            out = json.dumps(
+                {"tool": "human-vs-ai", "version": __version__, "profile": result.profile,
+                 "advices": [a.to_dict() for a in result.advices]},
+                ensure_ascii=False, indent=2)
+        else:
+            out = rewrite.render_advice(result)
+        if args.output:
+            Path(args.output).write_text(out, encoding="utf-8")
+            print(f"已写入 {args.output}", file=sys.stderr)
+        else:
+            print(out)
+        return
 
     text = _read_file(args.file)
     result = engine.analyze(text, args.profile)

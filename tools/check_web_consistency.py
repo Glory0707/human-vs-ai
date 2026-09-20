@@ -35,14 +35,32 @@ PROBE_TEXTS = [
 NODE_SCRIPT = r"""
 const fs = require("fs");
 const HvA = require(process.argv[2]);
-const rules = JSON.parse(fs.readFileSync(process.argv[3], "utf8"));
-const texts = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
+const HvARewrite = require(process.argv[3]);
+const rules = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
+const texts = JSON.parse(fs.readFileSync(process.argv[5], "utf8"));
 const out = {};
 for (const [name, text] of Object.entries(texts)) {
   out[name] = HvA.analyze(text, rules);
 }
-process.stdout.write(JSON.stringify(out));
+const rw = {};
+for (const [name, text] of Object.entries(texts)) {
+  rw[name] = HvARewrite.rewriteText(text, rules);
+}
+process.stdout.write(JSON.stringify({ analyze: out, rewrite: rw }));
 """
+
+# 改写器探针语料：覆盖每个判档分支（删/改/保留 × 腔调/功能说明/R1 数据保护）
+REWRITE_PROBES = [
+    "窗口一开，就是你的战场。",          # T2 抒情升华 → 改（截掉升华半句）
+    "别急，代码明天还在仓库里。",        # T1 劝慰腔 → 改（截掉安慰半句）
+    "研究显示，准确率从 0.71 提升到 0.89。",  # R1 数据保护 → 保留
+    "自动匹配相关段落，一次最多三条。",  # T11 功能说明腔 → 整句删
+    "点击右上角选择文件，支持批量导入。",  # T11 操作指引冗余 → 整句删
+    "深夜的你，还在改这一版。",          # T7「X 的你」→ 改（拆框架）
+    "本月共完成 3 次复盘，平均耗时 20 分钟。",  # R1 数据保护 → 保留
+    "总而言之，这版更稳。",              # T12 收束保险腔 → 改（删收束词）
+    "让每一次操作都得心应手",            # 无腔调命中 → 保留 + R3 提示
+]
 
 
 def rules_to_json(profile: str) -> list[dict]:
@@ -59,6 +77,8 @@ def rules_to_json(profile: str) -> list[dict]:
             "suggestion": r.suggestion,
             "doc_metric": r.doc_metric,
             "doc_compare": r.doc_compare,
+            # 口味条目编号（personal profile 用）——网页要显示 T1…T12 标签
+            "taste": r.taste,
             # JSON 不认 NaN;无阈值规则传 null
             "doc_threshold": None if r.doc_threshold != r.doc_threshold else r.doc_threshold,
             "doc_tiers": [
@@ -96,14 +116,19 @@ def normalize(result: dict) -> dict:
 
 def main() -> None:
     engine_js = ROOT / "web/engine.js"
+    rewrite_js = ROOT / "web/rewrite.js"
     if not engine_js.exists():
         sys.exit("缺少 web/engine.js")
+    if not rewrite_js.exists():
+        sys.exit("缺少 web/rewrite.js")
     if _HAS_JIEBA:
         print("提示:当前 Python 环境装有 jieba,统计对比忽略 ttr 字段(口径不同,无 TTR 判定规则,不受影响)")
     failed = False
     for profile in engine.available_profiles():
         rules_json = json.dumps(rules_to_json(profile), ensure_ascii=False)
-        texts_json = json.dumps({n: t for n, t in PROBE_TEXTS}, ensure_ascii=False)
+        probes = {n: t for n, t in PROBE_TEXTS}
+        probes.update({f"rw{i}": t for i, t in enumerate(REWRITE_PROBES)})
+        texts_json = json.dumps(probes, ensure_ascii=False)
         script = ROOT / "_qa/_web_check.js"
         script.write_text(NODE_SCRIPT, encoding="utf-8")
         rules_path = ROOT / "_qa/_web_rules.json"
@@ -111,12 +136,15 @@ def main() -> None:
         rules_path.write_text(rules_json, encoding="utf-8")
         texts_path.write_text(texts_json, encoding="utf-8")
         proc = subprocess.run(
-            ["node", str(script), str(engine_js.resolve()), str(rules_path), str(texts_path)],
+            ["node", str(script), str(engine_js.resolve()), str(rewrite_js.resolve()),
+             str(rules_path), str(texts_path)],
             capture_output=True, text=True, encoding="utf-8",
         )
         if proc.returncode != 0:
             sys.exit(f"node 运行失败:\n{proc.stderr}")
-        js_results = json.loads(proc.stdout)
+        payload = json.loads(proc.stdout)
+        js_results = payload["analyze"]
+        js_rewrite = payload["rewrite"]
 
         for name, _ in PROBE_TEXTS:
             py = engine.analyze(dict(PROBE_TEXTS)[name], profile)
@@ -135,6 +163,21 @@ def main() -> None:
                               f"\n    js={json.dumps(js_norm[key], ensure_ascii=False)[:400]}")
             else:
                 print(f"[ok] {profile}/{name}")
+
+        # 改写器一致性：动作/候选/方向/理由逐字段 diff（两端不许独立演化）
+        from human_vs_ai.rewrite import rewrite_text
+        for i, text in enumerate(REWRITE_PROBES):
+            keys = ("text", "action", "candidate", "direction", "reason", "taste")
+            py_rw = [{k: a.to_dict()[k] for k in keys}
+                     for a in rewrite_text(text, profile).advices]
+            js_rw = [{k: a[k] for k in keys} for a in js_rewrite[f"rw{i}"]["advices"]]
+            if py_rw != js_rw:
+                failed = True
+                print(f"[FAIL] {profile}/rewrite#{i} {text[:24]}")
+                print(f"    py={json.dumps(py_rw, ensure_ascii=False)[:300]}"
+                      f"\n    js={json.dumps(js_rw, ensure_ascii=False)[:300]}")
+            else:
+                print(f"[ok] {profile}/rewrite#{i}")
 
     if failed:
         sys.exit("一致性检查未通过——两端实现已漂移,禁止发布")

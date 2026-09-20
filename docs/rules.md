@@ -51,6 +51,14 @@ python tools/evaluate_cred.py --per-source 80   # 学术 profile 主场
 python tools/evaluate.py --per-domain 60        # 问答文体（general profile 校准数据）
 ```
 
+## 3.5 personal profile 校准（私库标注链，2026-09）
+
+见 [taste_zhouao.md](taste_zhouao.md)：同一个作者的文案池标注链（被毙 31 vs 定稿 37），
+归纳出 12 条口味条目（T1–T12）与 5 条改写准则（R1–R5）。
+实测：被毙稿召回 31/31、定稿误报 0/37、改写产出物命中风格维度 5/6。
+语料在 `corpus_private/`（gitignore），入库文件只含合成样例，由
+`tools/check_private_leak.py` 守护。
+
 ## 4. 2026-09 首轮校准结果
 
 ### C-ReD paper 域（学术 profile 主场，真人 80 vs 四模型 320）
