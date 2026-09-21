@@ -93,7 +93,7 @@ python tools/evaluate_official.py       # 公文语料评测（误报率验收�
 python tools/eval_taste_regression.py   # 口味回归（需私库语料，缺失自动跳过）
 ```
 
-设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）。
+设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）· [中文AI味领域深度研究.md](docs/中文AI味领域深度研究.md)（立项调研）。
 
 ## License
 
