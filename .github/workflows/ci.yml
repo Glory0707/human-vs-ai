@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: 安装
+        run: pip install -e .
+
+      - name: 单元+边界+评分+口味回归测试
+        run: python -m pytest tests/ -q
+
+      - name: 防泄漏扫描（私库语料片段不得入库）
+        run: python tools/check_private_leak.py
+
+      - name: 构建产物新鲜度（重新生成后必须零 diff）
+        run: |
+          python tools/build_web.py
+          python tools/build_vscode.py
+          git diff --exit-code web/index.html vscode-extension/rules.json \
+            vscode-extension/scoring.json vscode-extension/engine.js \
+            vscode-extension/rewrite.js vscode-extension/render.js \
+            vscode-extension/package.json
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: 双引擎一致性（136 项逐字段对齐）
+        run: python tools/check_web_consistency.py
+
+      - name: 扩展冒烟测试
+        run: node vscode-extension/smoke-test.js
