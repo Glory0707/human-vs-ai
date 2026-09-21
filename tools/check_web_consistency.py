@@ -38,6 +38,23 @@ PROBE_TEXTS = [
     # 裸链接剥离，不污染字数与 4-gram；星号强调保留文字、不碰算式
     ("bare_url", "参考链接 https://example.com/a?x=1 该方法显著提升了性能。"),
     ("star_emph", "*重点*在于效率，3*5 也算，具有重要意义。"),
+    # 对抗性补充（对拍实证过的漂移类）：
+    # emoji/扩展区汉字——JS .length 数 UTF-16 码元、Python len 数码点，
+    # n_chars/句长/独句段阈值/TTR 全部踩过；必须用码点口径
+    ("emoji_mixed", "这个方法真的绝了😀！效果拔群🚀🚀。第二句正常表述。"),
+    ("cjk_ext", "𠮷野家与𠀋𠂉生僻字。第二句。"),
+    # 连跑双竖线：Python strip("|") 与 JS 单侧 replace 曾分叉
+    ("table_double_pipe", "| a || b |\n|---|---|\n|| x || y |"),
+    # 未闭合代码围栏 + 无句子文本（avg_sentence_len 的 NaN 口径）
+    ("unclosed_fence", "```python\nprint(1)\n\n正文被代码块吞掉了吗。第二句。"),
+    ("asterisk_flood", "*" * 200),
+    # 引号不配对：ASCII 双引号奇偶切换的边界
+    ("unbalanced_dquote", '他说"这一点很关键。然后走了。后来又回来了。最终确认无误。'),
+    # 邮箱剥离：显式 ASCII 类 + RFC 上限（两端 \w 语义不同，必须逐字对齐）
+    ("email_mixed", "联系 zhouao@example.com 或 a.b+c@d-e.org.cn 结束。第二句。"),
+    ("cjk_pseudo_email", "长@长.cn 不是邮箱。第二句。"),
+    # 未闭合 "[" 洪水：LINK/IMG 内容无上限时是 O(n²)
+    ("bracket_flood", "[" + "a" * 500 + " 正文。第二句。"),
 ]
 
 NODE_SCRIPT = r"""
@@ -138,7 +155,7 @@ def normalize(result: dict) -> dict:
     return {
         "findings": fs(result["findings"]),
         "hints": fs(result["hints"]),
-        "stats": {k: norm_num(v) for k, v in s.items() if k not in ("tokenizer", "avg_sentence_len", "sentence_cvs")},
+        "stats": {k: norm_num(v) for k, v in s.items() if k not in ("tokenizer", "sentence_cvs")},
         "score": norm_score,
         "score_note": result.get("score_note", ""),
     }

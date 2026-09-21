@@ -212,6 +212,7 @@ let debounceTimer = null;
 let lastResult = null;   // 检测模式最近一次结果（复制按钮的数据源）
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
+let copyResetTimer = null;
 
 const reportEl = document.getElementById("report");
 const inputEl = document.getElementById("input");
@@ -366,6 +367,7 @@ function renderAdvice() {
 }
 
 function analyzeNow() {
+  clearTimeout(debounceTimer);
   const text = inputEl.value;
   if (!text.trim()) {
     // 空文本不给"未发现"的假全清判定，回到初始提示
@@ -377,7 +379,10 @@ function analyzeNow() {
   // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算
   if (text.length > 60000) {
     reportEl.innerHTML = '<div class="empty">分析中…</div>';
-    requestAnimationFrame(() => requestAnimationFrame(() => doAnalyze(text)));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (inputEl.value !== text) return;  // 过期任务：输入已变
+      doAnalyze(text);
+    }));
   } else {
     doAnalyze(text);
   }
@@ -493,7 +498,8 @@ copyBtn.onclick = async () => {
     ta.remove();
   }
   copyBtn.textContent = ok ? "已复制 ✓" : "复制失败";
-  setTimeout(() => { copyBtn.textContent = "复制 Markdown"; }, 1600);
+  clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => { copyBtn.textContent = "复制 Markdown"; }, 1600);
 };
 
 inputEl.addEventListener("input", () => {

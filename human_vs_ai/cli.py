@@ -14,6 +14,8 @@ import json
 import sys
 from pathlib import Path
 
+import yaml
+
 from . import __version__, engine, report, rewrite
 
 
@@ -50,7 +52,10 @@ def _require_profile(name: str) -> None:
 def _emit(out: str, output: str | None) -> None:
     """结果出口：写文件（提示走 stderr，不污染管道）或打印。"""
     if output:
-        Path(output).write_text(out, encoding="utf-8")
+        try:
+            Path(output).write_text(out, encoding="utf-8")
+        except OSError as e:
+            sys.exit(f"错误：无法写入 {output}（{e.strerror}）")
         print(f"已写入 {output}", file=sys.stderr)
     else:
         print(out)
@@ -97,6 +102,15 @@ def main(argv: list[str] | None = None) -> None:
 
     args = parser.parse_args(argv)
 
+    # 规则库被改坏时给可读的报错，不抛 yaml traceback；
+    # 其余未预期异常照常抛——不能把真 bug 吞成一句话
+    try:
+        _dispatch(args)
+    except yaml.YAMLError as e:
+        sys.exit(f"错误：规则库 YAML 解析失败：{str(e).strip().splitlines()[0]}")
+
+
+def _dispatch(args: argparse.Namespace) -> None:
     if args.command == "profiles":
         for name in engine.available_profiles():
             label, desc = _PROFILE_DESC.get(name, ("", ""))

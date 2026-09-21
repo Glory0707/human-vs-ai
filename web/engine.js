@@ -23,6 +23,17 @@
   var CLOSE_Q_RE = /[”』」]/;
   var PUNCT_RE = /[，。！？；：、…“”‘’《》（）()[\]【】,\.!\?;:"'—\-\s]/g;
 
+  /* 码点长度：.length 数的是 UTF-16 码元，emoji/扩展区汉字（𠮷）一个占
+     2——Python 的 len 数码点，所有"字数"统计必须走这里（对拍实证漂移） */
+  function cpLength(s) {
+    var n = 0;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c < 0xDC00 || c > 0xDFFF) n++;
+    }
+    return n;
+  }
+
   /* 与 Python segment.py 同构的 Markdown 解析：标题/代码丢弃，
      列表项与表格行内容保留（各成句，不触发独句段形状规则） */
   var FENCE_RE = /^\s*(?:```|~~~)/;
@@ -37,11 +48,11 @@
   function inlineClean(line) {
     return line
       .replace(/`([^`]*)`/g, "$1")
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/!\[([^\]]{0,300})\]\(([^)]{0,500})\)/g, "$1")
+      .replace(/\[([^\]]{0,300})\]\(([^)]{0,500})\)/g, "$1")
       .replace(/(?:https?:\/\/|www\.)[^\s，。；！？、）)】」』]+/gi, "")
-      .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "")
-      .replace(/\*{1,3}(?!\s)([^*]*?[一-鿿][^*]*?)(?<!\s)\*{1,3}/g, "$1")
+      .replace(/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9._-]{1,63})+/g, "")
+      .replace(/\*{1,3}(?!\s)([^*]{0,49}?[一-鿿][^*]{0,49}?)(?<!\s)\*{1,3}/g, "$1")
       .replace(/[ \t]{2,}/g, " ")
       .trim();
   }
@@ -183,10 +194,10 @@
   }
 
   function tokenize(text) {
-    var clean = text.replace(PUNCT_RE, "");
-    if (clean.length < 2) return clean.split("");
+    var cps = Array.from(text.replace(PUNCT_RE, ""));
+    if (cps.length < 2) return cps;
     var out = [];
-    for (var i = 0; i < clean.length - 1; i++) out.push(clean.slice(i, i + 2));
+    for (var i = 0; i < cps.length - 1; i++) out.push(cps[i] + cps[i + 1]);
     return out;
   }
 
@@ -223,12 +234,12 @@
   }
 
   function fourGramRepeat(text) {
-    var clean = text.replace(PUNCT_RE, "");
-    if (clean.length < 8) return 0.0;
+    var cps = Array.from(text.replace(PUNCT_RE, ""));
+    if (cps.length < 8) return 0.0;
     var grams = {};
     var total = 0;
-    for (var i = 0; i + 4 <= clean.length; i++) {
-      var g = clean.slice(i, i + 4);
+    for (var i = 0; i + 4 <= cps.length; i++) {
+      var g = cps[i] + cps[i + 1] + cps[i + 2] + cps[i + 3];
       grams[g] = (grams[g] || 0) + 1;
       total++;
     }
@@ -262,10 +273,10 @@
     var allSents = [];
     for (var p = 0; p < blocks.length; p++)
       for (var s = 0; s < blocks[p].sents.length; s++) allSents.push(blocks[p].sents[s].text);
-    var lens = allSents.map(function (t) { return t.replace(PUNCT_RE, "").length; });
+    var lens = allSents.map(function (t) { return cpLength(t.replace(PUNCT_RE, "")); });
     var paraLens = blocks.map(function (block) {
       var n = 0;
-      for (var i = 0; i < block.sents.length; i++) n += block.sents[i].text.replace(PUNCT_RE, "").length;
+      for (var i = 0; i < block.sents.length; i++) n += cpLength(block.sents[i].text.replace(PUNCT_RE, ""));
       return n;
     });
     var fullText = allSents.join("");
@@ -413,11 +424,12 @@
       for (var ri2 = 0; ri2 < rules.length; ri2++) {
         var rule2 = rules[ri2];
         if (rule2.scope !== "shape") continue;
-        if (rule2.doc_metric === "one_liner" && para.length === 1 && para[0].text.length <= 40) {
+        var sentLen = para.length === 1 ? cpLength(para[0].text) : 0;
+        if (rule2.doc_metric === "one_liner" && para.length === 1 && sentLen <= 40) {
           push(rule2, {
             rule_id: rule2.id, rule_name: rule2.name, severity: rule2.severity,
             tier: rule2.tier, para: pi, sentence: para[0].text,
-            matches: ["独句段（" + para[0].text.length + " 字）"],
+            matches: ["独句段（" + sentLen + " 字）"],
             explanation: rule2.explanation || "", suggestion: rule2.suggestion || "",
             taste: rule2.taste || "",
           });

@@ -140,7 +140,9 @@
     if (manual || (!cand && direction.indexOf("整句删") === 0)) action = DELETE;
     else if (cand) action = REWRITE;
     else {
-      var hasSubstance = stripTrailingParen(line).length > 14;
+      /* 码点长度：与 Python len 同口径（emoji/扩展区汉字一个算一个） */
+      var cps = Array.from(stripTrailingParen(line));
+      var hasSubstance = cps.length > 14;
       action = hasSubstance ? REWRITE : DELETE;
     }
     var top = null;

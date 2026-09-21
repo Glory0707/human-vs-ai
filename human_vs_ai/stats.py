@@ -156,7 +156,8 @@ def compute_doc_stats(
         sentence_cv=_cv([float(x) for x in lens]),
         para_len_cv=_cv([float(x) for x in para_lens]),
         ttr=mattr(tokens),
-        avg_sentence_len=_mean([float(x) for x in lens]),
+        # 无句子时是 NaN 不是 0：与 JS 端 mean([]) = NaN 同口径
+        avg_sentence_len=_mean(lens) if lens else math.nan,
     )
     if connective_lexicon and raw_sents:
         stats.conn_density = _connective_count(raw_sents, connective_lexicon) / len(raw_sents)

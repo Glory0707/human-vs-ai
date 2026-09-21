@@ -174,7 +174,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 </head>
 <body>
 <header>
-  <span class="wordmark">human-vs-ai<span class="v">0.11.2</span></span>
+  <span class="wordmark">human-vs-ai<span class="v">0.11.3</span></span>
   <nav class="profiles" id="profiles"></nav>
   <nav class="modes" id="modes"></nav>
   <span class="note">纯本地分析 · 文本不上传</span>
@@ -215,6 +215,17 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   var CLOSE_Q_RE = /[”』」]/;
   var PUNCT_RE = /[，。！？；：、…“”‘’《》（）()[\]【】,\.!\?;:"'—\-\s]/g;
 
+  /* 码点长度：.length 数的是 UTF-16 码元，emoji/扩展区汉字（𠮷）一个占
+     2——Python 的 len 数码点，所有"字数"统计必须走这里（对拍实证漂移） */
+  function cpLength(s) {
+    var n = 0;
+    for (var i = 0; i < s.length; i++) {
+      var c = s.charCodeAt(i);
+      if (c < 0xDC00 || c > 0xDFFF) n++;
+    }
+    return n;
+  }
+
   /* 与 Python segment.py 同构的 Markdown 解析：标题/代码丢弃，
      列表项与表格行内容保留（各成句，不触发独句段形状规则） */
   var FENCE_RE = /^\s*(?:```|~~~)/;
@@ -229,11 +240,11 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   function inlineClean(line) {
     return line
       .replace(/`([^`]*)`/g, "$1")
-      .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")
-      .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+      .replace(/!\[([^\]]{0,300})\]\(([^)]{0,500})\)/g, "$1")
+      .replace(/\[([^\]]{0,300})\]\(([^)]{0,500})\)/g, "$1")
       .replace(/(?:https?:\/\/|www\.)[^\s，。；！？、）)】」』]+/gi, "")
-      .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, "")
-      .replace(/\*{1,3}(?!\s)([^*]*?[一-鿿][^*]*?)(?<!\s)\*{1,3}/g, "$1")
+      .replace(/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9._-]{1,63})+/g, "")
+      .replace(/\*{1,3}(?!\s)([^*]{0,49}?[一-鿿][^*]{0,49}?)(?<!\s)\*{1,3}/g, "$1")
       .replace(/[ \t]{2,}/g, " ")
       .trim();
   }
@@ -375,10 +386,10 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   }
 
   function tokenize(text) {
-    var clean = text.replace(PUNCT_RE, "");
-    if (clean.length < 2) return clean.split("");
+    var cps = Array.from(text.replace(PUNCT_RE, ""));
+    if (cps.length < 2) return cps;
     var out = [];
-    for (var i = 0; i < clean.length - 1; i++) out.push(clean.slice(i, i + 2));
+    for (var i = 0; i < cps.length - 1; i++) out.push(cps[i] + cps[i + 1]);
     return out;
   }
 
@@ -415,12 +426,12 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   }
 
   function fourGramRepeat(text) {
-    var clean = text.replace(PUNCT_RE, "");
-    if (clean.length < 8) return 0.0;
+    var cps = Array.from(text.replace(PUNCT_RE, ""));
+    if (cps.length < 8) return 0.0;
     var grams = {};
     var total = 0;
-    for (var i = 0; i + 4 <= clean.length; i++) {
-      var g = clean.slice(i, i + 4);
+    for (var i = 0; i + 4 <= cps.length; i++) {
+      var g = cps[i] + cps[i + 1] + cps[i + 2] + cps[i + 3];
       grams[g] = (grams[g] || 0) + 1;
       total++;
     }
@@ -454,10 +465,10 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     var allSents = [];
     for (var p = 0; p < blocks.length; p++)
       for (var s = 0; s < blocks[p].sents.length; s++) allSents.push(blocks[p].sents[s].text);
-    var lens = allSents.map(function (t) { return t.replace(PUNCT_RE, "").length; });
+    var lens = allSents.map(function (t) { return cpLength(t.replace(PUNCT_RE, "")); });
     var paraLens = blocks.map(function (block) {
       var n = 0;
-      for (var i = 0; i < block.sents.length; i++) n += block.sents[i].text.replace(PUNCT_RE, "").length;
+      for (var i = 0; i < block.sents.length; i++) n += cpLength(block.sents[i].text.replace(PUNCT_RE, ""));
       return n;
     });
     var fullText = allSents.join("");
@@ -605,11 +616,12 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
       for (var ri2 = 0; ri2 < rules.length; ri2++) {
         var rule2 = rules[ri2];
         if (rule2.scope !== "shape") continue;
-        if (rule2.doc_metric === "one_liner" && para.length === 1 && para[0].text.length <= 40) {
+        var sentLen = para.length === 1 ? cpLength(para[0].text) : 0;
+        if (rule2.doc_metric === "one_liner" && para.length === 1 && sentLen <= 40) {
           push(rule2, {
             rule_id: rule2.id, rule_name: rule2.name, severity: rule2.severity,
             tier: rule2.tier, para: pi, sentence: para[0].text,
-            matches: ["独句段（" + para[0].text.length + " 字）"],
+            matches: ["独句段（" + sentLen + " 字）"],
             explanation: rule2.explanation || "", suggestion: rule2.suggestion || "",
             taste: rule2.taste || "",
           });
@@ -814,7 +826,9 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     if (manual || (!cand && direction.indexOf("整句删") === 0)) action = DELETE;
     else if (cand) action = REWRITE;
     else {
-      var hasSubstance = stripTrailingParen(line).length > 14;
+      /* 码点长度：与 Python len 同口径（emoji/扩展区汉字一个算一个） */
+      var cps = Array.from(stripTrailingParen(line));
+      var hasSubstance = cps.length > 14;
       action = hasSubstance ? REWRITE : DELETE;
     }
     var top = null;
@@ -974,6 +988,7 @@ let debounceTimer = null;
 let lastResult = null;   // 检测模式最近一次结果（复制按钮的数据源）
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
+let copyResetTimer = null;
 
 const reportEl = document.getElementById("report");
 const inputEl = document.getElementById("input");
@@ -1128,6 +1143,7 @@ function renderAdvice() {
 }
 
 function analyzeNow() {
+  clearTimeout(debounceTimer);
   const text = inputEl.value;
   if (!text.trim()) {
     // 空文本不给"未发现"的假全清判定，回到初始提示
@@ -1139,7 +1155,10 @@ function analyzeNow() {
   // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算
   if (text.length > 60000) {
     reportEl.innerHTML = '<div class="empty">分析中…</div>';
-    requestAnimationFrame(() => requestAnimationFrame(() => doAnalyze(text)));
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (inputEl.value !== text) return;  // 过期任务：输入已变
+      doAnalyze(text);
+    }));
   } else {
     doAnalyze(text);
   }
@@ -1255,7 +1274,8 @@ copyBtn.onclick = async () => {
     ta.remove();
   }
   copyBtn.textContent = ok ? "已复制 ✓" : "复制失败";
-  setTimeout(() => { copyBtn.textContent = "复制 Markdown"; }, 1600);
+  clearTimeout(copyResetTimer);
+  copyResetTimer = setTimeout(() => { copyBtn.textContent = "复制 Markdown"; }, 1600);
 };
 
 inputEl.addEventListener("input", () => {

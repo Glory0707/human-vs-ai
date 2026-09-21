@@ -68,6 +68,25 @@ class TestSegment:
         assert "example.com" not in body
         assert "显著提升了性能。" in body
 
+    def test_email_strip_ascii_only(self):
+        # 邮箱显式 ASCII 类：两端（Python \w 认 CJK，JS 不认）行为一致；
+        # CJK"伪邮箱"是正常中文，不能误剥
+        line = segment._inline_clean("联系 zhouao@example.com 结束。")
+        assert "zhouao@example.com" not in line and "联系" in line and "结束" in line
+        kept = segment._inline_clean("长@长.cn 不是邮箱。")
+        assert kept == "长@长.cn 不是邮箱。"
+
+    def test_emph_span_cap(self):
+        # 强调内容上限 49+CJK+49 字：真实强调远小于此；上限是防
+        # "未闭合星号+长文" O(n²) 灾难性回溯的代价（实测 4 万字 51 秒）
+        assert segment._inline_clean("*强调*正文。") == "强调正文。"
+        assert segment._inline_clean("**粗体内容**正文。") == "粗体内容正文。"
+        long_span = "*" + "长" * 120 + "*"
+        assert segment._inline_clean(long_span + "正文。") == long_span + "正文。"
+
+    def test_link_strip(self):
+        assert segment._inline_clean("[文字](https://x.com/a)混排。") == "文字混排。"
+
     def test_empty_and_short(self):
         assert segment.split_sentences("") == []
         assert segment.split_sentences("无标点结尾") != []
@@ -122,6 +141,13 @@ class TestStats:
         full = "".join(s for p in paras for s in p)
         assert st.ttr == stats.mattr(stats.tokenize_2gram(full))
         assert st.to_dict()["tokenizer"] == "char-2gram"
+
+    def test_avg_sentence_len_nan_when_no_sentences(self):
+        # 空文本的"平均句长"是 NaN 不是 0——与 JS 端 mean([]) = NaN 同口径
+        # （对拍实证漂移：Python 曾给 0.0，JSON 里一个是 0 一个是 null）
+        st = stats.compute_doc_stats([[]])
+        assert st.avg_sentence_len != st.avg_sentence_len
+        assert st.to_dict()["avg_sentence_len"] is None
 
 
 # ---------- engine ----------
