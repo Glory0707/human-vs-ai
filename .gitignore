@@ -28,3 +28,6 @@ _qa/_web_*.js
 _qa/_web_*.json
 _qa/vscode-preview.html
 _qa/exp_rows_*.json
+
+# GUI 端到端测试证据截图（本地产物，不入库）
+gui-test-screenshots/
