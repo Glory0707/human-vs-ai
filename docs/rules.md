@@ -21,7 +21,7 @@ severity: high    单次出现即报——AI 密度极高，人类极少刻意�
 severity: medium  单次提示——AI 用法是系统性的，多次出现强烈暗示模板化
                   （无证据强化词、公式化展望尾、政策腔大词）
 severity: low     弱规则——人类正常写作也会出现，全文 ≥2 处命中才升为正式发现，
-                  孤立命中进"孤立弱命中"参考区
+                  孤立命中进"弱命中"参考区
                   （模板连接词、否定式排比、系动词回避、独句总结段）
 ```
 
@@ -51,7 +51,7 @@ python tools/evaluate_cred.py --per-source 80   # 学术 profile 主场
 python tools/evaluate.py --per-domain 60        # 问答文体（general profile 校准数据）
 ```
 
-## 3.5 personal profile 校准（私库标注链，2026-09）
+## 4. personal profile 校准（私库标注链，2026-09）
 
 见 [taste_zhouao.md](taste_zhouao.md)：同一个作者的文案池标注链（被毙 31 vs 定稿 37），
 归纳出 12 条口味条目（T1–T12）与 5 条改写准则（R1–R5）。
@@ -59,7 +59,7 @@ python tools/evaluate.py --per-domain 60        # 问答文体（general profile
 语料在 `corpus_private/`（gitignore），入库文件只含合成样例，由
 `tools/check_private_leak.py` 守护。
 
-## 4. 2026-09 首轮校准结果
+## 5. 2026-09 首轮校准结果
 
 ### C-ReD paper 域（学术 profile 主场，真人 80 vs 四模型 320）
 
@@ -111,7 +111,7 @@ python tools/evaluate.py --per-domain 60        # 问答文体（general profile
 
 | 指标 | 阈值 | 依据 |
 |---|---|---|
-| 句长 CV（D-UNIF-01） | **按长度分档**：<300 字 0.30 / <600 字 0.33 / 更长 0.37，medium | T4.3 分档分析（下节）；每档锚定约 10% 真人误报（真人 p10 附近） |
+| 句长 CV（D-UNIF-01） | **按长度分档**：<300 字 0.30 / <600 字 0.33 / 更长 0.37，medium | T4.3 分档分析（§5 长度分档校准）；每档锚定约 10% 真人误报（真人 p10 附近） |
 | 连接词密度（D-CONN-01） | > 0.08/句，low | 摘要语料从宽校准；长文本（>600 字）上 AI 中位 0.053 vs 真人 0.000（AUROC 0.707），区分度在长文本显现 |
 
 ### 长度分档校准（T4.3，2026-09）
@@ -164,7 +164,7 @@ python tools/evaluate.py --per-domain 60        # 问答文体（general profile
 - **词表规则的 scope 三态**：sentence（逐句命中）/ lexicon（只供密度）/ shape，按"该词在真人文体中的正常频率"选择
 - 评测脚本 `tools/evaluate_official.py`，含 `--show` 逐处人工核对模式
 
-## 5. 特征漂移的应对
+## 7. 特征漂移的应对
 
 词表特征会随模型版本过期：英文侧 delve 在 GPT-5 后骤降、em dash 在 GPT-5.1 被 OpenAI 官方压制、维基已把部分条目移入"历史迹象"。应对：
 
@@ -172,7 +172,7 @@ python tools/evaluate.py --per-domain 60        # 问答文体（general profile
 2. era 挖掘（P3）：季度性从 C-ReD 各模型子集重挖词频漂移，新特征入候选、衰减特征降级
 3. 结构与统计特征（句长节奏、独句段、连接词密度）比词表更抗漂移，是长期主力
 
-## 6. 综合评分（AI 味指数）系数表
+## 8. 综合评分（AI 味指数）系数表
 
 `tools/fit_score.py` 拟合（纯 Python 逻辑回归），半样本拟合并留出验证；系数与真人分位锚点随 `scoring` 段入库。特征：门控前严重级加权命中密度（hit_density）、句长 CV、字级 2-gram TTR（全文唯一切分口径，三端同数）、4-gram 重复率。
 
