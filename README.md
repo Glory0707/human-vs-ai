@@ -35,7 +35,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 输入支持 txt / md（UTF-8、GB18030 自动识别）/ **docx / odt**（纯标准库解包，零新增依赖）。`--fail-above` 对 <8 句的未出分文件不判定（宁可不判，不假过）。
 
-**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线。规则与 CLI 完全一致（双引擎一致性测试逐字段守护）——"文纸·朱批"设计语言：稿纸底色、衬线标题、指数以朱砂印章呈现、命中词红笔圈划、输入区信纸横线；跟随系统暗色，报告一键复制 Markdown，改写建议按删/改/留过滤。改了规则用 `python tools/build_web.py` 重新生成。
+**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线。规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。设计语言与 eggpaper 同源：暖墨白纸、发丝细线、深青工作色、朱砂只留给批改语义——指数以 mono 印章呈现、命中词红笔波浪线圈划、发现以眉批式批注卡列出；品牌字 Fraunces 斜体、mono 标签、segmented 滑块分段控件、顶栏流光表示分析中、印章徽记可戳（三连戳有彩蛋）、手动亮/暗切换（localStorage 记忆，默认跟系统）、复制走吸底 toast。改了规则用 `python tools/build_web.py` 重新生成。
 
 **VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 

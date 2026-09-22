@@ -18,49 +18,62 @@ _SCORE_LABEL = {"hit_density": "规则", "sentence_cv": "节奏", "ttr": "词汇
                 "ngram_repeat": "重复", "conn_density": "连接词"}
 
 _CSS = """
-:root { --paper:#FBF9F4; --ink:#26241F; --ink2:#6F6A5E; --ink3:#9A9484;
-        --hair:#E5E0D1; --chip:#F1EDE1; --soft:#F4F0E6;
-        --mark:rgba(194,64,42,.12); --markline:rgba(194,64,42,.45); }
+/* 与网页版同一套设计语言（对照 eggpaper token）：暖墨白纸、发丝线、
+   深青工作色、朱砂留给批改；印章指数与命中波浪线随报告带走。 */
+:root { --paper:#ffffff; --paper-deep:#f6f6f5; --card-2:#ffffff;
+        --ink:#1d1b17; --ink-2:#55524a; --ink-3:#6b675e;
+        --hairline:rgba(29,27,23,.14); --hairline-soft:rgba(29,27,23,.075);
+        --accent:#1d4e5f; --accent-deep:#123a47;
+        --accent-soft:rgba(29,78,95,.12); --accent-line:rgba(29,78,95,.34);
+        --vermilion:#b8462e; --ochre:#9c7414;
+        --mono:'JetBrains Mono',ui-monospace,'Cascadia Mono','Consolas',monospace;
+        --sans:'Inter','Segoe UI','Microsoft YaHei UI','Microsoft YaHei','PingFang SC',system-ui,sans-serif;
+        --brand:'Fraunces',Georgia,serif; }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font:14px/1.7 -apple-system,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+body { font:13px/1.7 var(--sans);
        background:var(--paper); color:var(--ink); max-width:860px;
        margin:0 auto; padding:32px 24px 48px; }
-header { border-bottom:1px solid var(--hair); padding-bottom:12px; margin-bottom:18px;
+header { border-bottom:1px solid var(--hairline); padding-bottom:12px; margin-bottom:18px;
          display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; }
-.wordmark { font-family:"Noto Serif SC","Source Han Serif SC","Songti SC","STSong","SimSun",serif;
-            font-weight:700; font-size:17px; }
-.meta { color:var(--ink3); font-size:11px; letter-spacing:.05em; }
-.score-row { display:flex; align-items:center; gap:14px; margin:6px 0 14px; }
+.wordmark { font-family:var(--brand); font-style:italic; font-weight:600;
+            font-size:21px; letter-spacing:-.01em; }
+.meta { font-family:var(--mono); color:var(--ink-3); font-size:10.5px; letter-spacing:.04em; }
+.score-row { display:flex; align-items:center; gap:16px; margin:6px 0 14px; }
 .seal { flex:none; display:inline-flex; flex-direction:column; align-items:center;
-        justify-content:center; width:62px; height:62px; border:2px solid currentColor;
-        border-radius:6px; transform:rotate(-2deg); line-height:1;
-        box-shadow:inset 0 0 0 1.5px var(--paper), inset 0 0 0 2.5px currentColor; }
-.seal .n { font:700 27px Georgia,"Times New Roman",serif; padding-top:2px; }
-.seal .u { font-size:8.5px; letter-spacing:.2em; margin-top:3px; font-weight:600; }
-.score-main .t { font-weight:700; font-size:14px; }
-.score-main .sub { display:block; font-size:11px; color:var(--ink3); margin-top:3px; }
-.stats { border-bottom:1px solid var(--hair); padding-bottom:12px; }
-.stats div { font-size:12.5px; color:var(--ink2); }
-.summary { font-family:"Noto Serif SC","Songti SC","SimSun",serif; font-weight:700;
-           font-size:15px; padding:14px 0 8px; }
-.found { border-left:2px solid var(--hair); padding:8px 0 8px 14px;
-         border-bottom:1px solid var(--hair); }
-.found:last-of-type { border-bottom:none; }
-.head { font-size:13px; }
-.sev-tag { display:inline-block; font-size:10.5px; font-weight:600; border:1px solid;
-           border-radius:3px; padding:0 4px; margin-right:8px; }
-.loc { color:var(--ink3); font-size:10.5px; margin-left:8px; }
-blockquote { margin:6px 0 4px; padding:2px 0 2px 12px; border-left:2px solid var(--hair);
-             color:var(--ink2); }
-.match { font-size:12px; color:var(--ink3); margin:2px 0 6px; }
-.match code { background:var(--chip); color:var(--ink2); padding:0 4px; border-radius:2px; }
-.tip { color:#2E7D6E; margin-top:3px; }
-mark { background:var(--mark); color:inherit; padding:0 1px; box-shadow:0 1px 0 var(--markline); }
-.hints { margin-top:14px; padding-top:10px; border-top:1px solid var(--hair);
-         font-size:12px; color:var(--ink3); }
+        justify-content:center; padding:7px 13px; border:1.5px solid currentColor;
+        border-radius:3px; transform:rotate(-4deg); line-height:1;
+        font-family:var(--mono); }
+.seal .n { font-size:25px; font-weight:700; letter-spacing:.02em; }
+.seal .u { font-size:8.5px; letter-spacing:.3em; margin-top:4px; font-weight:600; }
+.score-main .t { font-weight:650; font-size:15px; letter-spacing:-.01em; }
+.score-main .sub { display:block; font-size:10.5px; color:var(--ink-3); margin-top:3px; }
+.stats { border-bottom:1px solid var(--hairline); padding-bottom:12px; }
+.stats div { font-size:12px; color:var(--ink-2); font-variant-numeric:tabular-nums; }
+.summary { font-weight:650; font-size:15px; letter-spacing:-.01em; padding:14px 0 8px; }
+.found { background:var(--card-2); border:1px solid var(--hairline);
+         border-left-width:2.5px; border-radius:0 3px 3px 0;
+         padding:8px 12px 9px 11px; margin-bottom:8px; }
+.head { font-size:13px; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.mg-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; background:var(--dot,var(--ink-3)); }
+.mg-kind { font-size:10.5px; font-weight:600; color:var(--dot,var(--ink-3)); }
+.rid { font-family:var(--mono); font-size:10.5px; color:var(--ink-2); letter-spacing:.02em; }
+.loc { font-family:var(--mono); font-size:10.5px; color:var(--ink-3); margin-left:auto; }
+blockquote { margin:4px 0; padding:2px 0 2px 10px; border-left:2px solid var(--hairline-soft);
+             color:var(--ink-2); }
+.match { font-size:12px; color:var(--ink-3); margin:2px 0 5px; }
+.match code { font-family:var(--mono); font-size:10.5px;
+  background:var(--accent-soft); border:1px solid var(--accent-line); color:var(--accent-deep);
+  padding:0 4px; border-radius:2px; }
+.tip { color:var(--accent-deep); margin-top:3px; }
+mark { background-color:rgba(184,70,46,.12);
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 3q1.75 -2.4 3.5 0t3.5 0' fill='none' stroke='%23b8462e' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
+  background-repeat:repeat-x; background-position:0 100%; background-size:7px 4px;
+  color:inherit; border-radius:1px; padding:0 1px; }
+.hints { margin-top:12px; padding-top:9px; border-top:1.5px dotted var(--hairline);
+         font-size:12px; color:var(--ink-3); }
 .hints div { margin-top:2px; }
-.disclaimer { margin-top:18px; padding:10px 14px; background:var(--soft);
-              font-size:11px; color:var(--ink2); border-radius:3px; }
+.disclaimer { margin-top:16px; padding:10px 14px; background:var(--paper-deep);
+              font-size:11px; color:var(--ink-2); border-radius:4px; }
 @media print { body { padding:0; } }
 """
 
@@ -120,8 +133,8 @@ def _score_html(result: AnalysisResult) -> str:
 def _finding_card(sev: str, title: str, loc: str, sentence: str,
                   matches: list[str], body: str) -> str:
     color = _SEV_COLOR[sev]
-    parts = [f'<div class="found" style="border-left-color:{color}">']
-    parts.append(f'<div class="head"><span class="sev-tag" style="color:{color}">'
+    parts = [f'<div class="found" style="border-left-color:{color};--dot:{color}">']
+    parts.append(f'<div class="head"><span class="mg-dot"></span><span class="mg-kind">' 
                  f'{_SEV_LABEL[sev]}</span>{title}<span class="loc">{loc}</span></div>')
     if sentence:
         parts.append(f"<blockquote>{_hi_sentence(sentence, matches)}</blockquote>")
