@@ -15,7 +15,6 @@
 from __future__ import annotations
 
 import json
-import math
 import random
 import sys
 from pathlib import Path
@@ -23,12 +22,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from human_vs_ai import engine  # noqa: E402
-from evaluate_cred import load_samples as load_cred, auroc  # noqa: E402
-from evaluate import load_samples as load_hc3  # noqa: E402
+from tools.evaluate_cred import load_samples as load_cred, auroc  # noqa: E402
+from tools.evaluate import load_samples as load_hc3  # noqa: E402
+from tools.fit_score_tiers import apply_model, fit  # noqa: E402
 
 ROOT = Path(__file__).parent.parent
 MIN_SENTS = 8  # 与引擎出分门槛同口径
-WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
 
 # 两个 profile 的语料与特征集：特征必须是该 profile 上方向已验证的。
 # 规则特征用未门控加权密度——门控是"逐句指控"的纪律，文档级聚合保留幅度
@@ -66,49 +65,6 @@ def extract(text: str, profile: str) -> dict:
     }
 
 
-def fit_logistic(rows, features, seed=42):
-    """纯 Python 逻辑回归（标准化特征上梯度下降，系数换算回原始量纲）。"""
-    data = []
-    for r in rows:
-        xs = [r[f] for f in features]
-        if any(x != x for x in xs):
-            continue
-        data.append((xs, 1 if r["_ai"] else 0))
-    n_f = len(features)
-    means = [sum(row[i] for row, _ in data) / len(data) for i in range(n_f)]
-    sds = []
-    for i in range(n_f):
-        v = sum((row[i] - means[i]) ** 2 for row, _ in data) / len(data)
-        sds.append(math.sqrt(v) or 1.0)
-    w = [0.0] * n_f
-    b = 0.0
-    lr = 0.5
-    for it in range(4000):
-        gw = [0.0] * n_f
-        gb = 0.0
-        for row, y in data:
-            z = b + sum(w[i] * (row[i] - means[i]) / sds[i] for i in range(n_f))
-            p = 1 / (1 + math.exp(-max(min(z, 30), -30)))
-            e = p - y
-            gb += e
-            for i in range(n_f):
-                gw[i] += e * (row[i] - means[i]) / sds[i]
-        m = len(data)
-        for i in range(n_f):
-            w[i] -= lr * (gw[i] / m + 1e-4 * w[i])
-        b -= lr * gb / m
-        if it == 1999:
-            lr = 0.05
-    coef = [w[i] / sds[i] for i in range(n_f)]
-    intercept = b - sum(w[i] * means[i] / sds[i] for i in range(n_f))
-    return coef, intercept
-
-
-def apply_model(row, features, coef, intercept):
-    z = intercept + sum(c * row[f] for c, f in zip(coef, features))
-    return 1 / (1 + math.exp(-max(min(z, 30), -30)))
-
-
 def main() -> None:
     rng = random.Random(42)
     report = {}
@@ -128,12 +84,12 @@ def main() -> None:
         auc_ungated = auroc([r["hit_density"] for r in ai], [r["hit_density"] for r in hu])
         auc_gated = auroc([r["gated_density"] for r in ai], [r["gated_density"] for r in hu])
         feats_c = [f for f in cfg["features"] if f != "hit_density"]
-        coef_c, int_c = fit_logistic(rows, feats_c)
+        coef_c, int_c = fit(rows, feats_c, balance=False)
         auc_stats = auroc(
             [apply_model(r, feats_c, coef_c, int_c) for r in ai],
             [apply_model(r, feats_c, coef_c, int_c) for r in hu])
         feats_d = cfg["features"]
-        coef_d, int_d = fit_logistic(rows, feats_d)
+        coef_d, int_d = fit(rows, feats_d, balance=False)
         score = lambda r: apply_model(r, feats_d, coef_d, int_d)  # noqa: E731
         auc_full = auroc([score(r) for r in ai], [score(r) for r in hu])
 
@@ -146,7 +102,7 @@ def main() -> None:
             test_idx.update(idx[: len(idx) // 2])
         train = [r for i, r in enumerate(rows) if i not in test_idx]
         test = [r for i, r in enumerate(rows) if i in test_idx]
-        coef_t, int_t = fit_logistic(train, feats_d)
+        coef_t, int_t = fit(train, feats_d, balance=False)
         auc_holdout = auroc(
             [apply_model(r, feats_d, coef_t, int_t) for r in test if r["_ai"]],
             [apply_model(r, feats_d, coef_t, int_t) for r in test if not r["_ai"]])

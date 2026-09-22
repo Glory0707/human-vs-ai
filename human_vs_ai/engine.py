@@ -215,7 +215,7 @@ def load_rules(profile: str) -> list[Rule]:
 
 _DENSITY_PREFIXES = ("L-CONN", "O-STK")  # 词表规则同时供全文密度统计的前缀
 
-# 评分特征权重：严重级 → 加权密度系数（与 fit_score.py 的 WEIGHT 同步）
+# 评分特征权重：严重级 → 加权密度系数（拟合工具 fit_score*.py 直接引用本表）
 _SCORE_WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
 # scoring 段里的元字段，不是特征
 _SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90")

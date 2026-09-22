@@ -22,6 +22,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from human_vs_ai import engine  # noqa: E402
+from tools.evaluate_cred import auroc  # noqa: E402
 
 CORPUS = Path(__file__).parent.parent / "_qa" / "corpus" / "cred"
 TIERS = [
@@ -73,25 +74,6 @@ def main() -> None:
                     "dash": st.dash_density,
                 }
             )
-
-    def auroc(ai_s: list[float], hu_s: list[float]) -> float:
-        pair = [(v, 1) for v in ai_s if v == v] + [(v, 0) for v in hu_s if v == v]
-        if not pair or not any(l == 1 for _, l in pair) or not any(l == 0 for _, l in pair):
-            return float("nan")
-        pair.sort(key=lambda x: x[0])
-        ranks = [0.0] * len(pair)
-        i = 0
-        while i < len(pair):
-            j = i
-            while j < len(pair) and pair[j][0] == pair[i][0]:
-                j += 1
-            for k in range(i, j):
-                ranks[k] = (i + j + 1) / 2
-            i = j
-        rai = sum(r for r, (_, lab) in zip(ranks, pair) if lab == 1)
-        n_ai = sum(1 for _, l in pair if l == 1)
-        n_h = len(pair) - n_ai
-        return (rai - n_ai * (n_ai + 1) / 2) / (n_ai * n_h)
 
     lines = ["# 统计阈值分档分析（T4.3）", ""]
     lines.append("语料：C-ReD paper（摘要级）+ news（正文级）；AI = gpt-4o/deepseek-v3/qwen-3")

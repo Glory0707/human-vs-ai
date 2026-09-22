@@ -2,9 +2,9 @@
 
 双实现最大的风险是静默漂移——切分差一个字符、统计差一次舍入,
 两端报告就会各说各话。本脚本用固定语料集对两端跑 analyze,
-findings/hints 逐条 diff、stats 数值按 4 位小数 diff(ttr 已随
-v0.11.0 口径统一为字级 2-gram,纳入对比;tokenizer/avg_sentence_len/
-sentence_cvs 仅 Python 端存在,不比)。
+findings/hints 逐条 diff、stats 数值按 4 位小数 diff(ttr 与
+avg_sentence_len 已随口径统一纳入对比;tokenizer 标签与
+sentence_cvs 明细仅 Python 端存在,不比)。
 
 运行:python tools/check_web_consistency.py   (需要 node 在 PATH)
 """
@@ -128,7 +128,7 @@ def scoring_to_json(profile: str) -> dict | None:
 
 
 def normalize(result: dict) -> dict:
-    """归一到可比形态:findings/hints 逐条全字段,stats 舍入 4 位(忽略 ttr/tokenizer)。"""
+    """归一到可比形态:findings/hints 逐条全字段,stats 舍入 4 位(tokenizer 标签/sentence_cvs 明细不比)。"""
     def fs(fs_list):
         return [
             {k: f[k] for k in ("rule_id", "severity", "para", "sentence", "matches")}

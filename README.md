@@ -83,7 +83,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 
 ```bash
 python -m pytest tests/ -q              # 90 项单元+边界+评分+口味+私库回归（私库层缺语料自动跳过）
-python tools/check_web_consistency.py   # Python/JS 双引擎一致性 136 项（需 node）
+python tools/check_web_consistency.py   # Python/JS 双引擎一致性 140 项（需 node）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
 python tools/build_web.py               # 重新生成网页单文件
 python tools/build_vscode.py            # 重新注入扩展规则与引擎

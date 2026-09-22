@@ -23,6 +23,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from human_vs_ai import engine  # noqa: E402
+from tools.evaluate_cred import auroc  # noqa: E402
 
 CORPUS_DIR = Path(__file__).parent.parent / "_qa" / "corpus"
 DOMAINS = ["medicine", "baike"]
@@ -52,25 +53,6 @@ def load_samples(per_domain: int, min_len: int = 80, seed: int = 42) -> list[dic
         for a in ais[:per_domain]:
             samples.append({"text": a, "label": "ai", "domain": domain})
     return samples
-
-
-def auroc(ai_scores: list[float], human_scores: list[float]) -> float:
-    """秩和法 AUROC：AI 得分随机高于人类得分的概率。0.5=瞎猜，1.0=完美。"""
-    combined = [(s, 1) for s in ai_scores] + [(s, 0) for s in human_scores]
-    combined.sort(key=lambda x: x[0])
-    ranks = {}
-    i = 0
-    while i < len(combined):
-        j = i
-        while j < len(combined) and combined[j][0] == combined[i][0]:
-            j += 1
-        avg_rank = (i + j + 1) / 2  # 1-based，并列取平均秩
-        for k in range(i, j):
-            ranks[k] = avg_rank
-        i = j
-    rank_sum_ai = sum(ranks[k] for k, (_, lab) in enumerate(combined) if lab == 1)
-    n_ai, n_h = len(ai_scores), len(human_scores)
-    return (rank_sum_ai - n_ai * (n_ai + 1) / 2) / (n_ai * n_h)
 
 
 def main() -> None:

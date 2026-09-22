@@ -89,17 +89,19 @@ def _group_by_sentence(findings: list[Finding]):
 
 def _taste_suffix(group: list[Finding]) -> str:
     """口味条目编号（personal profile 专有）——指向 docs/taste_zhouao.md。"""
-    tags = [t for f in group for t in ([f.taste] if f.taste else [])]
-    tags = list(dict.fromkeys(tags))
+    tags = list(dict.fromkeys(f.taste for f in group if f.taste))
     return f" · {'/'.join(tags)}" if tags else ""
 
 
+def _group_top(group: list[Finding]) -> str:
+    return min((f.severity for f in group), key=lambda s: _SEV_RANK[s])
+
+
 def _group_title(group: list[Finding]) -> str:
-    top = min((f.severity for f in group), key=lambda s: _SEV_RANK[s])
     ids = " + ".join(f.rule_id for f in group)
     names = " + ".join(f.rule_name for f in group)
     loc = f"¶{group[0].para + 1}"
-    return f"[{_SEV_LABEL[top]}] {ids} {names}{_taste_suffix(group)} · {loc}"
+    return f"[{_SEV_LABEL[_group_top(group)]}] {ids} {names}{_taste_suffix(group)} · {loc}"
 
 
 def render_terminal(result: AnalysisResult) -> str:
@@ -126,7 +128,7 @@ def render_terminal(result: AnalysisResult) -> str:
         out.append("")
         for group in groups:
             title = _group_title(group)
-            top = min((f.severity for f in group), key=lambda s: _SEV_RANK[s])
+            top = _group_top(group)
             out.append(C(sev_color[top], title))
             sent = group[0].sentence
             show = sent if len(sent) <= 60 else sent[:57] + "…"

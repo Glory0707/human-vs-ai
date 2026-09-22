@@ -446,8 +446,9 @@
       for (var ri2 = 0; ri2 < rules.length; ri2++) {
         var rule2 = rules[ri2];
         if (rule2.scope !== "shape") continue;
-        var sentLen = para.length === 1 ? cpLength(para[0].text) : 0;
-        if (rule2.doc_metric === "one_liner" && para.length === 1 && sentLen <= 40) {
+        if (rule2.doc_metric === "one_liner" && para.length === 1) {
+          var sentLen = cpLength(para[0].text);
+          if (sentLen > 40) continue;
           push(rule2, {
             rule_id: rule2.id, rule_name: rule2.name, severity: rule2.severity,
             tier: rule2.tier, para: pi, sentence: para[0].text,

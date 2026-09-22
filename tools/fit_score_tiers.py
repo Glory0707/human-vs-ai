@@ -27,6 +27,7 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from human_vs_ai import engine  # noqa: E402
+from tools.evaluate_cred import auroc  # noqa: E402
 
 try:
     import numpy as np
@@ -149,33 +150,6 @@ def fit(rows, features, balance=True):
 def apply_model(row, features, coef, intercept):
     z = intercept + sum(c * row[f] for c, f in zip(coef, features))
     return 1 / (1 + math.exp(-max(min(z, 30), -30)))
-
-
-def auroc(ai_scores, hu_scores):
-    # 非有限分数先剔除：NaN 参与并列检测时 NaN==NaN 恒 False，j 不前进会死循环
-    # （实证：<3 句摘要的 sentence_cv=NaN 过 apply_model 变 NaN 分数，首个分档即挂起）
-    ai_scores = [s for s in ai_scores if s == s]
-    hu_scores = [s for s in hu_scores if s == s]
-    combined = [(s, 1) for s in ai_scores] + [(s, 0) for s in hu_scores]
-    combined.sort(key=lambda x: x[0])
-    ranks = [0.0] * len(combined)
-    i = 0
-    while i < len(combined):
-        j = i
-        while j < len(combined) and combined[j][0] == combined[i][0]:
-            j += 1
-        avg_rank = (i + 1 + j) / 2
-        for k in range(i, j):
-            ranks[k] = avg_rank
-        i = j
-    rank_sum_ai = sum(r for r, (_, c) in zip(ranks, combined) if c == 1)
-    n_ai = len(ai_scores)
-    n_hu = len(hu_scores)
-    if n_ai == 0 or n_hu == 0:
-        return float("nan")
-    # U1 = R1 - n1(n1+1)/2；AUC = U1/(n1*n2)——n1(n1+n2+1) 版少 +0.5 常数，
-    # 会把所有 AUROC 压低 0.5（实证：真 0.953 被报成 0.453）
-    return (rank_sum_ai - n_ai * (n_ai + 1) / 2) / (n_ai * n_hu)
 
 
 def holdout(rows, features, balance=True, seed=7):

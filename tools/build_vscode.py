@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import sys
 from pathlib import Path
@@ -35,7 +36,6 @@ def main() -> None:
     # package.json 版本与主包对齐
     pkg_path = EXT / "package.json"
     pkg = pkg_path.read_text(encoding="utf-8")
-    import re
     pkg = re.sub(r'("version":\s*")[^"]+(")', rf"\g<1>{__version__}\g<2>", pkg, count=1)
     pkg_path.write_text(pkg, encoding="utf-8")
     n_scored = sum(1 for v in scoring.values() if v)
