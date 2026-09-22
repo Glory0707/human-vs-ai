@@ -31,3 +31,6 @@ _qa/exp_rows_*.json
 
 # GUI 端到端测试证据截图（本地产物，不入库）
 gui-test-screenshots/
+
+# 分档拟合特征缓存（可由公共语料重新抽取）
+_qa/_tier_rows_cache.json

@@ -320,6 +320,16 @@ class TestDiscrimination:
             f"AI 命中 {len(ai.findings)} vs 人类 {len(human.findings)}"
         )
 
+    def test_auroc_nan_safe(self):
+        # NaN 分数（<3 句文本的 CV 走到打分器里）曾让并列检测死循环——
+        # auroc 入口必须剔除非有限分数（服务器分档拟合实证挂起点）
+        import math
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
+        from evaluate_cred import auroc
+        score = auroc([float("nan"), 0.9, 0.8], [0.1, 0.2, float("nan")])
+        assert not math.isnan(score) and 0 <= score <= 1
+
     def test_human_cv_higher(self):
         ai = engine.analyze(AI_TEXT, "academic")
         human = engine.analyze(HUMAN_TEXT, "academic")
@@ -367,6 +377,24 @@ class TestScore:
         assert "未校准" in r.scoring_note
         short = engine.analyze("你好呀。今天天气不错。", "official")
         assert short.scoring_note == ""
+
+    def test_score_tier_override_by_length(self):
+        # scoring.tiers：长文用专属系数（v0.12.0 分档拟合：长档 holdout
+        # 0.975 vs 全局 0.946）；元字段（分位锚点/corpus）始终取全局
+        scoring = {
+            "intercept": 0.0, "hit_density": 1.0, "sentence_cv": 0.0,
+            "ttr": 0.0, "ngram_repeat": 0.0,
+            "corpus": "test", "auroc": 0.9, "human_p50": 10, "human_p90": 80,
+            "tiers": [{"min_chars": 600, "intercept": 2.0, "hit_density": 5.0}],
+        }
+        from human_vs_ai import stats as _stats
+        st = _stats.DocStats(n_sentences=20, n_chars=1000, sentence_cv=0.4,
+                             ttr=0.9, ngram_repeat=0.1, conn_density=0.0)
+        long_score = engine.compute_score(st, [], [], scoring)
+        st.n_chars = 300
+        short_score = engine.compute_score(st, [], [], scoring)
+        assert long_score.index > short_score.index  # 长档 hit_density 权重更大且截距更高
+        assert long_score.human_p50 == 10 and long_score.corpus == "test"  # 元字段取全局
 
     def test_score_note_in_renders_and_json(self):
         import json as _json

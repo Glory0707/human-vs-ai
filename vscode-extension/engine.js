@@ -322,13 +322,35 @@
   /* scoring 段里的元字段，不是特征 */
   var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1 };
 
+  /* 按正文字数选系数组（与 Python _pick_scoring 同构）：最后一个满足
+     min_chars ≤ n_chars 的层生效；元字段始终取全局 */
+  function pickScoring(scoring, nChars) {
+    var tiers = scoring.tiers;
+    if (!tiers || !tiers.length) return scoring;
+    var picked = {};
+    for (var k in scoring) if (scoring.hasOwnProperty(k)) picked[k] = scoring[k];
+    for (var i = 0; i < tiers.length; i++) {
+      var t = tiers[i];
+      if (t.min_chars == null || nChars >= t.min_chars) {
+        picked = {};
+        for (var k2 in scoring)
+          if (scoring.hasOwnProperty(k2) && !SCORING_META[k2] && k2 !== "tiers")
+            picked[k2] = scoring[k2];
+        for (var k3 in t) if (t.hasOwnProperty(k3) && k3 !== "min_chars") picked[k3] = t[k3];
+      }
+    }
+    delete picked.tiers;
+    return picked;
+  }
+
   /* 规则特征用未门控加权密度（共现门控是逐句指控的纪律，文档级聚合
      保留幅度信息更有效）；TTR 直接用 stats.ttr——全文唯一切分口径是
      字级 2-gram，与 Python 端逐位一致。短文本（<8 句）不出分。 */
   function computeScore(stats, weightedHits, scoring) {
     if (!scoring) return null;
     if (stats.n_sentences < 8) return null;
-    var z = scoring.intercept;
+    var picked = pickScoring(scoring, stats.n_chars);
+    var z = picked.intercept;
     var components = {};
     var values = {
       hit_density: stats.n_sentences ? weightedHits / stats.n_sentences : 0,
@@ -337,11 +359,11 @@
       ngram_repeat: stats.ngram_repeat,
       conn_density: stats.conn_density,
     };
-    for (var feat in scoring) {
-      if (SCORING_META[feat] || !scoring.hasOwnProperty(feat)) continue;
+    for (var feat in picked) {
+      if (SCORING_META[feat] || !picked.hasOwnProperty(feat)) continue;
       var v = values[feat];
       if (typeof v !== "number" || isNaN(v)) continue;
-      components[feat] = scoring[feat] * v;
+      components[feat] = picked[feat] * v;
       z += components[feat];
     }
     z = Math.max(Math.min(z, 30), -30);

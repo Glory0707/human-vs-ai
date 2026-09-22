@@ -421,3 +421,12 @@ scoring:
   auroc_holdout: 0.974
   human_p50: 15
   human_p90: 63
+  # 长文覆盖层（v0.12.0 全量 4993 篇分档拟合，统一 holdout：
+  # 长档系数 0.975 vs 全局 0.946；fit_tiers_compare.py 复现）
+  tiers:
+    - min_chars: 600
+      intercept: -79.959
+      hit_density: 1.7466
+      sentence_cv: -6.0175
+      ttr: 89.2265
+      ngram_repeat: 37.0485

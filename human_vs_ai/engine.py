@@ -230,6 +230,29 @@ def load_scoring(profile: str) -> dict | None:
     return data.get("scoring")
 
 
+def _pick_scoring(scoring: dict, n_chars: int) -> dict:
+    """按正文字数选系数组：scoring.tiers = [{min_chars, intercept, <特征>…}]。
+
+    最后一个满足 min_chars ≤ n_chars 的层生效；都不满足或无 tiers 时用
+    全局系数。元字段（corpus/auroc/分位锚点）始终取全局。与 _doc_threshold
+    的分档思想同源——真人基线随长度变，评分系数也一样（v0.12.0 全量
+    分档拟合：长文专用系数 holdout 0.975 vs 全局 0.946）。
+    """
+    tiers = scoring.get("tiers")
+    if not tiers:
+        return scoring
+    picked = dict(scoring)
+    for tier in tiers:
+        min_chars = tier.get("min_chars")
+        if min_chars is None or n_chars >= min_chars:
+            picked = {k: v for k, v in scoring.items()
+                      if k not in _SCORING_META and k != "tiers"}
+            picked.update(tier)
+            picked.pop("min_chars", None)
+    picked.pop("tiers", None)
+    return picked
+
+
 def compute_score(
     doc_stats: stats.DocStats,
     findings: list[Finding],
@@ -241,7 +264,7 @@ def compute_score(
     规则特征用未门控密度——共现门控是"逐句指控"的纪律（单个弱命中
     不许告一条句子），文档级聚合保留幅度信息更有效（消融：0.847 vs 0.810）。
     TTR 直接用 doc_stats.ttr：全文唯一切分口径是字级 2-gram，与 JS 端
-    逐位一致。短文本（<8 句）不出分。
+    逐位一致。短文本（<8 句）不出分。系数可按长度分档（tiers）。
     """
     if not scoring:
         return None
@@ -258,9 +281,10 @@ def compute_score(
         "ngram_repeat": doc_stats.ngram_repeat,
         "conn_density": doc_stats.conn_density,
     }
-    z = float(scoring.get("intercept", 0.0))
+    picked = _pick_scoring(scoring, doc_stats.n_chars)
+    z = float(picked.get("intercept", 0.0))
     components: dict[str, float] = {}
-    for feat, coef in scoring.items():
+    for feat, coef in picked.items():
         if feat in _SCORING_META:
             continue
         v = values.get(feat)

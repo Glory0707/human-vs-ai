@@ -28,6 +28,11 @@ sys.path.insert(0, str(ROOT))
 
 from human_vs_ai import engine  # noqa: E402
 
+try:
+    import numpy as np
+except ImportError:  # pragma: no cover
+    np = None
+
 TIERS = [(0, 300, "短"), (300, 600, "中"), (600, None, "长")]
 MIN_TIER_AI, MIN_TIER_HU = 30, 10
 FEATS = ["hit_density", "sentence_cv", "ttr", "ngram_repeat"]
@@ -69,6 +74,11 @@ def extract(text: str) -> dict:
 
 
 def fit(rows, features, balance=True):
+    """类平衡逻辑回归（标准化特征全量梯度下降）。
+
+    有 numpy 时向量化（服务器共享 CPU 上快约两个量级），数学与
+    纯 Python 版逐式一致：同一 lr 调度、同一 L2、同一类别加权。
+    """
     data = []
     for r in rows:
         xs = [r[f] for f in features]
@@ -81,6 +91,31 @@ def fit(rows, features, balance=True):
     n_ai = sum(y for _, y in data)
     n_hu = len(data) - n_ai
     w_neg = (n_ai / n_hu) if balance else 1.0
+
+    if np is not None:
+        X = np.array([row for row, _ in data], dtype=float)
+        y = np.array([y for _, y in data], dtype=float)
+        cw = np.where(y == 1, 1.0, w_neg)
+        means = X.mean(axis=0)
+        sds = np.sqrt(((X - means) ** 2).mean(axis=0))
+        sds[sds == 0] = 1.0
+        Xs = (X - means) / sds
+        w = np.zeros(n_f)
+        b = 0.0
+        lr = 0.5
+        m = cw.sum()
+        for it in range(4000):
+            z = np.clip(b + Xs @ w, -30, 30)
+            p = 1 / (1 + np.exp(-z))
+            e = (p - y) * cw
+            w -= lr * ((Xs.T @ e) / m + 1e-4 * w)
+            b -= lr * e.sum() / m
+            if it == 1999:
+                lr = 0.05
+        coef = w / sds
+        intercept = float(b - np.sum(w * means / sds))
+        return [float(c) for c in coef], intercept
+
     means = [sum(row[i] for row, _ in data) / len(data) for i in range(n_f)]
     sds = []
     for i in range(n_f):
@@ -117,6 +152,10 @@ def apply_model(row, features, coef, intercept):
 
 
 def auroc(ai_scores, hu_scores):
+    # 非有限分数先剔除：NaN 参与并列检测时 NaN==NaN 恒 False，j 不前进会死循环
+    # （实证：<3 句摘要的 sentence_cv=NaN 过 apply_model 变 NaN 分数，首个分档即挂起）
+    ai_scores = [s for s in ai_scores if s == s]
+    hu_scores = [s for s in hu_scores if s == s]
     combined = [(s, 1) for s in ai_scores] + [(s, 0) for s in hu_scores]
     combined.sort(key=lambda x: x[0])
     ranks = [0.0] * len(combined)
@@ -134,7 +173,9 @@ def auroc(ai_scores, hu_scores):
     n_hu = len(hu_scores)
     if n_ai == 0 or n_hu == 0:
         return float("nan")
-    return (rank_sum_ai - n_ai * (n_ai + n_hu + 1) / 2) / (n_ai * n_hu)
+    # U1 = R1 - n1(n1+1)/2；AUC = U1/(n1*n2)——n1(n1+n2+1) 版少 +0.5 常数，
+    # 会把所有 AUROC 压低 0.5（实证：真 0.953 被报成 0.453）
+    return (rank_sum_ai - n_ai * (n_ai + 1) / 2) / (n_ai * n_hu)
 
 
 def holdout(rows, features, balance=True, seed=7):
@@ -158,8 +199,10 @@ def holdout(rows, features, balance=True, seed=7):
 def eval_tier(rows, label):
     ai = [r for r in rows if r["_ai"]]
     hu = [r for r in rows if not r["_ai"]]
+    print(f"[fit] {label}: n={len(rows)} (AI {len(ai)}/人 {len(hu)}) numpy={np is not None}", flush=True)
     out = {"tier": label, "n": len(rows), "n_ai": len(ai), "n_human": len(hu)}
     fitres = fit(rows, FEATS, balance=True)
+    print(f"[fit] {label}: 拟合完成", flush=True)
     if fitres is None:
         out["reliable"] = False
         return out
@@ -170,7 +213,10 @@ def eval_tier(rows, label):
         [apply_model(r, FEATS, coef, b) for r in ai],
         [apply_model(r, FEATS, coef, b) for r in hu]), 3)
     out["holdout"] = round(holdout(rows, FEATS, balance=True), 3)
-    hu_scores = sorted(apply_model(r, FEATS, coef, b) for r in hu)
+    hu_scores = sorted(s for s in (apply_model(r, FEATS, coef, b) for r in hu) if s == s)
+    if not hu_scores:
+        out["reliable"] = False
+        return out
     out["human_p50"] = round(hu_scores[int(0.5 * (len(hu_scores) - 1))] * 100)
     out["human_p90"] = round(hu_scores[int(0.9 * (len(hu_scores) - 1))] * 100)
     out["reliable"] = len(ai) >= MIN_TIER_AI and len(hu) >= MIN_TIER_HU

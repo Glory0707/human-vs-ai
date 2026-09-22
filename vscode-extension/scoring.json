@@ -9,7 +9,17 @@
   "auroc": 0.984,
   "auroc_holdout": 0.974,
   "human_p50": 15,
-  "human_p90": 63
+  "human_p90": 63,
+  "tiers": [
+   {
+    "min_chars": 600,
+    "intercept": -79.959,
+    "hit_density": 1.7466,
+    "sentence_cv": -6.0175,
+    "ttr": 89.2265,
+    "ngram_repeat": 37.0485
+   }
+  ]
  },
  "general": {
   "corpus": "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300，类平衡加权），2026-09",

@@ -44,6 +44,9 @@ def load_samples(per_source: int, min_len: int = 120, seed: int = 42) -> list[di
 
 
 def auroc(ai_scores: list[float], human_scores: list[float]) -> float:
+    # 非有限分数先剔除：NaN 使并列检测的相等比较恒 False，会死循环
+    ai_scores = [s for s in ai_scores if s == s]
+    human_scores = [s for s in human_scores if s == s]
     combined = [(s, 1) for s in ai_scores] + [(s, 0) for s in human_scores]
     combined.sort(key=lambda x: x[0])
     ranks: list[float] = [0.0] * len(combined)

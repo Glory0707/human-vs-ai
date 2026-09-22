@@ -41,6 +41,25 @@
   }
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
+:root { --ease: cubic-bezier(.2, .7, .3, 1); }
+button, .summary, .disclaimer, .counts, #copyBtn {
+  transition: color .16s var(--ease), background-color .16s var(--ease),
+              border-color .16s var(--ease), opacity .16s var(--ease);
+}
+/* 报告主体：仅在上下文切换（空态→内容/换档/换模式）时淡入，逐键重渲染不动画 */
+@keyframes riseIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+#report.swap .stats, #report.swap .summary, #report.swap .hints,
+#report.swap .advice, #report.swap .empty { animation: riseIn .26s var(--ease) backwards; }
+#report.swap .found:nth-child(1) { animation: riseIn .26s var(--ease) backwards; }
+#report.swap .found:nth-child(2) { animation: riseIn .26s var(--ease) .03s backwards; }
+#report.swap .found:nth-child(n+3) { animation: riseIn .26s var(--ease) .06s backwards; }
+#report.swap .disclaimer { animation: riseIn .26s var(--ease) .09s backwards; }
+/* 分析中：呼吸提示 */
+@keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+#report .empty.busy { animation: breathe 1.1s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
 html, body { height: 100%; }
 body {
   font-family: -apple-system, "Segoe UI", "Microsoft YaHei", "PingFang SC", sans-serif;
@@ -213,6 +232,7 @@ let lastResult = null;   // 检测模式最近一次结果（复制按钮的数�
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
 let copyResetTimer = null;
+let shouldAnimate = true;   // 上下文切换（空态/换档/换模式）时给一次入场动画
 
 const reportEl = document.getElementById("report");
 const inputEl = document.getElementById("input");
@@ -229,7 +249,7 @@ function renderProfiles() {
     b.className = p === currentProfile ? "on" : "";
     // 改写建议只按 personal（其余三库没有删/改口径）
     if (currentMode === "rewrite" && p !== "personal") b.disabled = true;
-    b.onclick = () => { currentProfile = p; renderProfiles(); analyzeNow(); };
+    b.onclick = () => { currentProfile = p; shouldAnimate = true; renderProfiles(); analyzeNow(); };
     nav.appendChild(b);
   });
 }
@@ -245,6 +265,7 @@ function renderModes() {
     b.onclick = () => {
       currentMode = key;
       if (key === "rewrite") currentProfile = "personal";
+      shouldAnimate = true;
       renderModes(); renderProfiles(); analyzeNow();
     };
     nav.appendChild(b);
@@ -289,6 +310,8 @@ function statsRows(s) {
 
 function renderReport(result) {
   if (!result) return;
+  reportEl.classList.toggle("swap", shouldAnimate);
+  shouldAnimate = false;
   const parts = [];
 
   parts.push(`<div class="stats">${scoreRow(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
@@ -336,8 +359,6 @@ function renderReport(result) {
   reportEl.innerHTML = parts.join("");
 }
 
-const EMPTY_REPORT = '<div class="empty">粘贴正文即出报告。</div>';
-
 const ADVICE_META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
 const FILTERS = [["all", "全部"], ["删", "删"], ["改", "改"], ["保留", "留"]];
 
@@ -360,6 +381,8 @@ function renderAdvice() {
     </div>`);
   });
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
+  reportEl.classList.toggle("swap", shouldAnimate);
+  shouldAnimate = false;
   reportEl.innerHTML = parts.join("");
   reportEl.querySelectorAll(".filters button").forEach(b => {
     b.onclick = () => { adviceFilter = b.dataset.f; renderAdvice(); };
@@ -373,12 +396,14 @@ function analyzeNow() {
     // 空文本不给"未发现"的假全清判定，回到初始提示
     lastResult = lastAdvice = null;
     updateCopyBtn();
-    reportEl.innerHTML = EMPTY_REPORT;
+    reportEl.classList.add("swap");
+    shouldAnimate = true;
+    reportEl.innerHTML = '<div class="empty">粘贴正文即出报告。</div>';
     return;
   }
   // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算
   if (text.length > 60000) {
-    reportEl.innerHTML = '<div class="empty">分析中…</div>';
+    reportEl.innerHTML = '<div class="empty busy">分析中…</div>';
     requestAnimationFrame(() => requestAnimationFrame(() => {
       if (inputEl.value !== text) return;  // 过期任务：输入已变
       doAnalyze(text);
