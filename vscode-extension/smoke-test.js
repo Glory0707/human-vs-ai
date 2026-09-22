@@ -24,7 +24,7 @@ function check(name, cond, extra) {
   else { failed++; console.log(`[FAIL] ${name}${extra ? " — " + extra : ""}`); }
 }
 
-// 1. 四个 profile 的规则都注入了；评分模型只注入到已校准的 profile
+// 1. 七个 profile 的规则都注入了；评分模型只注入到已校准的 profile
 check("profiles injected", ["academic", "essay", "general", "news", "official", "personal", "review"].every(p => Array.isArray(RULES[p]) && RULES[p].length));
 check("scoring injected for calibrated profiles", !!SCORING.academic && !!SCORING.general && !!SCORING.essay && !!SCORING.news && !SCORING.official && !SCORING.personal && !SCORING.review);
 
