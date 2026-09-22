@@ -153,28 +153,37 @@ def _mechanical_candidate(text: str, rule_ids: list[str]) -> tuple[str, str, str
         return "", "整句删；要表达关心就一句话，别加理由", "T-VOICE-05"
 
     # 劝慰腔：先看整句是不是纯关怀（赞美/爱自己/陪伴/照顾自己）——
-    # 是则整句删；否则砍掉逗号后的安慰半句，只留前半段事实
+    # 是则整句删；否则砍掉逗号后的安慰半句，只留前半段事实。
+    # 多句段落不做截半句候选——那会把整段毁成第一个逗号前的碎片
     if "T-VOICE-01" in rule_ids:
         if _COMFORT_WHOLE.search(body):
             return "", "整句删；纯关怀没有事实可留", "T-VOICE-01"
         if len(heads) >= 2 and not _EMPTY_HEAD.search(heads[0]):
-            return heads[0] + "。", "", "T-VOICE-01"
+            if not _MULTI_SENT.search(body):
+                return heads[0] + "。", "", "T-VOICE-01"
+            return "", "删掉逗号后的劝慰半句，只留前半段事实", "T-VOICE-01"
         if len(heads) >= 2:
             return "", "整句删；前半句是空铺垫", "T-VOICE-01"
 
-    # 抒情升华：升华句是逗号后的那半句，删掉它
+    # 抒情升华：升华句是逗号后的那半句，删掉它（多句段落降级为方向）
     if "T-VOICE-02" in rule_ids and len(heads) >= 2:
-        return heads[0] + "。", "", "T-VOICE-02"
+        if not _MULTI_SENT.search(body):
+            return heads[0] + "。", "", "T-VOICE-02"
+        return "", "删升华半句，保留动作和事实", "T-VOICE-02"
 
-    # 「X的你」句式：拆掉框架，保留后面的动作
+    # 「X的你」句式：拆掉框架，保留后面的动作（同样只对单句行使安全）
     if "T-VOICE-07" in rule_ids:
         m = re.match(r"^[^，,]{0,10}的你[，,]\s*(.+)$", body)
-        if m:
+        if m and not _MULTI_SENT.search(m.group(1)):
             return m.group(1).strip() + "。", "", "T-VOICE-07"
 
-    # 收束词：删掉词直接说结论
+    # 收束词：删掉词直接说结论——词可能出现在行中（多句段落），全文移除
     if "T-VOICE-11" in rule_ids:
-        return re.sub(r"^(综上所述|总而言之|总的来说|由此可见|不得不说)[，,]?\s*", "", body) + "。", "", "T-VOICE-11"
+        stripped = re.sub(
+            r"(综上所述|总而言之|总的来说|由此可见|不得不说)[，,]?\s*", "", body)
+        if stripped.strip():
+            return stripped + "。", "", "T-VOICE-11"
+        return "", "整句删；只剩收束词没有结论", "T-VOICE-11"
 
     for rid in ("T-VOICE-10", "T-VOICE-12", "T-VOICE-04"):
         if rid in rule_ids:
@@ -225,6 +234,11 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
     tastes = [r.taste for r in hits if r.taste]
     cand, direction, driver = _mechanical_candidate(line, ids)
 
+    # 候选与原文等值＝没改：不许把原句当"改写建议"还给用户
+    if cand and _PLAIN.sub("", cand) == _PLAIN.sub("", line):
+        cand = ""
+        direction = direction or "删掉腔调半句，只留事实"
+
     # 判档：功能说明腔一律删（本人口径）；机械结果明示整句删也进删档；
     # 有候选就改；其余长句给方向让人改，短腔调整句删
     manual = any(i.startswith("T-MANUAL") for i in ids)
@@ -247,6 +261,9 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
 
 
 _LEAD_MARKER = re.compile(r"^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*")
+_PLAIN = re.compile(r"[。！？～\s]")
+# 多句段落：截半句类候选会毁掉其余句子，必须降级为方向提示
+_MULTI_SENT = re.compile(r"[。！？；…!?;]")
 
 
 def rewrite_text(text: str, profile: str = "personal") -> RewriteResult:

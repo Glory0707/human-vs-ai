@@ -208,3 +208,37 @@ def test_no_private_corpus_leak_in_repo_files():
         capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
     )
     assert proc.returncode == 0, f"检测到私人语料泄漏：\n{proc.stdout}"
+
+
+class TestRewriteNoopGuard:
+    def test_midsentence_closer_is_removed(self):
+        # 视觉走查发现的 bug：多句段落里"综上所述"在行中，
+        # 旧行首锚定剥不掉 → 候选与原文等值，"改了等于没改"
+        line = ("首先，本文制备了系列的钙钛矿样品。其次，我们对样品进行了全面的表征分析。"
+                "最后，系统地测试了光电性能。综上所述，本文开展了一系列深入而有效的研究工作。")
+        adv = rewrite.classify_line(line)
+        assert adv.action == rewrite.REWRITE
+        assert adv.candidate, "必须有候选"
+        assert "综上所述" not in adv.candidate
+        assert adv.candidate != line
+
+    def test_noop_candidate_never_returned(self):
+        # 万能护栏：任何规则产出的候选与原文等值时，必须降级为方向提示
+        line = "不得不说，这版更稳。"
+        adv = rewrite.classify_line(line)
+        if adv.candidate:
+            assert "".join(ch for ch in adv.candidate if ch not in "。！？～ ") !=                    "".join(ch for ch in line if ch not in "。！？～ ")
+
+    def test_multisentence_paragraph_gets_direction_not_truncation(self):
+        # 视觉走查发现的 bug：T2 截半句候选作用在多句段落上，
+        # 会把整段毁成第一个逗号前的碎片
+        para = ("在当今快速发展的时代背景下，能源问题日益凸显。与此同时，传统的硅基太阳能电池"
+                "逐渐接近其理论效率极限。因此，开发新型低成本的光伏技术显得尤为重要。此外，"
+                "钙钛矿太阳能电池作为一种新兴的光伏技术，扮演着越来越重要的角色，有望在未来"
+                "的能源格局中发挥关键作用。")
+        adv = rewrite.classify_line(para)
+        assert adv.candidate == "", "多句段落不许给截半句候选"
+        assert adv.direction
+        # 单句行为不受影响：仍是截半句候选
+        single = rewrite.classify_line("窗口一开，就是你的战场。")
+        assert single.candidate == "窗口一开。"

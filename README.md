@@ -20,6 +20,12 @@ pip install .            # 唯一硬依赖 PyYAML；Python ≥3.10
 human-vs-ai check 论文.md            # 终端报告
 human-vs-ai check 论文.md -f md -o 报告.md
 human-vs-ai check 论文.md -f json    # 机器可读（接 CI / 编辑器插件）
+human-vs-ai check 论文.md -f html -o 报告.html   # 可分享的静态报告页（内联样式，可打印）
+human-vs-ai check 论文.md -f sarif   # SARIF 2.1.0（GitHub code scanning 直接可吃）
+human-vs-ai check docs/              # 批量扫描目录/glob：按指数排序的汇总表
+human-vs-ai check docs/ -f csv       # 批量汇总出 csv/json
+human-vs-ai check 论文.md --fail-above 60        # 指数超阈值退出码 1（CI 门禁）
+human-vs-ai diff 旧.md 新.md          # 改前改后对比：哪几类消了、指数往哪走
 cat 论文.md | human-vs-ai check -    # 管道输入（check/stats/rewrite 均支持）
 human-vs-ai stats 论文.md            # 只看统计特征（JSON）
 human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
@@ -27,7 +33,9 @@ human-vs-ai rewrite 文案.txt         # 按个人口味给逐句改写建议（
 human-vs-ai profiles                 # academic（学术）· general（问答/自媒体）· official（公文）· personal（个人口味）
 ```
 
-**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线。规则与 CLI 完全一致（双引擎一致性测试逐字段守护），命中词高亮、跟随系统暗色、报告一键复制 Markdown、改写建议按删/改/留过滤。改了规则用 `python tools/build_web.py` 重新生成。
+输入支持 txt / md（UTF-8、GB18030 自动识别）/ **docx / odt**（纯标准库解包，零新增依赖）。`--fail-above` 对 <8 句的未出分文件不判定（宁可不判，不假过）。
+
+**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线。规则与 CLI 完全一致（双引擎一致性测试逐字段守护）——"文纸·朱批"设计语言：稿纸底色、衬线标题、指数以朱砂印章呈现、命中词红笔圈划、输入区信纸横线；跟随系统暗色，报告一键复制 Markdown，改写建议按删/改/留过滤。改了规则用 `python tools/build_web.py` 重新生成。
 
 **VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
@@ -82,8 +90,8 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 93 项单元+边界+评分+口味+私库回归（私库层缺语料自动跳过）
-python tools/check_web_consistency.py   # Python/JS 双引擎一致性 156 项（需 node）
+python -m pytest tests/ -q              # 119 项单元+边界+评分+口味+格式+私库回归（私库层缺语料自动跳过）
+python tools/check_web_consistency.py   # Python/JS 双引擎一致性 168 项（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
 python tools/build_web.py               # 重新生成网页单文件

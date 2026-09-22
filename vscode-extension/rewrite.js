@@ -52,18 +52,28 @@
     if (manual) return ["", "整句删（本人口径：功能说明不保留、不压缩）", manual];
     if (has("T-VOICE-05")) return ["", "整句删；要表达关心就一句话，别加理由", "T-VOICE-05"];
     if (has("T-VOICE-01")) {
+      var multiSent = /[。！？；…!?;]/.test(body);
       if (COMFORT_WHOLE_RE.test(body)) return ["", "整句删；纯关怀没有事实可留", "T-VOICE-01"];
-      if (heads.length >= 2 && !EMPTY_HEAD_RE.test(heads[0])) return [heads[0] + "。", "", "T-VOICE-01"];
+      if (heads.length >= 2 && !EMPTY_HEAD_RE.test(heads[0])) {
+        /* 多句段落不做截半句候选——那会把整段毁成第一个逗号前的碎片 */
+        if (!multiSent) return [heads[0] + "。", "", "T-VOICE-01"];
+        return ["", "删掉逗号后的劝慰半句，只留前半段事实", "T-VOICE-01"];
+      }
       if (heads.length >= 2) return ["", "整句删；前半句是空铺垫", "T-VOICE-01"];
     }
-    if (has("T-VOICE-02") && heads.length >= 2) return [heads[0] + "。", "", "T-VOICE-02"];
+    if (has("T-VOICE-02") && heads.length >= 2) {
+      if (!/[。！？；…!?;]/.test(body)) return [heads[0] + "。", "", "T-VOICE-02"];
+      return ["", "删升华半句，保留动作和事实", "T-VOICE-02"];
+    }
     if (has("T-VOICE-07")) {
       var m = body.match(/^[^，,]{0,10}的你[，,]\s*(.+)$/);
-      if (m) return [m[1].trim() + "。", "", "T-VOICE-07"];
+      if (m && !/[。！？；…!?;]/.test(m[1])) return [m[1].trim() + "。", "", "T-VOICE-07"];
     }
     if (has("T-VOICE-11")) {
-      return [body.replace(/^(综上所述|总而言之|总的来说|由此可见|不得不说)[，,]?\s*/, "") + "。",
-        "", "T-VOICE-11"];
+      /* 收束词可能出现在行中（多句段落）——全文移除，不是只看行首 */
+      var stripped = body.replace(/(综上所述|总而言之|总的来说|由此可见|不得不说)[，,]?\s*/g, "");
+      if (stripped.trim()) return [stripped + "。", "", "T-VOICE-11"];
+      return ["", "整句删；只剩收束词没有结论", "T-VOICE-11"];
     }
     var slogan = ["T-VOICE-10", "T-VOICE-12", "T-VOICE-04"];
     for (var j = 0; j < slogan.length; j++) {
@@ -134,6 +144,11 @@
     var tastes = hits.map(function (h) { return h.taste; }).filter(Boolean);
     var res = mechanicalCandidate(line, ids);
     var cand = res[0], direction = res[1], driver = res[2];
+    /* 候选与原文等值＝没改：不许把原句当"改写建议"还给用户（与 Python 端同护栏） */
+    if (cand && cand.replace(/[。！？～\s]/g, "") === line.replace(/[。！？～\s]/g, "")) {
+      cand = "";
+      if (!direction) direction = "删掉腔调半句，只留事实";
+    }
     var manual = false;
     for (var k = 0; k < ids.length; k++) if (ids[k].indexOf("T-MANUAL") === 0) manual = true;
     var action;

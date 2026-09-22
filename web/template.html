@@ -4,44 +4,57 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>human-vs-ai · 中文 AI 味分析</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%231A1A18'/%3E%3Ctext x='16' y='22' font-family='sans-serif' font-size='16' font-weight='700' fill='%23FFFFFF' text-anchor='middle'%3EH%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='5' fill='%23C2402A'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='19' font-weight='700' fill='%23FBF9F4' text-anchor='middle'%3E%E9%89%B4%3C/text%3E%3C/svg%3E">
 <style>
+/* —— 文纸·朱批 ——
+   设计语言：稿纸的暖白与墨色，批注的朱砂。所有颜色/纹理均为内联
+   CSS，零外部资源；衬线只上标题与指数，正文与控件保持无衬线。 */
 :root {
   color-scheme: light dark;
-  --paper: #FFFFFF;
-  --hairline: #E5E5E3;
-  --ink: #1A1A18;
-  --ink-2: #6E6E6A;
-  --ink-3: #8A8A86;
-  --sev-high: #B3261E;
-  --sev-medium: #9A6B00;
-  --sev-low: #0F766E;
-  --sev-hint: #8A8A86;
-  --chip: #F4F4F2;
-  --soft: #FAFAF8;
-  --mark: rgba(154, 107, 0, 0.22);
+  --paper: #FBF9F4;
+  --hairline: #E5E0D1;
+  --rule: rgba(148, 106, 62, 0.16);      /* 信纸横线 */
+  --ink: #26241F;
+  --ink-2: #6F6A5E;
+  --ink-3: #9A9484;
+  --vermilion: #C2402A;                   /* 朱砂 */
+  --vermilion-soft: rgba(194, 64, 42, 0.11);
+  --sev-high: #B3351F;
+  --sev-medium: #9C7414;
+  --sev-low: #2E7D6E;
+  --sev-hint: #9A9484;
+  --chip: #F1EDE1;
+  --soft: #F4F0E6;
+  --serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", "SimSun", serif;
+  --mark-bg: rgba(194, 64, 42, 0.12);
+  --mark-line: rgba(194, 64, 42, 0.45);
   --fs-md: 13px;
   --fs-sm: 12px;
   --fs-xs: 10.5px;
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: #1C1C1A;
-    --hairline: #34342F;
-    --ink: #E8E8E3;
-    --ink-2: #A8A8A0;
-    --ink-3: #7E7E76;
-    --sev-high: #E5706A;
-    --sev-medium: #D0A238;
+    --paper: #1A1917;
+    --hairline: #34312A;
+    --rule: rgba(196, 168, 120, 0.13);
+    --ink: #E9E4D6;
+    --ink-2: #A9A294;
+    --ink-3: #7B7568;
+    --vermilion: #DE6B4F;
+    --vermilion-soft: rgba(222, 107, 79, 0.14);
+    --sev-high: #E06A50;
+    --sev-medium: #CFA23A;
     --sev-low: #45B8A8;
-    --sev-hint: #7E7E76;
-    --chip: #2A2A27;
-    --soft: #232320;
-    --mark: rgba(208, 162, 56, 0.30);
+    --sev-hint: #7B7568;
+    --chip: #262420;
+    --soft: #211F1B;
+    --mark-bg: rgba(222, 107, 79, 0.16);
+    --mark-line: rgba(222, 107, 79, 0.5);
   }
 }
 * { margin: 0; padding: 0; box-sizing: border-box; }
 :root { --ease: cubic-bezier(.2, .7, .3, 1); }
+::selection { background: var(--vermilion-soft); }
 button, .summary, .disclaimer, .counts, #copyBtn {
   transition: color .16s var(--ease), background-color .16s var(--ease),
               border-color .16s var(--ease), opacity .16s var(--ease);
@@ -49,11 +62,18 @@ button, .summary, .disclaimer, .counts, #copyBtn {
 /* 报告主体：仅在上下文切换（空态→内容/换档/换模式）时淡入，逐键重渲染不动画 */
 @keyframes riseIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 #report.swap .stats, #report.swap .summary, #report.swap .hints,
-#report.swap .advice, #report.swap .empty { animation: riseIn .26s var(--ease) backwards; }
-#report.swap .found:nth-child(1) { animation: riseIn .26s var(--ease) backwards; }
+#report.swap .advice, #report.swap .empty, #report.swap .empty-hero { animation: riseIn .26s var(--ease) backwards; }
 #report.swap .found:nth-child(2) { animation: riseIn .26s var(--ease) .03s backwards; }
-#report.swap .found:nth-child(n+3) { animation: riseIn .26s var(--ease) .06s backwards; }
-#report.swap .disclaimer { animation: riseIn .26s var(--ease) .09s backwards; }
+#report.swap .found:nth-child(3) { animation: riseIn .26s var(--ease) .06s backwards; }
+#report.swap .found:nth-child(n+4) { animation: riseIn .26s var(--ease) .09s backwards; }
+#report.swap .disclaimer { animation: riseIn .26s var(--ease) .12s backwards; }
+/* 印章落印：缩收 + 微转 */
+@keyframes stampIn {
+  from { opacity: 0; transform: rotate(-6deg) scale(1.45); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: rotate(-2deg) scale(1); }
+}
+#report.swap .seal { animation: stampIn .32s var(--ease) backwards; }
 /* 分析中：呼吸提示 */
 @keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 #report .empty.busy { animation: breathe 1.1s ease-in-out infinite; }
@@ -73,95 +93,154 @@ body {
 header {
   display: flex;
   align-items: baseline;
-  gap: 16px;
-  padding: 14px 24px 12px;
+  gap: 14px;
+  padding: 13px 24px 11px;
   border-bottom: 1px solid var(--hairline);
   flex-wrap: wrap;
 }
-.wordmark { font-weight: 600; letter-spacing: -0.01em; white-space: nowrap; }
-.wordmark .v { color: var(--ink-3); font-weight: 400; font-size: var(--fs-xs); margin-left: 6px; font-variant-numeric: tabular-nums; }
-.profiles { display: flex; gap: 2px; flex-wrap: wrap; }
+.brand { display: inline-flex; align-items: center; gap: 9px; white-space: nowrap; }
+.brand svg { width: 17px; height: 17px; display: block; transform: translateY(2px); }
+.wordmark {
+  font-family: var(--serif);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.wordmark .v { color: var(--ink-3); font-family: inherit; font-weight: 400; font-size: var(--fs-xs); margin-left: 7px; font-variant-numeric: tabular-nums; letter-spacing: 0.04em; }
+.profiles { display: flex; gap: 4px; flex-wrap: wrap; }
 .profiles button {
   border: none; background: none; cursor: pointer;
   font: inherit; font-size: var(--fs-sm); color: var(--ink-2);
-  padding: 2px 10px; border-radius: 3px;
+  padding: 2px 7px 4px; border-bottom: 2px solid transparent;
 }
 .profiles button:hover:not(:disabled):not(.on) { color: var(--ink); }
-.profiles button.on { color: var(--ink); background: var(--chip); font-weight: 600; }
+.profiles button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--vermilion); }
 .profiles button:disabled { opacity: 0.3; cursor: default; }
-.modes { display: flex; gap: 2px; margin-left: 8px; padding-left: 10px; border-left: 1px solid var(--hairline); }
+.modes { display: flex; gap: 4px; margin-left: 8px; padding-left: 12px; border-left: 1px solid var(--hairline); }
 .modes button {
   border: none; background: none; cursor: pointer;
   font: inherit; font-size: var(--fs-sm); color: var(--ink-2);
-  padding: 2px 10px; border-radius: 3px;
+  padding: 2px 7px 4px; border-bottom: 2px solid transparent;
 }
 .modes button:hover:not(.on) { color: var(--ink); }
-.modes button.on { color: var(--ink); background: var(--chip); font-weight: 600; }
-header .note { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); }
+.modes button.on { color: var(--ink); font-weight: 600; border-bottom-color: var(--vermilion); }
+header .note { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); letter-spacing: 0.05em; }
 main { flex: 1; display: flex; min-height: 0; }
 .pane { flex: 1; display: flex; flex-direction: column; min-width: 0; }
 .pane + .pane { border-left: 1px solid var(--hairline); }
 .pane-label {
   font-size: var(--fs-xs); color: var(--ink-3); font-weight: 600;
-  letter-spacing: 0.04em; padding: 10px 24px 6px;
+  letter-spacing: 0.14em; padding: 11px 24px 6px;
 }
+.pane:focus-within .pane-label { color: var(--vermilion); }
 .pane-label.with-btn { display: flex; align-items: center; justify-content: space-between; }
 #copyBtn {
   border: 1px solid var(--hairline); background: none; cursor: pointer;
   font: inherit; font-size: var(--fs-xs); color: var(--ink-2); font-weight: 400;
   letter-spacing: normal; padding: 1px 8px; border-radius: 3px;
 }
-#copyBtn:hover:not(:disabled) { color: var(--ink); border-color: var(--ink-3); }
+#copyBtn:hover:not(:disabled) { color: var(--vermilion); border-color: var(--vermilion); }
 #copyBtn:disabled { opacity: 0.4; cursor: default; }
+/* 原稿：信纸横线随内容滚动（attachment: local），行高与横线 30px 对齐 */
 #input {
   flex: 1; border: none; resize: none; outline: none;
-  padding: 8px 24px 24px; font: inherit; line-height: 1.8;
+  padding: 30px 24px 24px; font-family: var(--serif);
+  font-size: 15px; line-height: 30px;
   color: var(--ink); background: var(--paper);
+  background-image: repeating-linear-gradient(
+    to bottom, transparent, transparent 29px, var(--rule) 29px, var(--rule) 30px);
+  background-attachment: local;
+  background-position: 0 0;
 }
-#input::placeholder { color: var(--ink-3); opacity: 0.75; }
-#report { flex: 1; overflow-y: auto; padding: 8px 24px 24px; overflow-wrap: anywhere; }
-.stats { padding: 6px 0 14px; border-bottom: 1px solid var(--hairline); }
+#input::placeholder { color: var(--ink-3); opacity: 0.7; font-family: var(--serif); }
+#report { flex: 1; overflow-y: auto; padding: 8px 24px 24px; overflow-wrap: anywhere; scrollbar-width: thin; scrollbar-color: var(--hairline) transparent; }
+/* —— 指数印章 —— */
+.stats { padding: 10px 0 14px; border-bottom: 1px solid var(--hairline); }
 .stats .row { font-size: var(--fs-sm); color: var(--ink-2); }
-.stats .row + .row { margin-top: 2px; }
+.stats .row + .row { margin-top: 3px; }
 .stats b { color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.row.score { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; color: var(--ink); }
+.row.score .seal {
+  flex: none;
+  display: inline-flex; flex-direction: column; align-items: center; justify-content: center;
+  width: 58px; height: 58px;
+  border: 2px solid currentColor; border-radius: 6px;
+  transform: rotate(-2deg);
+  font-family: Georgia, "Times New Roman", var(--serif);
+  line-height: 1;
+  box-shadow: inset 0 0 0 1.5px var(--paper), inset 0 0 0 2.5px currentColor;
+}
+.row.score .seal .n { font-size: 26px; font-weight: 700; font-variant-numeric: tabular-nums; padding-top: 2px; }
+.row.score .seal .u { font-size: 8.5px; letter-spacing: 0.2em; margin-top: 3px; font-family: var(--serif); font-weight: 600; }
+.row.score .seal.high { color: var(--sev-high); }
+.row.score .seal.medium { color: var(--sev-medium); }
+.row.score .seal.low { color: var(--sev-low); }
+.row.score .seal.none { color: var(--ink-3); border-style: dashed; box-shadow: none; transform: none; }
+.row.score .score-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.row.score .score-main .t { font-family: var(--serif); font-weight: 700; font-size: 14px; }
+.row.score .score-main .sub { font-size: var(--fs-xs); color: var(--ink-3); }
 .stats .row.score b.s-high { color: var(--sev-high); }
 .stats .row.score b.s-medium { color: var(--sev-medium); }
 .stats .row.score b.s-low { color: var(--sev-low); }
 .stats .row.score .comp { color: var(--ink-3); }
-.summary { padding: 12px 0 4px; font-weight: 600; }
-.found { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
+.summary {
+  padding: 13px 0 10px; font-family: var(--serif); font-weight: 700; font-size: 14.5px;
+}
+.found { padding: 10px 0 10px 14px; border-bottom: 1px solid var(--hairline); border-left: 2px solid var(--hairline); }
+.found.sev-high { border-left-color: var(--sev-high); }
+.found.sev-medium { border-left-color: var(--sev-medium); }
+.found.sev-low { border-left-color: var(--sev-low); }
 .found:last-of-type { border-bottom: none; }
-.found .head { font-weight: 600; }
-.found .head .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: 1px; }
-.found .head .loc { color: var(--ink-3); font-weight: 400; font-size: var(--fs-xs); margin-left: 8px; }
+.found .head { font-weight: 400; }
+.found .sev-tag {
+  display: inline-block; font-size: var(--fs-xs); font-weight: 600;
+  border: 1px solid currentColor; border-radius: 3px;
+  padding: 0 4px; margin-right: 8px; transform: translateY(-1px);
+}
+.found.sev-high .sev-tag { color: var(--sev-high); }
+.found.sev-medium .sev-tag { color: var(--sev-medium); }
+.found.sev-low .sev-tag { color: var(--sev-low); }
+.found .head .loc { color: var(--ink-3); font-size: var(--fs-xs); margin-left: 8px; }
 .found blockquote {
   margin: 6px 0 4px; padding: 2px 0 2px 12px;
   border-left: 2px solid var(--hairline); color: var(--ink-2);
 }
 .found .match { font-size: var(--fs-sm); color: var(--ink-3); margin: 2px 0 6px; }
-.found .match code { background: var(--chip); padding: 0 4px; border-radius: 2px; }
+.found .match code { background: var(--chip); color: var(--ink-2); padding: 0 4px; border-radius: 2px; }
 .found .why { margin: 3px 0; }
 .found .tip { color: var(--sev-low); margin-top: 3px; }
-mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+mark { background: var(--mark-bg); color: inherit; border-radius: 1px; padding: 0 1px; box-shadow: 0 1px 0 var(--mark-line); }
 .hints { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--hairline); }
 .hints .t { font-size: var(--fs-sm); color: var(--ink-3); font-weight: 600; margin-bottom: 4px; }
 .hints .h { font-size: var(--fs-sm); color: var(--ink-3); }
 .disclaimer {
   margin-top: 18px; padding: 10px 14px; background: var(--soft);
-  font-size: var(--fs-xs); color: var(--ink-3); border-radius: 3px;
+  font-size: var(--fs-xs); color: var(--ink-2); border-radius: 3px;
 }
+/* 空态：竖排铭文 + 一句话 */
+.empty-hero { display: flex; gap: 20px; padding: 34px 0 24px; }
+.empty-hero .motto {
+  flex: none;
+  writing-mode: vertical-rl;
+  font-family: var(--serif); font-weight: 700; font-size: 15px;
+  letter-spacing: 0.5em;
+  color: var(--vermilion);
+  border-left: 2px solid var(--vermilion-soft);
+  padding-left: 12px;
+  user-select: none;
+}
+.empty-hero .hint-line { color: var(--ink-3); padding-top: 6px; max-width: 30em; }
 .empty { color: var(--ink-3); padding: 24px 0; }
 .advice { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .advice:last-of-type { border-bottom: none; }
 .advice .tag {
   display: inline-block; min-width: 18px; text-align: center;
-  font-size: var(--fs-xs); font-weight: 600; border-radius: 2px;
+  font-size: var(--fs-xs); font-weight: 600; border-radius: 3px;
   padding: 1px 5px; margin-right: 8px; vertical-align: 1px;
-  background: var(--chip); color: var(--ink-2);
+  border: 1px solid currentColor; background: transparent;
 }
-.advice.del .tag { background: rgba(179, 38, 30, 0.14); color: var(--sev-high); }
-.advice.chg .tag { background: rgba(154, 107, 0, 0.14); color: var(--sev-medium); }
-.advice.keep .tag { background: rgba(15, 118, 110, 0.12); color: var(--sev-low); }
+.advice.del .tag { color: var(--sev-high); }
+.advice.chg .tag { color: var(--sev-medium); }
+.advice.keep .tag { color: var(--sev-low); }
 .advice .taste { font-size: var(--fs-xs); color: var(--ink-3); margin-left: 6px; }
 .advice .why { color: var(--ink-2); margin: 4px 0 0 26px; }
 .advice .cand { color: var(--sev-low); margin: 3px 0 0 26px; }
@@ -179,7 +258,9 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   padding: 1px 8px; border-radius: 3px;
 }
 .filters button:hover:not(.on) { color: var(--ink); }
-.filters button.on { color: var(--ink); background: var(--chip); font-weight: 600; }
+.filters button.on { color: var(--vermilion); background: var(--vermilion-soft); font-weight: 600; }
+/* 未选中档位不能太浅——弱档也是有效操作目标 */
+.filters button { color: var(--ink-2); }
 @media (max-width: 900px) {
   main { flex-direction: column; }
   .pane { min-height: 45vh; }
@@ -188,24 +269,28 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   header .note { flex-basis: 100%; margin-left: 0; }
   .pane-label, .pane-label.with-btn { padding-left: 16px; padding-right: 16px; }
   #input, #report { padding-left: 16px; padding-right: 16px; }
+  .empty-hero .motto { letter-spacing: 0.3em; }
 }
 </style>
 </head>
 <body>
 <header>
-  <span class="wordmark">human-vs-ai<span class="v">__VERSION__</span></span>
+  <span class="brand">
+    <svg viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="5" fill="var(--vermilion)"/><text x="16" y="23" font-family="serif" font-size="19" font-weight="700" fill="var(--paper)" text-anchor="middle">鉴</text></svg>
+    <span class="wordmark">human-vs-ai<span class="v">__VERSION__</span></span>
+  </span>
   <nav class="profiles" id="profiles"></nav>
   <nav class="modes" id="modes"></nav>
-  <span class="note">纯本地分析 · 文本不上传</span>
+  <span class="note">纯本地 · 文本不上传</span>
 </header>
 <main>
   <section class="pane">
-    <div class="pane-label">粘贴文本</div>
+    <div class="pane-label">原稿</div>
     <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="粘贴正文"></textarea>
   </section>
   <section class="pane">
     <div class="pane-label with-btn"><span>分析报告</span><button id="copyBtn" disabled>复制 Markdown</button></div>
-    <div id="report"><div class="empty">粘贴正文即出报告。</div></div>
+    <div id="report"><div class="empty-hero"><span class="motto">推断不是判定</span><div class="hint-line">粘贴正文即出报告。</div></div></div>
   </section>
 </main>
 <script>
@@ -238,6 +323,8 @@ let shouldAnimate = true;   // 上下文切换（空态/换档/换模式）时�
 const reportEl = document.getElementById("report");
 const inputEl = document.getElementById("input");
 const copyBtn = document.getElementById("copyBtn");
+
+const EMPTY_HTML = '<div class="empty-hero"><span class="motto">推断不是判定</span><div class="hint-line">粘贴正文即出报告。</div></div>';
 
 function renderProfiles() {
   const nav = document.getElementById("profiles");
@@ -309,13 +396,25 @@ function statsRows(s) {
   return rows;
 }
 
+/* 指数印章：共享层 scoreRow 的 markup 只在网页端重排成印章样式
+   （vscode 端沿用原行式布局），这里解析其结构而非改共享层 */
+function sealHtml(score) {
+  if (!score) return "";
+  const idx = score.index.toFixed(0);
+  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+  return `<div class="row score">` +
+    `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
+    `<span class="score-main"><span class="t">${idx} / 100</span>` +
+    `<span class="sub">风格综合分 · 真人 p50≈${score.human_p50} / p90≈${score.human_p90} · 构成：${componentsText(score.components)}</span></span></div>`;
+}
+
 function renderReport(result) {
   if (!result) return;
   reportEl.classList.toggle("swap", shouldAnimate);
   shouldAnimate = false;
   const parts = [];
 
-  parts.push(`<div class="stats">${scoreRow(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };
@@ -337,8 +436,8 @@ function renderReport(result) {
     const why = g.items.find(i => !explained.has(i.rule_id));
     if (why) explained.add(why.rule_id);
     g.items.forEach(i => explained.add(i.rule_id));
-    parts.push(`<div class="found">
-      <div class="head"><span class="dot" style="background:var(--sev-${top.severity})"></span>${SEV_NAME[top.severity]} · ${esc(ids)} ${esc(names)}${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+    parts.push(`<div class="found sev-${top.severity}">
+      <div class="head"><span class="sev-tag">${SEV_NAME[top.severity]}</span>${esc(ids)} ${esc(names)}${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
       ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
       ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
@@ -348,8 +447,8 @@ function renderReport(result) {
     const taste = f.taste ? `<span class="taste">${esc(f.taste)}</span>` : "";
     const why = !explained.has(f.rule_id);
     explained.add(f.rule_id);
-    parts.push(`<div class="found">
-      <div class="head"><span class="dot" style="background:var(--sev-${f.severity})"></span>${SEV_NAME[f.severity]} · ${esc(f.rule_id)} ${esc(f.rule_name)}${taste}<span class="loc">全文</span></div>
+    parts.push(`<div class="found sev-${f.severity}">
+      <div class="head"><span class="sev-tag">${SEV_NAME[f.severity]}</span>${esc(f.rule_id)} ${esc(f.rule_name)}${taste}<span class="loc">全文</span></div>
       ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
     </div>`);
@@ -401,7 +500,7 @@ function analyzeNow() {
     updateCopyBtn();
     reportEl.classList.add("swap");
     shouldAnimate = true;
-    reportEl.innerHTML = '<div class="empty">粘贴正文即出报告。</div>';
+    reportEl.innerHTML = EMPTY_HTML;
     return;
   }
   // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算。

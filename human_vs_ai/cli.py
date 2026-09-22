@@ -1,7 +1,8 @@
 """命令行入口。
 
-五个子命令：
-  check     分析文件（主命令）
+六个子命令：
+  check     分析文件（主命令；目录/glob 走批量汇总）
+  diff      改前改后对比——验证修改有没有效
   rewrite   按个人口味给逐句改写建议（删/改/保留）
   stats     只看统计特征（调阈值/做研究用）
   explain   打印一条规则的完整说明（报告里看到 ID 想深究时用）
@@ -16,21 +17,20 @@ from pathlib import Path
 
 import yaml
 
-from . import __version__, engine, report, rewrite
+from . import __version__, batch, diff, engine, htreport, readers, report, rewrite, sarif
 
 
 def _read_file(path: str) -> str:
-    p = Path(path)
-    if not p.exists():
-        sys.exit(f"错误：文件不存在 {p}")
-    if p.is_dir():
-        sys.exit(f"错误：{p} 是目录，请传入文本文件")
     try:
-        return p.read_text(encoding="utf-8-sig")
-    except UnicodeDecodeError:
-        return p.read_text(encoding="gb18030", errors="replace")
+        return readers.read_text(path)
+    except FileNotFoundError:
+        sys.exit(f"错误：文件不存在 {path}")
+    except IsADirectoryError:
+        sys.exit(f"错误：{path} 是目录，请传入文本文件")
+    except ValueError as e:
+        sys.exit(f"错误：{e}")
     except OSError as e:
-        sys.exit(f"错误：无法读取 {p}（{e.strerror}）")
+        sys.exit(f"错误：无法读取 {path}（{e.strerror}）")
 
 
 _PROFILE_DESC = {
@@ -69,27 +69,37 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--version", action="version", version=f"human-vs-ai {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    p_check = sub.add_parser("check", help="分析文本文件")
-    p_check.add_argument("file", help="txt / md 文件；或 - 从标准输入读")
+    p_check = sub.add_parser("check", help="分析文本文件（目录/glob 走批量汇总）")
+    p_check.add_argument("file", help="txt/md/docx/odt 文件、目录、glob；或 - 从标准输入读")
     p_check.add_argument("-p", "--profile", default="academic", help="场景（默认 academic）")
-    p_check.add_argument("-f", "--format", default="terminal", choices=["terminal", "md", "json"])
+    p_check.add_argument(
+        "-f", "--format", default="terminal",
+        choices=["terminal", "md", "json", "sarif", "csv", "html"],
+        help="出口格式（html=可分享的静态报告页；csv/sarif 需文件输入）")
     p_check.add_argument("-o", "--output", help="写入文件（默认打印）")
     p_check.add_argument(
-        "--min-severity",
-        default="hint",
-        choices=["high", "medium", "low", "hint"],
-        help="报告的最低严重级（默认全量）",
-    )
+        "--min-severity", default="hint", choices=["high", "medium", "low", "hint"],
+        help="报告的最低严重级（默认全量；仅单文件出口生效）")
+    p_check.add_argument(
+        "--fail-above", type=float, default=None, metavar="N",
+        help="AI 味指数超过 N 时退出码 1（CI 门禁；<8 句不出分不判定）")
+
+    p_diff = sub.add_parser("diff", help="改前改后对比——验证修改有没有效")
+    p_diff.add_argument("old", help="改前文件")
+    p_diff.add_argument("new", help="改后文件")
+    p_diff.add_argument("-p", "--profile", default="academic")
+    p_diff.add_argument("-f", "--format", default="terminal", choices=["terminal", "md", "json"])
+    p_diff.add_argument("-o", "--output", help="写入文件（默认打印）")
 
     p_stats = sub.add_parser("stats", help="只打印全文统计特征（JSON）")
-    p_stats.add_argument("file", help="txt / md 文件；或 - 从标准输入读")
+    p_stats.add_argument("file", help="txt/md/docx/odt 文件；或 - 从标准输入读")
     p_stats.add_argument("-p", "--profile", default="academic")
 
     p_rw = sub.add_parser(
         "rewrite",
         help="按个人口味给逐句改写建议（删/改/保留三档，personal profile）",
     )
-    p_rw.add_argument("file", help="txt / md 文件；或 - 从标准输入读")
+    p_rw.add_argument("file", help="txt/md/docx/odt 文件；或 - 从标准输入读")
     p_rw.add_argument("-p", "--profile", default="personal")
     p_rw.add_argument("-f", "--format", default="terminal", choices=["terminal", "json"])
     p_rw.add_argument("-o", "--output", help="写入文件（默认打印）")
@@ -151,26 +161,119 @@ def _dispatch(args: argparse.Namespace) -> None:
         _emit(out, args.output)
         return
 
-    _require_profile(args.profile)
-    text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
-    result = engine.analyze(text, args.profile)
+    if args.command == "diff":
+        _require_profile(args.profile)
+        old_text = _read_file(args.old)
+        new_text = _read_file(args.new)
+        d = diff.compute(old_text, new_text, args.profile)
+        _emit(diff.render(d, args.format), args.output)
+        return
 
+    _require_profile(args.profile)
     if args.command == "stats":
+        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        result = engine.analyze(text, args.profile)
         # 契约是"只看统计特征"：只出 stats，不夹带 findings
         print(json.dumps(
             {"tool": "human-vs-ai", "version": __version__,
              "profile": result.profile, "stats": result.doc_stats.to_dict()},
             ensure_ascii=False, indent=2))
         return
+    _check(args)
 
-    if args.min_severity != "hint":
-        floor = engine.SEVERITY_ORDER[args.min_severity]
-        result.findings = [f for f in result.findings if engine.SEVERITY_ORDER[f.severity] >= floor]
-        if floor > 0:
-            result.hints = []
 
-    out = report.render(result, args.format)
+def _analyze_file(path: Path, profile: str):
+    try:
+        text = readers.read_text(str(path))
+    except FileNotFoundError:
+        sys.exit(f"错误：文件不存在 {path}")
+    except ValueError as e:
+        sys.exit(f"错误：{e}")
+    except OSError as e:
+        sys.exit(f"错误：无法读取 {path}（{e.strerror}）")
+    return text, engine.analyze(text, profile)
+
+
+def _gate(result: engine.AnalysisResult, where: str, threshold: float) -> None:
+    """--fail-above：超阈值走 stderr 提示 + 退出码 1，不污染正常出口。"""
+    if result.score and result.score.index > threshold:
+        print(f"human-vs-ai：指数 {result.score.index:.0f} > {threshold:g}（{where}）",
+              file=sys.stderr)
+        sys.exit(1)
+
+
+def _check(args: argparse.Namespace) -> None:
+    paths = batch.resolve_paths(args.file)
+
+    if paths is None:  # stdin：单文件管道
+        if args.format in ("sarif", "csv"):
+            sys.exit(f"错误：{args.format} 输出需要文件输入，管道不支持")
+        if args.format == "html":
+            sys.exit("错误：html 报告暂只支持文件输入；管道用 terminal/md/json")
+        text = sys.stdin.read()
+        result = engine.analyze(text, args.profile)
+        _apply_min_severity(result, args)
+        _emit(report.render(result, args.format), args.output)
+        return
+
+    if len(paths) == 1:
+        text, result = _analyze_file(paths[0], args.profile)
+        _apply_min_severity(result, args)
+        if args.format == "sarif":
+            out = sarif.render([(str(paths[0]), text, result)], args.profile)
+        elif args.format == "html":
+            out = htreport.render_html(result)
+        else:
+            out = report.render(result, args.format)
+        _emit(out, args.output)
+        if args.fail_above is not None:
+            _gate(result, str(paths[0]), args.fail_above)
+        return
+
+    if args.format == "html":
+        sys.exit("错误：html 报告仅支持单文件；批量扫描用 terminal/csv/json")
+
+    if not paths:
+        if Path(args.file).is_dir():
+            sys.exit("错误：目录中没有可分析的文件"
+                     f"（支持 {'/'.join(readers.SCAN_EXTS)}）：{args.file}")
+        sys.exit(f"错误：没有匹配到可分析的文件：{args.file}")
+
+    entries, rows = [], []
+    for p in paths:
+        try:
+            text = readers.read_text(str(p))
+        except (ValueError, OSError) as e:
+            print(f"跳过 {p}：{e}", file=sys.stderr)
+            continue
+        result = engine.analyze(text, args.profile)
+        entries.append((str(p), text, result))
+        rows.append(batch.summarize(p, result))
+    if not entries:
+        sys.exit(f"错误：所有文件都读取失败：{args.file}")
+
+    rows = batch.sort_rows(rows)
+    if args.format == "sarif":
+        out = sarif.render(entries, args.profile)
+    else:
+        out = batch.render(rows, args.profile, args.format)
     _emit(out, args.output)
+    if args.fail_above is not None:
+        for r in rows:
+            if r["index"] is not None and r["index"] > args.fail_above:
+                print(f"human-vs-ai：指数 {r['index']} > {args.fail_above:g}（{r['file']}）",
+                      file=sys.stderr)
+                sys.exit(1)
+
+
+def _apply_min_severity(result: engine.AnalysisResult, args: argparse.Namespace) -> None:
+    if args.min_severity == "hint":
+        return
+    floor = engine.SEVERITY_ORDER[args.min_severity]
+    result.findings = [f for f in result.findings
+                       if engine.SEVERITY_ORDER[f.severity] >= floor]
+    if floor > 0:
+        result.hints = []
 
 
 if __name__ == "__main__":
