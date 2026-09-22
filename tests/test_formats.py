@@ -83,7 +83,7 @@ class TestReaders:
         content = (
             f'<?xml version="1.0"?><w:document xmlns:w="{_W_NS}"><w:body>'
             + "".join(
-                f'<w:p><w:r><w:t>首先，随着人工智能的快速发展，方法越来越多。</w:t></w:r></w:p>'
+                '<w:p><w:r><w:t>首先，随着人工智能的快速发展，方法越来越多。</w:t></w:r></w:p>'
                 for _ in range(6))
             + '</w:body></w:document>')
         b = io.BytesIO()

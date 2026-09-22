@@ -292,11 +292,11 @@ body.resizing .pane { transition: none; }
 .seal.high { color: var(--vermilion); }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
-.seal.none { color: var(--ink-3); border-style: dashed; transform: none; }
 .score-main { min-width: 0; }
 .score-main .t { font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 .score-main .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 3px; }
 .score-main .sub .mono-num { font-family: var(--mono); }
+.row.score .comp { color: var(--ink-3); }
 
 .summary { padding: 12px 0 8px; font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 
@@ -507,7 +507,7 @@ const RULES_BY_PROFILE = __RULES_JSON__;
 const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, scoreRow, scoreNoteRow, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
@@ -688,18 +688,6 @@ function statsRows(s) {
   rows.push(`节奏：句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
   rows.push(`词汇：TTR ${fmt(s.ttr)} · 连接词密度 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 ${fmt(s.ngram_repeat)}`);
   return rows;
-}
-
-/* 指数印章：mono + 大字距 + 档位色描边（共享层 scoreRow 的数据在
-   网页端重排成印章；vscode 端沿用原行式布局，不动共享层） */
-function sealHtml(score) {
-  if (!score) return "";
-  const idx = score.index.toFixed(0);
-  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-  return `<div class="row score">` +
-    `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-    `<span class="score-main"><span class="t">${idx} / 100</span>` +
-    `<span class="sub">风格综合分 · 真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
 }
 
 function renderReport(result) {

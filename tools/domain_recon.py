@@ -12,7 +12,6 @@
 from __future__ import annotations
 
 import argparse
-import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -20,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
-from human_vs_ai import engine, stats as hvastats  # noqa: E402
+from human_vs_ai import engine  # noqa: E402
 from tools.fit_score_tiers import auroc  # noqa: E402
 
 # C-ReD 域 → (目录前缀, 生成器列表)。生成器取当代主力四款 + doubao/claude 补广度。

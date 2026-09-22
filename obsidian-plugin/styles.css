@@ -76,6 +76,7 @@
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
 .score-main .t { font-weight: 650; font-size: 14px; }
+.mono-num { font-family: var(--mono); }
 .score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
 
 .summary { font-weight: 650; font-size: 14px; padding: 12px 0 8px; }

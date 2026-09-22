@@ -1,6 +1,6 @@
 /* human-vs-ai 报告渲染共享层——网页版（template.html）与 VS Code 扩展
  * （extension.js）共用的叶子函数。只放两端逐字一致的东西：转义、
- * 命中高亮、评分行、弱命中块、共用常量；报告的组装结构（聚合、排序、
+ * 命中高亮、指数印章、弱命中块、共用常量；报告的组装结构（聚合、排序、
  * 布局）由各端自定。构建：build_web.py 注入网页，build_vscode.py 复制
  * 给扩展——与 engine.js 同一纪律，不许两端各自演化。
  */
@@ -74,19 +74,22 @@
     }).join(" · ");
   }
 
-  /* 指数行：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低） */
-  function scoreRow(score) {
-    if (!score) return "";
-    const idx = score.index.toFixed(0);
-    const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-    return `<div class="row score" title="风格综合分，不是 AI 概率（真人 p50≈${score.human_p50} / p90≈${score.human_p90}）">` +
-      `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${componentsText(score.components)}</span></div>`;
-  }
-
-  /* 够 8 句却没出分（无校准语料）给一行原因；文案与 engine.score_note 同源 */
+  /* 指数印章：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低）。
+     够 8 句却没出分（无校准语料）的场景由各端用 scoreNoteRow 给一行原因 */
   function scoreNoteRow(note) {
     if (!note) return "";
     return `<div class="row score">AI 味指数 <span class="comp">—（${note}）</span></div>`;
+  }
+
+  /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放 */
+  function sealHtml(score) {
+    if (!score) return "";
+    const idx = score.index.toFixed(0);
+    const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+    return `<div class="row score">` +
+      `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
+      `<span class="score-main"><span class="t">${idx} / 100</span>` +
+      `<span class="sub">风格综合分 · 真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
   }
 
   function hintsHtml(hints) {
@@ -102,7 +105,7 @@
 
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
-    componentsText: componentsText, scoreRow: scoreRow, scoreNoteRow: scoreNoteRow,
+    componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,

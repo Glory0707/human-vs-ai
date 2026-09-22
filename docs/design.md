@@ -99,6 +99,7 @@ node smoke-test.js 冒烟）
 | v0.14.1 | 交互优化：原稿/报告分隔线可拖（eggpaper rail-grip 同款：悬停青线/拖动全局 col-resize 禁选中/双击复位/方向键微调/localStorage 记忆，22-78% 限幅）；清空带一级撤销 toast；原稿栏头部实时字数·句数+不足 8 句提示；txt/md 拖稿入栏；空态「看个例子」合成样例；场景/模式记忆；segmented 滑块改按活动按钮真实几何定位（修复盖住邻项文字的缺陷） |
 | v0.15.0 | Obsidian 插件：obsidian-plugin/（main.template.js + styles.css + 构建产物 main.js/manifest.json/versions.json），tools/build_obsidian.py 注入引擎/规则/评分（四端同一事实源），命令「分析当前文档/改写建议」+ 侧边视图（印章/批注卡/波浪线，亮暗跟随 Obsidian 主题）+ 笔记修改 800ms 防抖自动重析 + 设置页默认场景；冒烟 14 项（obsidian 桩装配 + 产物完整性 + 预览页） |
 | v0.16.0 | 全端打磨轮：弱命中三端折叠（details，默认收起降噪）；VS Code webview 报告对齐 eggpaper 设计（印章+眉批卡+波浪线，修亮色档位变量缺失/CSP 拦 data 图两处真实缺陷）+ 场景 QuickPick（记住上次）；网页印章入场动画/筛选计数与记忆；移动端分段换行+填充高亮（修 7 项溢出）；引擎基准 10 万字 112ms 线性 |
+| v0.16.1 | 冗余清理轮（零功能变化）：render.js 死叶 scoreRow 移除、sealHtml 三份拷贝收敛为共享叶子；死 CSS（.seal.none/旧 b.s-* 档位色）清理；pyflakes 清零（htreport OrderedDict、build_obsidian shutil、domain_recon re/hvastats、fit_score rng 与无占位 f-string、fit_domain 死赋值、report.py _TIER_LABEL）；pyflakes 纳入日常自查 |
 | v0.13.2 | Logo 重设计（无文字）：印章框内一行字迹——左半手写波浪（人）右半拉直（AI），接点切线水平；单色 currentColor 成立、16px 可读（缩放标尺 16→104px 验证 + 视觉验收）；徽记沿用波浪几何与报告命中线同源；favicon/顶栏/空态三处同步 |
 
 ## 7. 已知限制

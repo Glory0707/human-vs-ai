@@ -32,21 +32,11 @@ const VERSION = "__VERSION__";
 const PROFILES = Object.keys(RULES);
 
 /* 渲染共享层（web/render.js）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 
 /* ================= 报告组装（结构与 CLI/网页/VS Code 同一份内容） ================= */
-
-function sealHtml(score) {
-  if (!score) return "";
-  const idx = score.index.toFixed(0);
-  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-  return `<div class="row score">` +
-    `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-    `<span class="score-main"><span class="t">${idx} / 100</span>` +
-    `<span class="sub">风格综合分 · 真人 p50≈${score.human_p50} / p90≈${score.human_p90} · 构成：${componentsText(score.components)}</span></span></div>`;
-}
 
 function statsRows(s) {
   const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];

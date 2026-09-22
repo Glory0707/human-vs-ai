@@ -66,7 +66,6 @@ def extract(text: str, profile: str) -> dict:
 
 
 def main() -> None:
-    rng = random.Random(42)
     report = {}
     for profile, cfg in BENCHES.items():
         samples = cfg["load"]()
@@ -129,7 +128,7 @@ def main() -> None:
         print(f"D 综合（B+C 逻辑回归） AUROC {auc_full:.3f}（分层留出 {auc_holdout:.3f}）")
         print(f"人类指数 p50/p90 = {p(0.5)*100:.0f} / {p(0.9)*100:.0f}")
         print("scoring 段：")
-        print(f"scoring:")
+        print("scoring:")
         print(f"  corpus: \"{cfg['corpus']}\"")
         print(f"  intercept: {int_d:.4f}")
         for f, c in zip(feats_d, coef_d):

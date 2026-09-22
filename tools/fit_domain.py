@@ -50,7 +50,6 @@ def main():
     args = ap.parse_args()
 
     prefix, models = DOMAINS[args.domain]
-    corpus = ROOT / "_qa" / "cred"
     corpus = ROOT / "_qa" / "corpus" / "cred"
 
     rows = []

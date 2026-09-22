@@ -292,11 +292,11 @@ body.resizing .pane { transition: none; }
 .seal.high { color: var(--vermilion); }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
-.seal.none { color: var(--ink-3); border-style: dashed; transform: none; }
 .score-main { min-width: 0; }
 .score-main .t { font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 .score-main .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 3px; }
 .score-main .sub .mono-num { font-family: var(--mono); }
+.row.score .comp { color: var(--ink-3); }
 
 .summary { padding: 12px 0 8px; font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 
@@ -473,7 +473,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.16.0</span>
+    <span class="head-ver">v0.16.1</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1223,7 +1223,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 <script>
 /* human-vs-ai 报告渲染共享层——网页版（template.html）与 VS Code 扩展
  * （extension.js）共用的叶子函数。只放两端逐字一致的东西：转义、
- * 命中高亮、评分行、弱命中块、共用常量；报告的组装结构（聚合、排序、
+ * 命中高亮、指数印章、弱命中块、共用常量；报告的组装结构（聚合、排序、
  * 布局）由各端自定。构建：build_web.py 注入网页，build_vscode.py 复制
  * 给扩展——与 engine.js 同一纪律，不许两端各自演化。
  */
@@ -1297,19 +1297,22 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     }).join(" · ");
   }
 
-  /* 指数行：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低） */
-  function scoreRow(score) {
-    if (!score) return "";
-    const idx = score.index.toFixed(0);
-    const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-    return `<div class="row score" title="风格综合分，不是 AI 概率（真人 p50≈${score.human_p50} / p90≈${score.human_p90}）">` +
-      `AI 味指数 <b class="s-${band}">${idx}</b> / 100<span class="comp"> · 构成：${componentsText(score.components)}</span></div>`;
-  }
-
-  /* 够 8 句却没出分（无校准语料）给一行原因；文案与 engine.score_note 同源 */
+  /* 指数印章：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低）。
+     够 8 句却没出分（无校准语料）的场景由各端用 scoreNoteRow 给一行原因 */
   function scoreNoteRow(note) {
     if (!note) return "";
     return `<div class="row score">AI 味指数 <span class="comp">—（${note}）</span></div>`;
+  }
+
+  /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放 */
+  function sealHtml(score) {
+    if (!score) return "";
+    const idx = score.index.toFixed(0);
+    const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+    return `<div class="row score">` +
+      `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
+      `<span class="score-main"><span class="t">${idx} / 100</span>` +
+      `<span class="sub">风格综合分 · 真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
   }
 
   function hintsHtml(hints) {
@@ -1325,7 +1328,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
-    componentsText: componentsText, scoreRow: scoreRow, scoreNoteRow: scoreNoteRow,
+    componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
@@ -1338,7 +1341,7 @@ const RULES_BY_PROFILE = {"academic": [{"id": "L-CONN-01", "name": "模板连接
 const SCORING = {"academic": {"corpus": "C-ReD paper 245 篇过 8 句门槛样本（真人 33 vs 四模型 212），2026-09", "intercept": -69.8327, "hit_density": 8.9025, "sentence_cv": -14.8899, "ttr": 83.377, "ngram_repeat": 22.6387, "auroc": 0.984, "auroc_holdout": 0.974, "human_p50": 15, "human_p90": 63, "tiers": [{"min_chars": 600, "intercept": -79.959, "hit_density": 1.7466, "sentence_cv": -6.0175, "ttr": 89.2265, "ngram_repeat": 37.0485}]}, "essay": {"corpus": "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09", "intercept": -42.9291, "hit_density": 9.1763, "sentence_cv": -16.4304, "ttr": 52.7223, "ngram_repeat": 4.1655, "auroc": 0.952, "auroc_holdout": 0.951, "human_p50": 6, "human_p90": 55}, "general": {"corpus": "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300，类平衡加权），2026-09", "intercept": 18.0167, "hit_density": 1.9553, "sentence_cv": -7.4254, "ttr": -17.0713, "ngram_repeat": -5.8575, "auroc": 0.838, "auroc_holdout": 0.87, "human_p50": 27, "human_p90": 69}, "news": {"corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09", "intercept": -60.4796, "hit_density": 5.9358, "sentence_cv": -5.344, "ttr": 65.9004, "ngram_repeat": -2.4644, "auroc": 0.938, "auroc_holdout": 0.935, "human_p50": 7, "human_p90": 61}, "official": null, "personal": null, "review": null};
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, scoreRow, scoreNoteRow, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
@@ -1519,18 +1522,6 @@ function statsRows(s) {
   rows.push(`节奏：句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
   rows.push(`词汇：TTR ${fmt(s.ttr)} · 连接词密度 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 ${fmt(s.ngram_repeat)}`);
   return rows;
-}
-
-/* 指数印章：mono + 大字距 + 档位色描边（共享层 scoreRow 的数据在
-   网页端重排成印章；vscode 端沿用原行式布局，不动共享层） */
-function sealHtml(score) {
-  if (!score) return "";
-  const idx = score.index.toFixed(0);
-  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-  return `<div class="row score">` +
-    `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-    `<span class="score-main"><span class="t">${idx} / 100</span>` +
-    `<span class="sub">风格综合分 · 真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
 }
 
 function renderReport(result) {

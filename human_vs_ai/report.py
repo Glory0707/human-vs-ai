@@ -16,7 +16,6 @@ from collections import OrderedDict
 from .engine import AnalysisResult, Score, Finding
 from . import __version__
 
-_TIER_LABEL = {"lexical": "词表", "syntactic": "句式", "structural": "结构", "statistical": "统计"}
 _SEV_LABEL = {"high": "高", "medium": "中", "low": "低", "hint": "弱"}
 _SEV_RANK = {"high": 0, "medium": 1, "low": 2, "hint": 3}
 

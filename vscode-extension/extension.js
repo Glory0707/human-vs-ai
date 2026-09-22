@@ -17,23 +17,12 @@ const RULES = require("./rules.json");
 let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, hintsHtml, componentsText,
+const { esc, fmt, hiSentence, sealHtml, hintsHtml, componentsText,
         SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
    编辑器装饰必须给实色；hint 档不画装饰） */
 const SEV_COLOR = { high: "#B3351F", medium: "#9C7414", low: "#1D4E5F" };
-
-/* 指数印章（web 同款：mono + 大字距 + 档位色 + 斜放） */
-function sealHtml(score) {
-  if (!score) return "";
-  const idx = score.index.toFixed(0);
-  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-  return `<div class="row score">` +
-    `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-    `<span class="score-main"><span class="t">${idx} / 100</span>` +
-    `<span class="sub">风格综合分 · 真人 p50≈${score.human_p50} / p90≈${score.human_p90} · 构成：${componentsText(score.components)}</span></span></div>`;
-}
 
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
    样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
@@ -133,6 +122,7 @@ b { font-variant-numeric: tabular-nums; }
 .seal.high { color: var(--sev-high); }
 .seal.medium { color: var(--sev-medium); }
 .seal.low { color: var(--sev-low); }
+.mono-num { font-family: var(--mono); }
 .score-main .t { font-weight: 650; font-size: 14px; }
 .score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
 .row.score-note { color: var(--ink-3); }

@@ -6,8 +6,6 @@
 from __future__ import annotations
 
 import html as _html
-from collections import OrderedDict
-
 from . import __version__
 from .engine import AnalysisResult
 from .report import _DISCLAIMER, _group_by_sentence, _group_top, _taste_suffix, stats_lines
@@ -147,7 +145,7 @@ def _finding_card(sev: str, title: str, loc: str, sentence: str,
 
 
 def render_html(result: AnalysisResult) -> str:
-    out = [f"<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">",
+    out = ["<!DOCTYPE html>\n<html lang=\"zh-CN\">\n<head>\n<meta charset=\"UTF-8\">",
            f"<title>human-vs-ai 分析报告（{result.profile}）</title>",
            f"<style>{_CSS}</style>\n</head>\n<body>",
            f"<header><span class=\"wordmark\">human-vs-ai</span>"
