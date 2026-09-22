@@ -26,6 +26,7 @@ _qa/*.png
 .playwright-mcp/
 _qa/_web_*.js
 _qa/_web_*.json
+_qa/e2e/
 _qa/vscode-preview.html
 _qa/obsidian-preview.html
 _qa/exp_rows_*.json
