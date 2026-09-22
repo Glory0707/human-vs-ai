@@ -193,13 +193,12 @@ body {
   background: var(--card-2);
 }
 .segmented .seg-thumb {
-  position: absolute; top: 0; bottom: 0; left: 0; width: calc(100% / var(--n, 2));
+  position: absolute; top: 0; bottom: 0; left: 0;
   background: var(--accent); border-radius: 3px; pointer-events: none;
-  transform: translateX(calc(var(--i, 0) * 100%));
-  transition: transform var(--t-base) var(--ease-spring);
+  transition: transform var(--t-base) var(--ease-spring), width var(--t-base) var(--ease-spring);
 }
 .segmented button {
-  position: relative; z-index: 1; flex: 1 1 0; white-space: nowrap;
+  position: relative; z-index: 1; white-space: nowrap;
   border: none; border-radius: 0; background: transparent;
   padding: 5px 11px; font-size: var(--fs-sm); color: var(--ink-2);
 }
@@ -213,7 +212,26 @@ body {
 /* —— 双栏 */
 main { flex: 1; display: flex; min-height: 0; }
 .pane { flex: 1; display: flex; flex-direction: column; min-width: 0; background: var(--paper); }
-.pane + .pane { border-left: 1px solid var(--hairline); }
+/* 源稿栏宽度由分隔线拖动决定（CSS 变量 --split，默认对半） */
+@media (min-width: 901px) {
+  main { --split: 50%; }
+  .pane-source { flex: 0 0 var(--split); min-width: 0; }
+}
+.split-grip {
+  flex: 0 0 10px; cursor: col-resize; background: var(--card);
+  border-left: 1px solid var(--hairline); border-right: 1px solid var(--hairline);
+  position: relative; touch-action: none;
+}
+.split-grip::after {
+  content: ''; position: absolute; left: 4px; top: 0; bottom: 0; width: 2px;
+  background: transparent; transition: background var(--t-fast) var(--ease-smooth);
+}
+.split-grip:hover::after, .split-grip.dragging::after,
+.split-grip:focus-visible::after { background: var(--accent-line); }
+.split-grip:focus-visible { outline: none; }
+body.resizing { cursor: col-resize; user-select: none; }
+body.resizing .pane { transition: none; }
+.pane + .pane { border-left: none; }
 .pane-head {
   display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 8px 0 12px;
   background: var(--card); border-bottom: 1px solid var(--hairline); flex-shrink: 0;
@@ -380,7 +398,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 .filters button:hover:not(.on) { background: var(--btn-hover); color: var(--ink); }
 .filters button.on { color: var(--accent-deep); background: var(--accent-soft); font-weight: 600; }
 
-/* —— toast（eggpaper：吸底居中、墨底纸字） */
+/* —— toast（eggpaper：吸底居中、墨底纸字），可携带一个撤销动作 */
 .toast {
   position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
   z-index: 600; background: var(--ink); color: var(--paper);
@@ -390,11 +408,25 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   opacity: 0; pointer-events: none;
   transition: opacity var(--t-base) var(--ease-smooth);
 }
-.toast.show { opacity: 1; }
+.toast.show { opacity: 1; pointer-events: auto; }
+.toast .t-act {
+  margin-left: 10px; padding: 2px 10px; font-size: var(--fs-xs);
+  background: transparent; color: var(--paper);
+  border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 3px;
+}
+.toast .t-act:hover { border-color: rgba(255, 255, 255, 0.7); }
+
+/* 原稿栏：字数指示 + 拖文件入稿高亮 */
+.mono-num { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); }
+.pane-head .mono-num { margin-left: auto; }
+.pane-head button { font-size: var(--fs-xs); padding: 2px 8px; }
+.pane-source.drag-over textarea { box-shadow: inset 0 0 0 2px var(--accent-line); }
+.pane-source.drag-over .pane-head .p-t { color: var(--accent-deep); }
 
 @media (max-width: 900px) {
   main { flex-direction: column; }
   .pane { min-height: 45vh; }
+  .split-grip { display: none; }
   .pane + .pane { border-left: none; border-top: 1px solid var(--hairline); }
   .topbar { height: auto; padding: 8px 12px; row-gap: 6px; }
   .topbar .note { flex-basis: 100%; margin-left: 0; order: 10; }
@@ -422,7 +454,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.14.0</span>
+    <span class="head-ver">v0.14.1</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -430,11 +462,12 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   <span class="actions"><button id="themeBtn" class="ghost" title="切换亮 / 暗">◐</button></span>
   <div class="tran-line" id="tranline"><i></i></div>
 </header>
-<main>
-  <section class="pane active" id="inputPane">
-    <div class="pane-head"><span class="p-t">原稿</span></div>
+<main id="mainPanes">
+  <section class="pane active pane-source" id="inputPane">
+    <div class="pane-head"><span class="p-t">原稿</span><span class="mono-num" id="charCount"></span><button id="clearBtn" class="ghost" disabled>清空</button></div>
     <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="粘贴正文"></textarea>
   </section>
+  <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整宽度 · 双击复位 · 方向键微调"></div>
   <section class="pane" id="reportPane">
     <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出脱敏校准样本（.jsonl，自愿提交帮词表进化；手机号/邮箱等已打码）">匿名样本</button></div>
     <div id="report"></div>
@@ -1311,16 +1344,30 @@ const EMPTY_HTML = `<div class="empty-block">
   </svg>
   <div class="e-title">粘贴正文，报告随写随出</div>
   <div class="e-sub">逐句指出哪里像模板、为什么、怎么改</div>
-  <button class="stamp" id="mottoStamp" title="这也是本工具的底线">推断不是判定</button>
+  <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button><button class="stamp" id="mottoStamp" title="这也是本工具的底线">推断不是判定</button></div>
 </div>`;
+
+/* 首次体验用的合成样例（自写，AI 味浓度高，非真实语料） */
+const DEMO_TEXT = `在当今快速发展的时代背景下，人工智能技术正日益深刻地改变着我们的生活方式。首先，AI 为各行各业赋能，提升了效率。其次，AI 促进了创新。此外，AI 还带来了新的机遇。与此同时，我们也需要冷静思考。不仅如此，相关伦理规范也在不断完善。
+
+值得注意的是，AI 不仅是一种工具，更是一种思维方式。首先，它改变了信息获取的途径。其次，它重塑了学习的形态。此外，它还催生了全新的人机协作模式。与此同时，我们也要警惕技术依赖。不可否认，其中的挑战同样真实存在。
+
+综上所述，我们应积极拥抱人工智能，谱写属于自己的华章，共创美好未来。让我们携手共进，迎接更加广阔的明天。`;
+
+/* 滑块按活动按钮的真实几何摆放——按钮内容宽度不同（min-width:auto），
+   百分比宽的滑块会盖住邻项文字（视觉验收实测：盖住"改"字左半） */
+function placeThumb(nav, btn) {
+  const thumb = nav.querySelector(".seg-thumb");
+  if (!thumb || !btn) return;
+  thumb.style.width = btn.offsetWidth + "px";
+  thumb.style.transform = `translateX(${btn.offsetLeft}px)`;
+}
 
 function renderProfiles() {
   const nav = document.getElementById("profiles");
   const labels = PROFILES.map(p => (PROFILE_META[p] || [p])[0]);
-  const onIdx = PROFILES.indexOf(currentProfile);
-  nav.style.setProperty("--n", PROFILES.length);
-  nav.style.setProperty("--i", onIdx);
   nav.innerHTML = '<span class="seg-thumb"></span>';
+  let activeBtn = null;
   PROFILES.forEach((p, i) => {
     const b = document.createElement("button");
     b.textContent = labels[i];
@@ -1328,18 +1375,18 @@ function renderProfiles() {
     b.className = p === currentProfile ? "on" : "";
     // 改写建议只按 personal（其余三库没有删/改口径）
     if (currentMode === "rewrite" && p !== "personal") b.disabled = true;
-    b.onclick = () => { currentProfile = p; shouldAnimate = true; renderProfiles(); analyzeNow(); };
+    b.onclick = () => { currentProfile = p; shouldAnimate = true; persistUi(); renderProfiles(); analyzeNow(); };
     nav.appendChild(b);
+    if (p === currentProfile) activeBtn = b;
   });
+  placeThumb(nav, activeBtn);
 }
 
 const MODES = [["analyze", "检测"], ["rewrite", "改写建议"]];
 function renderModes() {
   const nav = document.getElementById("modes");
-  const onIdx = MODES.findIndex(([key]) => key === currentMode);
-  nav.style.setProperty("--n", MODES.length);
-  nav.style.setProperty("--i", onIdx);
   nav.innerHTML = '<span class="seg-thumb"></span>';
+  let activeBtn = null;
   MODES.forEach(([key, label]) => {
     const b = document.createElement("button");
     b.textContent = label;
@@ -1348,10 +1395,13 @@ function renderModes() {
       currentMode = key;
       if (key === "rewrite") currentProfile = "personal";
       shouldAnimate = true;
+      persistUi();
       renderModes(); renderProfiles(); analyzeNow();
     };
     nav.appendChild(b);
+    if (key === currentMode) activeBtn = b;
   });
+  placeThumb(nav, activeBtn);
 }
 
 /* 印章宠物：顶栏一枚、空态一枚大的。戳一下晃一下；3 秒内戳满三下翻滚一圈；
@@ -1397,10 +1447,18 @@ function setBusy(on) {
   brandMark.classList.toggle("mark-busy", on);
 }
 
-/* toast：吸底居中墨底提示（复制反馈等） */
+/* toast：吸底居中墨底提示，可携带一个动作按钮（如清空的撤销） */
 let toastTimer = 0;
-function toast(msg, ms = 1600) {
+function toast(msg, ms = 1600, action) {
   toastEl.textContent = msg;
+  toastEl.querySelectorAll(".t-act").forEach(b => b.remove());
+  if (action) {
+    const b = document.createElement("button");
+    b.className = "t-act";
+    b.textContent = action.label;
+    b.onclick = () => { toastEl.classList.remove("show"); action.cb(); };
+    toastEl.appendChild(b);
+  }
   toastEl.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
@@ -1544,10 +1602,11 @@ function analyzeNow() {
     // 空文本不给"未发现"的假全清判定，回到初始提示
     lastResult = lastAdvice = null;
     updateCopyBtn();
+    updateCharCount(null);
     reportEl.classList.add("swap");
     shouldAnimate = true;
     reportEl.innerHTML = EMPTY_HTML;
-    bindStamp();
+    bindEmpty();
     setBusy(false);
     return;
   }
@@ -1576,6 +1635,7 @@ function doAnalyze(text) {
     renderReport(lastResult);
   }
   setBusy(false);
+  updateCharCount(currentMode === "analyze" && lastResult ? lastResult.stats : null);
   updateCopyBtn();
 }
 
@@ -1682,6 +1742,7 @@ copyBtn.onclick = async () => {
 
 inputEl.addEventListener("input", () => {
   clearTimeout(debounceTimer);
+  clearBtn.disabled = !inputEl.value;
   // 大文本分析耗时按长度走：阈值上调防抖间隔，避免打字被卡
   const delay = inputEl.value.length > 30000 ? 800 : 300;
   debounceTimer = setTimeout(analyzeNow, delay);
@@ -1694,10 +1755,121 @@ themeBtn.onclick = () => {
   try { localStorage.setItem("hva:theme", dark ? "dark" : "light"); } catch (e) {}
 };
 
-/* 空态铭文印章：点了让大印章蹦一下（彩蛋入口） */
-function bindStamp() {
+/* 空态铭文印章：点了让大印章蹦一下（彩蛋入口）；例子按钮一键体验 */
+function bindEmpty() {
   const st = document.getElementById("mottoStamp");
   if (st) st.onclick = () => markFlash("stamp", "mark-roll", 700);
+  const demo = document.getElementById("demoBtn");
+  if (demo) demo.onclick = () => {
+    inputEl.value = DEMO_TEXT;
+    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+  };
+}
+
+/* —— 分隔线：拖动调宽、双击复位、方向键微调，宽度记进 localStorage —— */
+const mainPanes = document.getElementById("mainPanes");
+const grip = document.getElementById("splitGrip");
+const charCountEl = document.getElementById("charCount");
+const clearBtn = document.getElementById("clearBtn");
+const SPLIT_KEY = "hva:split";
+
+function setSplit(pct, save) {
+  pct = Math.max(22, Math.min(78, pct));
+  mainPanes.style.setProperty("--split", pct + "%");
+  if (save) { try { localStorage.setItem(SPLIT_KEY, String(Math.round(pct))); } catch (e) {} }
+  return pct;
+}
+(() => {
+  try {
+    const saved = parseFloat(localStorage.getItem(SPLIT_KEY) || "");
+    if (!isNaN(saved)) setSplit(saved, false);
+  } catch (e) {}
+})();
+grip.addEventListener("pointerdown", (e) => {
+  e.preventDefault();
+  grip.classList.add("dragging");
+  document.body.classList.add("resizing");
+  const rect = mainPanes.getBoundingClientRect();
+  const move = (ev) => setSplit(((ev.clientX - rect.left) / rect.width) * 100, true);
+  const up = (ev) => {
+    move(ev);
+    grip.classList.remove("dragging");
+    document.body.classList.remove("resizing");
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", up);
+    window.removeEventListener("pointercancel", up);
+  };
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", up);
+  window.addEventListener("pointercancel", up);
+});
+grip.addEventListener("dblclick", () => { setSplit(50, true); });
+grip.addEventListener("keydown", (e) => {
+  const cur = parseFloat(getComputedStyle(mainPanes).getPropertyValue("--split")) || 50;
+  if (e.key === "ArrowLeft") { setSplit(cur - 2, true); e.preventDefault(); }
+  if (e.key === "ArrowRight") { setSplit(cur + 2, true); e.preventDefault(); }
+});
+
+/* —— 清空：一级撤销（toast 里的撤销按钮），不弹确认框 —— */
+clearBtn.onclick = () => {
+  if (!inputEl.value) return;
+  const stash = inputEl.value;
+  inputEl.value = "";
+  inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+  inputEl.focus();
+  toast("已清空", 6000, { label: "撤销", cb: () => {
+    inputEl.value = stash;
+    inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+  } });
+};
+
+/* —— 拖 txt/md 文件入稿 —— */
+const inputPane = document.getElementById("inputPane");
+["dragenter", "dragover"].forEach(ev => inputPane.addEventListener(ev, (e) => {
+  e.preventDefault();
+  if (e.dataTransfer && Array.from(e.dataTransfer.types || []).includes("Files")) {
+    inputPane.classList.add("drag-over");
+  }
+}));
+["dragleave", "drop"].forEach(ev => inputPane.addEventListener(ev, (e) => {
+  if (ev === "dragleave" && e.currentTarget.contains(e.relatedTarget)) return;
+  inputPane.classList.remove("drag-over");
+}));
+inputPane.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  const file = Array.from(e.dataTransfer?.files || [])[0];
+  if (!file) return;
+  if (!/\.(md|markdown|txt)$/i.test(file.name)) {
+    toast("直接拖入仅支持 txt / md（docx 请用命令行）");
+    return;
+  }
+  inputEl.value = await file.text();
+  inputEl.dispatchEvent(new Event("input", { bubbles: true }));
+});
+
+/* 场景/模式记忆：下次打开还是你上次的搭配 */
+function persistUi() {
+  try {
+    localStorage.setItem("hva:profile", currentProfile);
+    localStorage.setItem("hva:mode", currentMode);
+  } catch (e) {}
+}
+(() => {
+  try {
+    const p = localStorage.getItem("hva:profile");
+    const m = localStorage.getItem("hva:mode");
+    if (p && PROFILES.includes(p)) currentProfile = p;
+    if (m === "rewrite" || m === "analyze") currentMode = m;
+    if (currentMode === "rewrite") currentProfile = "personal";
+  } catch (e) {}
+})();
+
+/* 字数指示：规模 + 是否够出分（8 句门槛让用户先知道，而不是等报告沉默） */
+function updateCharCount(stats) {
+  if (!stats) { charCountEl.textContent = ""; return; }
+  charCountEl.textContent = stats.n_chars > 0
+    ? `${stats.n_chars} 字 · ${stats.n_sentences} 句` + (stats.n_sentences < 8 ? " · 不足 8 句不出分" : "")
+    : "";
 }
 
 /* 输入行为 → 报告栏标题态：打字时报告栏退为从属 */
@@ -1759,8 +1931,15 @@ document.getElementById("sampleBtn").onclick = async () => {
 
 renderProfiles();
 renderModes();
+window.addEventListener("resize", () => {
+  placeThumb(document.getElementById("profiles"),
+    document.querySelector("#profiles button.on"));
+  placeThumb(document.getElementById("modes"),
+    document.querySelector("#modes button.on"));
+});
 reportEl.innerHTML = EMPTY_HTML;
-bindStamp();
+bindEmpty();
+updateCharCount(null);
 </script>
 </body>
 </html>
