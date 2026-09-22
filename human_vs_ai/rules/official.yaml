@@ -142,7 +142,6 @@ rules:
     doc_metric: conn_density
     doc_compare: above
     doc_threshold: 0.55
-    human_ref: 待校准——本规则复用连接词密度统计，词表为 O-STK-01 强化副词；真人公文基线首轮实测后回填
     explanation: >
       每句平均出现的强化副词（O-STK-01 词表）超过 0.55 条。真人公文
       的强化副词集中在部署要求段落，AI 则均匀铺满——"每段都有三个
@@ -158,7 +157,6 @@ rules:
     doc_metric: para_len_cv
     doc_compare: below
     doc_threshold: 0.25
-    human_ref: 待校准——公文体段落由条款结构决定，方差特征待首轮实测
     explanation: >
       各段长度过于接近（段长变异系数 < 0.25）意味着段落是按固定模板
       切的。注意公文的条款结构天然带来一定均匀性，此阈值按公文真人
@@ -175,7 +173,6 @@ rules:
     doc_metric: dash_density
     doc_compare: above
     doc_threshold: 0.15
-    human_ref: 真人公文正文几乎不用破折号，基线接近 0；受 min_sentences 保护，短通知不判
     explanation: >
       平均每句超过 0.15 个破折号。公文正文用括号或"即"引出解释，
       破折号是行文散文化的信号——AI 把散文化的标点习惯带进了公文。

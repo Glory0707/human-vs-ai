@@ -184,7 +184,7 @@ b { font-variant-numeric: tabular-nums; }
 .disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
               color: var(--ink-3); border-radius: 3px; }
 </style></head>
-<body><div class="docname">${esc(fileName)} · personal（我的口味）</div>${counts}${rows}${footer}</body></html>`;
+<body><div class="docname">${esc(fileName)} · 我的口味</div>${counts}${rows}${footer}</body></html>`;
 }
 
 /* 发现 → 文档偏移：句子级发现按段落序在原文里顺序定位（报告按严重级排序，

@@ -72,7 +72,7 @@ check("match highlighted", aiHtml.includes("<mark>"));
 const plain = aiHtml.replace(/<[^>]+>/g, "");
 check("sentence not truncated", aiResult.findings.some(f => f.sentence && plain.includes(f.sentence)));
 
-// 7. 弱命中截断：>12 条只列 12 条并给"略"注
+// 7. 弱命中截断：>12 条只列 12 条并给"…等 N 处"尾注
 const mkHint = i => ({ rule_id: `X-${i}`, rule_name: `弱规则${i}`, severity: "low",
                        para: i, sentence: "", matches: [], explanation: "", suggestion: "", taste: "" });
 const manyHints = { findings: [], hints: Array.from({ length: 15 }, (_, i) => mkHint(i)),
@@ -80,7 +80,7 @@ const manyHints = { findings: [], hints: Array.from({ length: 15 }, (_, i) => mk
                              sentence_cv: NaN, para_len_cv: NaN, ttr: NaN,
                              conn_density: NaN, ngram_repeat: NaN } };
 const capHtml = renderReportHtml("cap.txt", "academic", manyHints);
-check("hints capped at 12", capHtml.includes("列前 12 处") && capHtml.includes("…等 3 处（略）"));
+check("hints capped at 12", !capHtml.includes("列前") && capHtml.includes("…等 3 处"));
 
 // 8. 主题适配：暗色类钩子与主题变量都在样式里
 check("dark theme hooks", aiHtml.includes("vscode-dark") && aiHtml.includes("--vscode-editor-background"));

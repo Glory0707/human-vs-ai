@@ -83,7 +83,6 @@ class Rule:
     doc_threshold: float = math.nan
     doc_tiers: list = field(default_factory=list)  # [[chars上限, 阈值], ...] 按文本长度分档；None 上限=兜底档
     min_sentences: int = 8  # doc 统计判定的最小句数——短文本统计无意义，宁可不判
-    human_ref: str = ""  # 人类基线的可读描述，进报告
     taste: str = ""  # 口味条目编号（T1…T12）——personal profile 用，指向 docs/taste_zhouao.md
 
 
@@ -206,7 +205,6 @@ def load_rules(profile: str) -> list[Rule]:
                 doc_threshold=float(item.get("doc_threshold", "nan")),
                 doc_tiers=[(t[0], float(t[1])) for t in item.get("doc_tiers", [])],
                 min_sentences=int(item.get("min_sentences", 8)),
-                human_ref=_clean_prose(item.get("human_ref", "")),
                 taste=item.get("taste", ""),
             )
         )

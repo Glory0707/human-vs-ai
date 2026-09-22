@@ -324,7 +324,6 @@ rules:
       - [300, 0.30]
       - [600, 0.33]
       - [null, 0.37]
-    human_ref: C-ReD 分档校准（2026-09，T4.3）：真人 CV p50 短/中/长档 = 0.467/0.494/0.520，p10 = 0.242/0.300/0.327；四模型摘要 CV 0.274–0.383 全部低于真人（整体 AUROC 0.80，短文本档最高 0.88）
     explanation: >
       全文句长变异系数（标准差/均值）过低，即句子长度高度均匀。真人写作
       长短句交错（长句铺论据、短句下结论），即 burstiness——最难手洗的
@@ -344,7 +343,6 @@ rules:
     doc_metric: conn_density
     doc_compare: above
     doc_threshold: 0.08
-    human_ref: C-ReD 论文摘要校准（2026-09）：真人 0.015 条/句，四模型 0.023–0.067；gpt-4o 最高（真人的 4.5 倍）
     explanation: >
       每句平均出现的模板连接词（L-CONN-01 词表）超过 0.08 条。社科院
       语言所描述的"虚假逻辑衔接"在统计上的样子：衔接词密度与论证
@@ -362,7 +360,6 @@ rules:
     doc_metric: para_len_cv
     doc_compare: below
     doc_threshold: 0.25
-    human_ref: 待校准——人类文本段落长短由论证结构决定，方差天然更大
     explanation: >
       各段长度过于接近（段长变异系数 < 0.25）意味着段落是按固定模板
       切的，而不是按论证的自然单元——AI 生成文本倾向每段装差不多
@@ -379,7 +376,6 @@ rules:
     doc_metric: ngram_repeat
     doc_compare: above
     doc_threshold: 0.15
-    human_ref: 走查校准（2026-09）：真人医学摘要 4-gram 重复可达 0.10+（术语重复是精确性），与 AI（约 0.09）区分度弱，阈值保守取 0.15 防误伤；此指标暂列观察期
     explanation: >
       正文中重复出现的四字片段占比偏高。AI 的重复是短语级套路复用
       （"提供了新的思路""发挥了重要作用"反复出现），人类的重复更多
@@ -397,7 +393,6 @@ rules:
     doc_metric: dash_density
     doc_compare: above
     doc_threshold: 0.15
-    human_ref: 待校准——英文基准约为人类 3.2/千词 vs GPT-4 时代 10.6/千词（slopdetector 2025）
     explanation: >
       平均每句超过 0.15 个破折号——破折号让作者免于说明两个分句的
       逻辑关系，AI 因此到处用（humanizer §8）。注意：单独几个破折号

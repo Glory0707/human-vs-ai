@@ -179,7 +179,6 @@ rules:
     doc_metric: sentence_cv
     doc_compare: below
     doc_threshold: 0.35
-    human_ref: HC3-Chinese 校准（2026-09）：人类回答 CV 均值 0.521，ChatGPT 回答 0.337（单指标 AUROC 0.760）
     explanation: >
       全文句长的变异系数（标准差/均值）低于 0.35，说明句子长度高度
       均匀——"每句都差不多长"。问答文体的真人差距比学术更大
@@ -197,7 +196,6 @@ rules:
     doc_metric: para_len_cv
     doc_compare: below
     doc_threshold: 0.25
-    human_ref: 待校准——问答文本段落由"答什么"决定，方差天然更大
     explanation: >
       各段长度过于接近（段长变异系数 < 0.25）意味着段落是按固定模板
       切的，而不是按内容自然分段。
@@ -213,7 +211,6 @@ rules:
     doc_metric: ngram_repeat
     doc_compare: above
     doc_threshold: 0.15
-    human_ref: 待校准——学术摘要走查显示真人可达 0.10+（术语重复），阈值保守
     explanation: >
       正文中重复出现的四字片段占比偏高。AI 的重复是短语级套路复用，
       人类的重复更多是专名与术语复现。只报数值供参照，具体复现了
@@ -230,7 +227,6 @@ rules:
     doc_metric: dash_density
     doc_compare: above
     doc_threshold: 0.15
-    human_ref: 待校准——英文基准约为人类 3.2/千词 vs GPT-4 时代 10.6/千词（slopdetector 2025）
     explanation: >
       平均每句超过 0.15 个破折号——破折号让作者免于说明两个分句的
       逻辑关系，AI 因此到处用。注意：单独几个破折号完全正常

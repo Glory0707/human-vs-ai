@@ -29,10 +29,9 @@ def _inline_safe(js: str) -> str:
 
 
 def _strip_calibration_notes(rules: list[dict]) -> list[dict]:
-    """网页版剥离规则解释里的校准注——那是维护者信息,不是用户信息(界面减法)。
-
-    CLI 的 explain 保留完整解释;两端 findings 结构不受影响(一致性
-    测试不比较 explanation 字段)。
+    """前端构建(web + vscode)剥离规则解释里的校准注——维护者信息不进
+    用户界面(界面减法)。CLI 的 explain 保留完整解释;findings 结构
+    不受影响(一致性测试不比较 explanation 字段)。
     """
     MARKS = ("校准注（", "走查校准（", "注：C-ReD")
     for r in rules:

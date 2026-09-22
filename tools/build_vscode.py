@@ -18,13 +18,17 @@ ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(ROOT))
 
 from human_vs_ai import __version__, engine  # noqa: E402
+from tools.build_web import _strip_calibration_notes  # noqa: E402
 from tools.check_web_consistency import rules_to_json, scoring_to_json  # noqa: E402
 
 EXT = ROOT / "vscode-extension"
 
 
 def main() -> None:
-    rules = {p: rules_to_json(p) for p in engine.available_profiles()}
+    rules = {
+        p: _strip_calibration_notes(rules_to_json(p))
+        for p in engine.available_profiles()
+    }
     (EXT / "rules.json").write_text(
         json.dumps(rules, ensure_ascii=False, indent=1), encoding="utf-8")
     scoring = {p: scoring_to_json(p) for p in engine.available_profiles()}

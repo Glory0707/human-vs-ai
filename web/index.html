@@ -193,7 +193,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 </head>
 <body>
 <header>
-  <span class="wordmark">human-vs-ai<span class="v">0.12.1</span></span>
+  <span class="wordmark">human-vs-ai<span class="v">0.12.2</span></span>
   <nav class="profiles" id="profiles"></nav>
   <nav class="modes" id="modes"></nav>
   <span class="note">纯本地分析 · 文本不上传</span>
@@ -204,7 +204,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="粘贴正文"></textarea>
   </section>
   <section class="pane">
-    <div class="pane-label with-btn"><span>分析报告</span><button id="copyBtn" title="把当前报告复制为 Markdown" disabled>复制 Markdown</button></div>
+    <div class="pane-label with-btn"><span>分析报告</span><button id="copyBtn" disabled>复制 Markdown</button></div>
     <div id="report"><div class="empty">粘贴正文即出报告。</div></div>
   </section>
 </main>
@@ -1000,9 +1000,9 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
     const more = hints.length - shown.length;
-    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中${more ? `（列前 ${shown.length} 处）` : ""}</div>` +
+    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中</div>` +
       shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
-      (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
+      (more ? `<div class="h">…等 ${more} 处</div>` : "") +
       `</div>`;
   }
 

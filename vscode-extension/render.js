@@ -90,9 +90,9 @@
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
     const more = hints.length - shown.length;
-    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中${more ? `（列前 ${shown.length} 处）` : ""}</div>` +
+    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中</div>` +
       shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
-      (more ? `<div class="h">…等 ${more} 处（略）</div>` : "") +
+      (more ? `<div class="h">…等 ${more} 处</div>` : "") +
       `</div>`;
   }
 

@@ -225,7 +225,7 @@ class TestProseQuality:
         )
         for profile in engine.available_profiles():
             for r in engine.load_rules(profile):
-                for field in ("name", "explanation", "suggestion", "human_ref"):
+                for field in ("name", "explanation", "suggestion"):
                     v = getattr(r, field)
                     assert not pat.search(v), f"{profile}/{r.id}.{field}: {v[:50]!r}"
 

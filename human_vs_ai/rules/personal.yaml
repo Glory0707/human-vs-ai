@@ -310,7 +310,6 @@ rules:
     doc_metric: dash_density
     doc_compare: above
     doc_threshold: 0.2
-    human_ref: 真人基线每千字 0.99 次 vs AI 产线 6.91 次（0.14 倍）——破折号是本人文本里区分度最大的单个标记
     explanation: >
       破折号是本人语料里与 AI 产线差距最大的标点标记（0.14 倍）。它让作者
       免于说明两个分句的逻辑关系，因此是"解释性偷懒"的载体。阈值按每句
