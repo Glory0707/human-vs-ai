@@ -28,6 +28,8 @@ def resolve_paths(target: str) -> list[Path] | None:
             if f.is_file() and not f.name.startswith(".")
             and f.suffix.lower() in SCAN_EXTS
         )
+    if p.exists():
+        return [p]   # 字面路径优先：文件名里带 [ ] 的不会被误当 glob 字符类
     if any(ch in target for ch in "*?["):
         return sorted(
             Path(f) for f in _glob.glob(target)

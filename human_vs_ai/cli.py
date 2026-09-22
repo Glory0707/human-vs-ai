@@ -180,6 +180,8 @@ def _dispatch(args: argparse.Namespace) -> None:
     if args.command == "collect":
         _require_profile(args.profile)
         text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        if not text.strip():
+            sys.exit("错误：文件为空，没有可导出的样本")
         sample = collect.build_sample(text, args.profile, args.label)
         out = collect.render_jsonl([sample])
         if args.output:

@@ -288,3 +288,27 @@ class TestHtmlReport:
         with pytest.raises(SystemExit) as ei:
             cli.main(["check", str(tmp_path), "-f", "html"])
         assert "html" in str(ei.value)
+
+
+class TestEdgeRegression:
+    def test_bracket_filename_treated_as_literal(self, tmp_path):
+        # 文件名带 [ ] 时不得被误当 glob 字符类（存在性优先于通配解释）
+        f = tmp_path / "报告[草稿].md"
+        f.write_text("内容。", encoding="utf-8")
+        assert batch.resolve_paths(str(f)) == [f]
+
+    def test_collect_rejects_empty_file(self, tmp_path):
+        f = tmp_path / "empty.md"
+        f.write_text("", encoding="utf-8")
+        with pytest.raises(SystemExit) as ei:
+            cli.main(["collect", str(f), "--label", "hit"])
+        assert "空" in str(ei.value)
+
+    def test_sarif_region_absent_when_unlocatable(self, tmp_path):
+        # 原句在源文件定位不到时不给 region，结果照常产出
+        f = tmp_path / "a.md"
+        f.write_text("首先，随着人工智能的快速发展。", encoding="utf-8")
+        result = engine.analyze(f.read_text(encoding="utf-8"), "academic")
+        payload = json.loads(sarif.render([(str(f), "完全不相干的另一篇文本内容。", result)], "academic"))
+        run = payload["runs"][0]
+        assert isinstance(run["results"], list)

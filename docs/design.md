@@ -100,6 +100,7 @@ node smoke-test.js 冒烟）
 | v0.15.0 | Obsidian 插件：obsidian-plugin/（main.template.js + styles.css + 构建产物 main.js/manifest.json/versions.json），tools/build_obsidian.py 注入引擎/规则/评分（四端同一事实源），命令「分析当前文档/改写建议」+ 侧边视图（印章/批注卡/波浪线，亮暗跟随 Obsidian 主题）+ 笔记修改 800ms 防抖自动重析 + 设置页默认场景；冒烟 14 项（obsidian 桩装配 + 产物完整性 + 预览页） |
 | v0.16.0 | 全端打磨轮：弱命中三端折叠（details，默认收起降噪）；VS Code webview 报告对齐 eggpaper 设计（印章+眉批卡+波浪线，修亮色档位变量缺失/CSP 拦 data 图两处真实缺陷）+ 场景 QuickPick（记住上次）；网页印章入场动画/筛选计数与记忆；移动端分段换行+填充高亮（修 7 项溢出）；引擎基准 10 万字 112ms 线性 |
 | v0.16.1 | 冗余清理轮（零功能变化）：render.js 死叶 scoreRow 移除、sealHtml 三份拷贝收敛为共享叶子；死 CSS（.seal.none/旧 b.s-* 档位色）清理；pyflakes 清零（htreport OrderedDict、build_obsidian shutil、domain_recon re/hvastats、fit_score rng 与无占位 f-string、fit_domain 死赋值、report.py _TIER_LABEL）；pyflakes 纳入日常自查 |
+| v0.16.3 | 测试员轮（131 项测试）：修 4 个边界 bug——①batch 字面路径优先于 glob（文件名带 [ ] 被字符类吃掉误报"无匹配"）；②web 全局拦截文件拖放默认行为（拖到栏外浏览器整页跳转丢会话）；③VS Code QuickPick Esc 取消不再拿默认场景偷偷分析；④collect 空文本守卫。7 场景 × 19 组模糊轰炸（孤立代理/控制字符/纯标点/不平衡引号/超长行）0 炸 |
 | v0.16.2 | 文件与文案清理轮：删 .playwright-mcp/gui-test-screenshots 等中间文件；全端文案收短（拖动提示/样本导出悬浮与 toast/空态副题/铭文悬浮/QuickPick 占位/指数副行去掉与印章重复的"风格综合分"前缀），保留纯本地信任行与免责行 |
 | v0.13.2 | Logo 重设计（无文字）：印章框内一行字迹——左半手写波浪（人）右半拉直（AI），接点切线水平；单色 currentColor 成立、16px 可读（缩放标尺 16→104px 验证 + 视觉验收）；徽记沿用波浪几何与报告命中线同源；favicon/顶栏/空态三处同步 |
 

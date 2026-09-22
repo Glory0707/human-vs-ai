@@ -1015,6 +1015,9 @@ const inputPane = document.getElementById("inputPane");
   if (ev === "dragleave" && e.currentTarget.contains(e.relatedTarget)) return;
   inputPane.classList.remove("drag-over");
 }));
+/* 拖到栏外（报告栏/顶栏）时拦住浏览器默认行为——否则整页跳成文件预览，会话全丢 */
+window.addEventListener("dragover", (e) => e.preventDefault());
+window.addEventListener("drop", (e) => e.preventDefault());
 inputPane.addEventListener("drop", async (e) => {
   e.preventDefault();
   const file = Array.from(e.dataTransfer?.files || [])[0];

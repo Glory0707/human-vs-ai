@@ -344,8 +344,8 @@ async function analyzeActive() {
     vscode.window.showInformationMessage("human-vs-ai：先打开一个文本文件。");
     return;
   }
-  const profile = (await pickProfile(vscode)) || lastProfile ||
-    vscode.workspace.getConfiguration("human-vs-ai").get("profile", "academic");
+  const profile = await pickProfile(vscode);
+  if (!profile) return;   // Esc 取消就是取消：不拿默认场景偷偷跑
   const rules = RULES[profile];
   if (!rules) {
     vscode.window.showErrorMessage(`human-vs-ai：未知场景 ${profile}（可用：${Object.keys(RULES).join("、")}）`);
