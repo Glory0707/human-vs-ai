@@ -21,6 +21,18 @@
    }
   ]
  },
+ "essay": {
+  "corpus": "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09",
+  "intercept": -42.9291,
+  "hit_density": 9.1763,
+  "sentence_cv": -16.4304,
+  "ttr": 52.7223,
+  "ngram_repeat": 4.1655,
+  "auroc": 0.952,
+  "auroc_holdout": 0.951,
+  "human_p50": 6,
+  "human_p90": 55
+ },
  "general": {
   "corpus": "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300，类平衡加权），2026-09",
   "intercept": 18.0167,
@@ -33,6 +45,19 @@
   "human_p50": 27,
   "human_p90": 69
  },
+ "news": {
+  "corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09",
+  "intercept": -60.4796,
+  "hit_density": 5.9358,
+  "sentence_cv": -5.344,
+  "ttr": 65.9004,
+  "ngram_repeat": -2.4644,
+  "auroc": 0.938,
+  "auroc_holdout": 0.935,
+  "human_p50": 7,
+  "human_p90": 61
+ },
  "official": null,
- "personal": null
+ "personal": null,
+ "review": null
 }

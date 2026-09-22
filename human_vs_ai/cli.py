@@ -1,8 +1,9 @@
 """命令行入口。
 
-六个子命令：
+七个子命令：
   check     分析文件（主命令；目录/glob 走批量汇总）
   diff      改前改后对比——验证修改有没有效
+  collect   导出脱敏校准样本（自愿提交，帮词表进化）
   rewrite   按个人口味给逐句改写建议（删/改/保留）
   stats     只看统计特征（调阈值/做研究用）
   explain   打印一条规则的完整说明（报告里看到 ID 想深究时用）
@@ -17,7 +18,7 @@ from pathlib import Path
 
 import yaml
 
-from . import __version__, batch, diff, engine, htreport, readers, report, rewrite, sarif
+from . import __version__, batch, collect, diff, engine, htreport, readers, report, rewrite, sarif
 
 
 def _read_file(path: str) -> str:
@@ -38,6 +39,9 @@ _PROFILE_DESC = {
     "general": ("问答", "知乎、公众号、科普"),
     "official": ("公文", "通知、意见、实施方案"),
     "personal": ("我的口味", "界面文案、标题、提示语"),
+    "news": ("新闻", "新闻报道、资讯、通稿"),
+    "essay": ("作文", "高考作文、议论文、考场写作"),
+    "review": ("短评", "影评、书评、商品点评"),
 }
 
 
@@ -106,6 +110,18 @@ def main(argv: list[str] | None = None) -> None:
 
     sub.add_parser("profiles", help="列出可用场景")
 
+    p_col = sub.add_parser(
+        "collect",
+        help="导出脱敏校准样本（自愿提交，帮词表在真实文本上进化）")
+    p_col.add_argument("file", help="txt/md/docx/odt 文件；或 - 从标准输入读")
+    p_col.add_argument(
+        "-p", "--profile", default="academic",
+        help="当时使用的场景（默认 academic）")
+    p_col.add_argument(
+        "--label", required=True, choices=["miss", "fp", "hit"],
+        help="miss=漏报 / fp=误报 / hit=判定准确")
+    p_col.add_argument("-o", "--output", help="写入 JSONL 文件（默认打印）")
+
     p_explain = sub.add_parser("explain", help="打印一条规则的完整说明")
     p_explain.add_argument("rule_id")
     p_explain.add_argument("-p", "--profile", default="academic")
@@ -159,6 +175,19 @@ def _dispatch(args: argparse.Namespace) -> None:
         else:
             out = rewrite.render_advice(result)
         _emit(out, args.output)
+        return
+
+    if args.command == "collect":
+        _require_profile(args.profile)
+        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        sample = collect.build_sample(text, args.profile, args.label)
+        out = collect.render_jsonl([sample])
+        if args.output:
+            _emit(out, args.output)
+        else:
+            sys.stdout.write(out)
+            print(f"已导出 1 条样本（{collect.LABELS[args.label]}）。"
+                  "提交方式见 README「贡献校准样本」。", file=sys.stderr)
         return
 
     if args.command == "diff":

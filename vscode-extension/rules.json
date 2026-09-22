@@ -352,6 +352,151 @@
    "doc_tiers": []
   }
  ],
+ "essay": [
+  {
+   "id": "E-NEGA-01",
+   "name": "否定式拔高",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "high",
+   "patterns": [
+    "不是.{2,24}(，|、)?而是",
+    "不仅.{2,24}(，|、)?(而且|更是|还|甚至|也)",
+    "(不仅仅是?).{2,20}(更是|还是|更是对)"
+   ],
+   "explanation": "“不是 X 而是 Y”“不仅 X 更是 Y”——用对仗替代论证，把具体事物拔高成抽象宣言。C-ReD composition 实测 AI 104/250 vs 真人 28/250（“不仅…更是”84 vs 9），是议论文文体区分度最强的词表单项，故在本库升至 high（academic 库中同类为 low 共现门控）",
+   "suggestion": "每个“不是…而是”自问：X 和 Y 都是具体判断吗？拔高的那半句删掉，把另一半写实。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "E-SUB-01",
+   "name": "升华套话",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "(谱写|书写|绘就).{0,8}(篇章|华章|画卷)",
+    "(绽放|散发).{0,6}(光彩|光芒)",
+    "(青春|奋斗)(的)?(风采|底色|模样)"
+   ],
+   "explanation": "议论文结尾的通用升华件：拔出来能贴进任何题目的意象。C-ReD composition 实测“谱写…篇章”AI 20 篇 vs 真人 0 篇，“绽放…光彩”23 vs 4。真人高分作文收在具体判断上，不收在万能意象上",
+   "suggestion": "把意象换成这道题特有的具体判断；换不出来说明结尾还没想清楚。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "E-FORM-01",
+   "name": "公式化开头",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "随着.{2,24}的(快速|不断|迅速|日益|持续)?(发展|进步|推进|深入|普及|提高)",
+    "在当今(这个)?(快速发展的|信息化|数字化|全球化的?)?时代",
+    "在.{2,12}的(背景|大背景|浪潮)下",
+    "在这个(信息爆炸|快节奏|数字化|互联网|发展迅速|日新月异)?(的)?时代",
+    "日新月异"
+   ],
+   "explanation": "与 academic/general 同源的开场模板族。C-ReD composition 实测“在这个…时代”AI 23 篇 vs 真人 1 篇——考场作文真人开头直接入题，生成模型先铺时代背景",
+   "suggestion": "开头直接给观点或场景；时代背景与题目无关就整句删掉。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "E-CONN-01",
+   "name": "模板连接词",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "首先",
+    "其次",
+    "再者",
+    "此外",
+    "与此同时",
+    "不仅如此",
+    "由此可见",
+    "综上所述",
+    "总而言之",
+    "一言以蔽之",
+    "更重要的是"
+   ],
+   "explanation": "议论文的骨架词，真人也用——但 AI 每段都装。C-ReD composition 实测 AI 加权句均 1.63 vs 真人 1.13。单次出现不报，共现密度异常才提示",
+   "suggestion": "骨架词让位给内容衔接：前后句有真关系就不需要“首先其次”。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "E-QUOTE-01",
+   "name": "名言引入腔",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "正如.{2,12}(所说|所言|而言)",
+    "有一句话(说得好|这样说道)",
+    "古人(云|曰|说)",
+    "习近平总书记曾指出"
+   ],
+   "explanation": "“正如…所说”式的名言开场。真人高考作文也引名言，但 AI 把它当万能起手式（C-ReD 实测 AI 19 vs 真人 5）；引语若与后文论证无粘合，就是装饰品",
+   "suggestion": "引语后必须接你自己的转译：这句话在本题里意味着什么。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "G-TRIAD-01",
+   "name": "三连排比",
+   "tier": "syntactic",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "[\\u4e00-\\u9fa5]{2,8}[、][\\u4e00-\\u9fa5]{2,8}[、][\\u4e00-\\u9fa5]{2,8}(?!等)"
+   ],
+   "explanation": "内容凑成三项一组。议论文文体 AI 仍偏高但差距温和（AI 86/250 vs 真人 66/250），与新闻文体相反（真人排比修养，反向），故只在 essay 库以 low 共现门控保留",
+   "suggestion": "逐项检查：凑数的删掉，能展开的展开成句。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "D-UNIF-01",
+   "name": "句长节奏均匀",
+   "tier": "statistical",
+   "scope": "doc",
+   "severity": "medium",
+   "patterns": [],
+   "explanation": "真人议论文句长变异系数中位 0.59（AI 中位 0.39）——真人排比与短句起伏大。阈值取 0.40/0.42：真人 p10 之下、AI 中位之上",
+   "suggestion": "论据句可以更长更密，判断句敢用短句；连续等长的排比句拆掉一半。",
+   "doc_metric": "sentence_cv",
+   "doc_compare": "below",
+   "taste": "",
+   "doc_threshold": 0.4,
+   "doc_tiers": [
+    [
+     600,
+     0.42
+    ]
+   ]
+  }
+ ],
  "general": [
   {
    "id": "G-OPEN-01",
@@ -552,6 +697,133 @@
    "taste": "",
    "doc_threshold": 0.15,
    "doc_tiers": []
+  }
+ ],
+ "news": [
+  {
+   "id": "N-INTERACT-01",
+   "name": "互动尾巴混入报道",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "high",
+   "patterns": [
+    "欢迎在评论区",
+    "(点赞|收藏|转发|关注)(加|\\+|、)?(收藏|转发|关注|走起)?",
+    "希望这篇(文章|内容)?(对你)?(有所|有)?帮助",
+    "如果(您|你)还有(其他|别的|任何)?(问题|疑问)",
+    "让我们(一起|共同)?(期待|学习|进步)",
+    "你们的(支持|点赞)就是"
+   ],
+   "explanation": "自媒体的运营话术混进了新闻报道：报道的事实停在正文，尾巴却在号召点赞关注。C-ReD news 域实测 AI 生成新闻 134/250 篇含互动话术，真人新闻 24/250——新闻体的第一暴露特征",
+   "suggestion": "报道到事实为止；引导互动的话术整句删除。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "N-RECENT-01",
+   "name": "模糊时间开场",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "近日[，,]?",
+    "日前[，,]?",
+    "最近[，,]?.{0,10}(引发|引起|传出)"
+   ],
+   "explanation": "“近日/日前”是生成模型的时间占位符——真记者掌握信源和日期，会写“9 月 15 日”；写不出日期的，往往是没采访过。C-ReD news 实测 AI 101/250 vs 真人 13/250。单次出现不算病，高频或开场即用才提示",
+   "suggestion": "换成可核实的具体日期或时间段；真不知道就写清获取时间。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "N-HEARSAY-01",
+   "name": "含糊消息源",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "据悉",
+    "(有关|相关)(负责人|人士|部门)表示",
+    "有(专家|学者|网友)认为"
+   ],
+   "explanation": "“据悉/有关人士表示”是无主信源——真正的报道会写“从市城管委获悉”“据项目负责人王某”。C-ReD news 实测 AI 43/250 vs 真人 20/250。注意“据报道/据了解”方向相反（真人 15 vs AI 5，真人消息源标注更规范），不收本条",
+   "suggestion": "补信源：谁说的、向谁核实、什么场合说的；补不出来就删掉这句。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "N-NOTE-01",
+   "name": "编辑部提示语",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "值得注意的是",
+    "值得一提的是",
+    "总体(来看|而言)",
+    "总的来看"
+   ],
+   "explanation": "“值得注意的是/总体来看”是分析性文体的衔接词，混在消息报道里就是评论腔入侵报道体。C-ReD news 实测 AI 10:0 与 7:0",
+   "suggestion": "报道体只陈述事实与信源；分析判断另起评论稿。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "L-CONN-01",
+   "name": "模板连接词",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "首先",
+    "其次",
+    "再者",
+    "此外",
+    "与此同时",
+    "不仅如此",
+    "由此可见",
+    "综上所述",
+    "总而言之"
+   ],
+   "explanation": "报道体靠事实推进，不靠议论连接词推进。C-ReD news 实测 AI 命中率 1.24 vs 真人 1.14（加权句均），差距温和，故仅设 low 共现门控",
+   "suggestion": "用事实的时序与因果自然衔接，删掉议论性过渡词。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "D-UNIF-01",
+   "name": "句长节奏均匀",
+   "tier": "statistical",
+   "scope": "doc",
+   "severity": "medium",
+   "patterns": [],
+   "explanation": "新闻真人句长变异系数中位 0.49（引语短句多、导语长句多），AI 生成新闻中位 0.34——消息体的“通稿腔”。阈值取 0.40：真人 p10 之下、AI 中位之上。300 字内过 8 句的样本太少，沿用 0.36 兜底",
+   "suggestion": "导语与引语错开长度；把连续等长的过程句合并，引语单独成句。",
+   "doc_metric": "sentence_cv",
+   "doc_compare": "below",
+   "taste": "",
+   "doc_threshold": 0.4,
+   "doc_tiers": [
+    [
+     300,
+     0.36
+    ]
+   ]
   }
  ],
  "official": [
@@ -1015,6 +1287,66 @@
    "doc_compare": "above",
    "taste": "T12",
    "doc_threshold": 0.2,
+   "doc_tiers": []
+  }
+ ],
+ "review": [
+  {
+   "id": "R-ANALYT-01",
+   "name": "分析腔标签词",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "镜头语言",
+    "叙事(节奏|结构)的?把握",
+    "(电影|影片)的?(美学|质感)|(视觉|美学)风格",
+    "人物弧光"
+   ],
+   "explanation": "AI 影评爱贴影評教材的分析标签（“镜头语言”“人物弧光”），真人短评更多直接说感受。C-ReD film review 实测“镜头语言”AI 25/400 vs 真人 0。标签词本身合法——但一篇短评里堆标签词而没有具体场面，就是模板影评",
+   "suggestion": "每个标签词后面跟一个具体场面或镜头；跟不出来就删。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "R-RECAP-01",
+   "name": "剧情复述腔",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "medium",
+   "patterns": [
+    "(影片|电影|该剧|本剧|这本书)?讲述了",
+    "故事(发生|围绕)在",
+    "(讲述|描绘)了.{0,16}(的)?故事"
+   ],
+   "explanation": "短评的功能是评价，不是复述剧情。“讲述了…的故事”是 AI 影评的默认骨架：C-ReD 实测 AI 19/400 vs 真人 0——真人默认读者看过，直接聊感受和证据",
+   "suggestion": "复述压到一句以内，把篇幅让给评价和具体证据。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
+   "doc_tiers": []
+  },
+  {
+   "id": "L-NEGA-01",
+   "name": "否定式排比",
+   "tier": "lexical",
+   "scope": "sentence",
+   "severity": "low",
+   "patterns": [
+    "不仅.{2,24}(，|、)?(而且|更是|还|甚至|也)",
+    "不是.{2,24}(，|、)?而是",
+    "(不仅仅?是).{2,20}(更是|还是)"
+   ],
+   "explanation": "“不仅…更是”式拔高在影评里用于把一部作品拔成“一种现象”。C-ReD film review 实测区分度温和（加权命中 1.06 vs 1.00），只保留 low 共现门控",
+   "suggestion": "把“不仅…更是”拆成两个具体判断，各自给证据。",
+   "doc_metric": "",
+   "doc_compare": "",
+   "taste": "",
+   "doc_threshold": null,
    "doc_tiers": []
   }
  ]

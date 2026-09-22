@@ -47,7 +47,7 @@
 ## 5. 架构（已验证）
 
 ```
-CLI（argparse，五个子命令：check / stats / rewrite / explain / profiles）
+CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / explain / profiles）
         │
 引擎 engine.analyze() ── 规则库 YAML（四 profile）+ 统计 stats + 切分 segment
         │
@@ -95,6 +95,7 @@ node smoke-test.js 冒烟）
 | v0.12.4 | 端到端+视觉审查：修重复句分组标题爆炸（web/md/CLI 三处去重）；11 测试点全过、控制台零错误 |
 | v0.13.0 | 能力与格式扩展（v0.13）：docx/odt 输入（纯 stdlib 解包）；批量扫描（目录/glob→指数排序汇总表，csv/json）；diff 改进闭环（规则级已消除/新增/增减 + 指数/构成 delta）；--fail-above CI 门禁；SARIF 2.1.0 与 html 静态报告出口；网页端「文纸·朱批」设计语言重做（印章指数/批注卡/信纸横线/竖排铭文，超高分辨率视觉审查三轮实修：改写器空转候选、多句段落截半句候选、T12 校准比例笔误） |
 | v0.13.1 | 网页端设计语言完全对照 eggpaper 重写（v0.13.1）：token 同源（暖墨白纸/发丝线/深青工作色+朱砂批改色/Fraunces 品牌字/mono 标签/弹簧缓动/阴影），segmented 滑块分段控件、56px 顶栏+分析流光、眉批式批注卡、命中改 b-warn 波浪线配方、空态=大徽记+铭文章、toast、手动亮/暗（html.dark + localStorage）、印章徽记陪伴交互（戳/三连戳翻滚/1/24 喷嚏/分析 busy 节拍）；移动端触控目标 24→44px（视觉审查闭环）；htreport 同步 token |
+| v0.14.0 | 多文体扩展：接入 C-ReD 五域语料（真人+9 当代模型，164MB），新增 news/essay/review 三 profile——news 留出 0.935、essay 留出 0.951（全量类平衡拟合），review 短评词表层不出分（中位 132 字过门槛 0.2%）；general 词表获当代验证（QA 域三连排比 0.17、收束词复现）；collect 脱敏校准样本导出（CLI+网页按钮）；词表挖掘/侦察/拟合工具三件套（mine_patterns/domain_recon/fit_domain）；多文体砍掉清单入 rules.md §9 |
 | v0.13.2 | Logo 重设计（无文字）：印章框内一行字迹——左半手写波浪（人）右半拉直（AI），接点切线水平；单色 currentColor 成立、16px 可读（缩放标尺 16→104px 验证 + 视觉验收）；徽记沿用波浪几何与报告命中线同源；favicon/顶栏/空态三处同步 |
 
 ## 7. 已知限制

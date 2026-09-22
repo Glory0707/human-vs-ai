@@ -30,7 +30,9 @@ cat 论文.md | human-vs-ai check -    # 管道输入（check/stats/rewrite 均�
 human-vs-ai stats 论文.md            # 只看统计特征（JSON）
 human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
 human-vs-ai rewrite 文案.txt         # 按个人口味给逐句改写建议（删/改/保留）
-human-vs-ai profiles                 # academic（学术）· general（问答/自媒体）· official（公文）· personal（个人口味）
+human-vs-ai profiles                 # academic（学术）· essay（作文）· general（问答/自媒体）· news（新闻）
+                                     # · official（公文）· personal（个人口味）· review（短评）
+human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/漏报/准确，自愿提交）
 ```
 
 输入支持 txt / md（UTF-8、GB18030 自动识别）/ **docx / odt**（纯标准库解包，零新增依赖）。`--fail-above` 对 <8 句的未出分文件不判定（宁可不判，不假过）。
@@ -38,6 +40,10 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 **网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线。规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。设计语言与 eggpaper 同源：暖墨白纸、发丝细线、深青工作色、朱砂只留给批改语义——指数以 mono 印章呈现、命中词红笔波浪线圈划、发现以眉批式批注卡列出；品牌字 Fraunces 斜体、mono 标签、segmented 滑块分段控件、顶栏流光表示分析中、印章徽记可戳（三连戳有彩蛋）、手动亮/暗切换（localStorage 记忆，默认跟系统）、复制走吸底 toast。改了规则用 `python tools/build_web.py` 重新生成。
 
 **VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
+
+**七个场景词表**：academic/general/official/personal 之外，v0.14 新增 essay（作文，C-ReD composition 域校准，留出 0.951）、news（新闻，C-ReD news 域，留出 0.935）、review（影评/短评——短文本统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
+
+**贡献校准样本（collect）**：`human-vs-ai collect 稿件.md --label miss|fp|hit` 导出脱敏 JSONL（手机号/邮箱/证件/卡号自动打码，附判定快照），自愿提交到项目渠道，帮词表在真实文本上进化。网页版报告栏「匿名样本」按钮同款。
 
 **口味校准层（personal）**：三个公开 profile 校准通用 AI 味；`personal` 校准的是作者本人的文案取舍——私库标注链（被毙 31 vs 定稿 37）归纳出 12 条口味条目，配套 `rewrite` 子命令。详见 [docs/taste_zhouao.md](docs/taste_zhouao.md)，语料永不入库。
 
@@ -66,6 +72,8 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 | HC3-Chinese 问答（391 篇过 8 句门槛） | TTR（字级 2-gram MATTR） | 0.826 | 0.868 | 0.684 |
 | HC3-Chinese 问答（general 词表） | 三连排比命中率 | 43% | 22% | +0.22 |
 | 中国政府网公开公文 15 篇（official 词表） | 真公文误报率 | — | **0/15 = 0%** | 验收 <20% PASS |
+| C-ReD composition（高考作文真人 1070 vs 7 模型 7544） | 综合评分 | AI | 真人 | **0.952**（留出 0.951） |
+| C-ReD news（真人 1413 vs 7 模型 15112） | 综合评分 | AI | 真人 | **0.938**（留出 0.935） |
 
 句长 CV 是对四个模型（含最难检的推理模型 deepseek-r1）一致有效的唯一指标；CV 阈值按长度三档（<300 字 0.30 / <600 字 0.33 / 更长 0.37）。general 词表的互动尾巴、万能开场是当代特征，2023 语料测不到——诚实标注，不造数字。完整校准表与被证伪删除的规则见 [docs/rules.md](docs/rules.md)。
 
@@ -90,8 +98,8 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 119 项单元+边界+评分+口味+格式+私库回归（私库层缺语料自动跳过）
-python tools/check_web_consistency.py   # Python/JS 双引擎一致性 168 项（需 node）
+python -m pytest tests/ -q              # 128 项单元+边界+评分+口味+格式+多文体+私库回归（私库层缺语料自动跳过）
+python tools/check_web_consistency.py   # Python/JS 双引擎一致性 294 项 × 7 场景（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
 python tools/build_web.py               # 重新生成网页单文件
