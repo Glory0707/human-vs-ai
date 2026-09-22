@@ -193,7 +193,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 </head>
 <body>
 <header>
-  <span class="wordmark">human-vs-ai<span class="v">0.12.2</span></span>
+  <span class="wordmark">human-vs-ai<span class="v">0.12.3</span></span>
   <nav class="profiles" id="profiles"></nav>
   <nav class="modes" id="modes"></nav>
   <span class="note">纯本地分析 · 文本不上传</span>
@@ -230,17 +230,25 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   "use strict";
 
   var SENT_END = "。！？；…!?;";
+  /* 句尾吸收集：边界标点后紧跟的闭引号/句点并入本句（与 Python
+     segment.py 的 _SENT_END + ".””』」" 逐码点一致） */
+  var SENT_TAIL = SENT_END + ".\u201d\u300f\u300d";
   var OPEN_Q_RE = /[“『「]/;
   var CLOSE_Q_RE = /[”』」]/;
   var PUNCT_RE = /[，。！？；：、…“”‘’《》（）()[\]【】,\.!\?;:"'—\-\s]/g;
 
   /* 码点长度：.length 数的是 UTF-16 码元，emoji/扩展区汉字（𠮷）一个占
-     2——Python 的 len 数码点，所有"字数"统计必须走这里（对拍实证漂移） */
+     2——Python 的 len 数码点，所有"字数"统计必须走这里（对拍实证漂移）。
+     孤立低代理：Python len 算 1 个码点，前面没有高代理配对时也要数 1 */
   function cpLength(s) {
     var n = 0;
     for (var i = 0; i < s.length; i++) {
       var c = s.charCodeAt(i);
-      if (c < 0xDC00 || c > 0xDFFF) n++;
+      if (c >= 0xDC00 && c <= 0xDFFF) {
+        var p = i > 0 ? s.charCodeAt(i - 1) : 0;
+        if (p >= 0xD800 && p <= 0xDBFF) continue;
+      }
+      n++;
     }
     return n;
   }
@@ -268,11 +276,15 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
       .trim();
   }
 
-  /* 行 → 有序单元 ["p"|"li"|"tr"|"b", 文本] */
+  /* 行 → 有序单元 ["p"|"li"|"tr"|"b", 文本]。
+     行边界集与 Python str.splitlines 对齐（\v \f \x1c-\x1e \x85
+     \u2028 \u2029 也是行界；裸 \r 也拆）——段落内硬换行随后在
+     groupBlocks 用 \n 重新拼接，两端段落文本逐字一致 */
+  var LINE_BREAK_RE = /(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/;
   function lineUnits(text) {
     var units = [];
     var inCode = false;
-    var rawLines = text.split(/\r?\n/);
+    var rawLines = text.split(LINE_BREAK_RE);
     for (var i = 0; i < rawLines.length; i++) {
       var s = rawLines[i].trim().replace(QUOTE_PREFIX_RE, "");
       if (FENCE_RE.test(s)) { inCode = !inCode; units.push(["b", ""]); continue; }
@@ -353,7 +365,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
       if (depth > 0) continue;
       if (SENT_END.indexOf(ch) >= 0) {
         var j = i + 1;
-        while (j < n && SENT_END.indexOf(text[j]) >= 0) j++;
+        while (j < n && SENT_TAIL.indexOf(text[j]) >= 0) j++;
         var body = text.slice(start, j).trim();
         if (body) sents.push({ text: body, para: 0 });
         start = j;
@@ -894,7 +906,8 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
   function rewriteText(text, rules) {
     var compiled = compile(rules);
     var advices = [];
-    var lines = String(text).split(/\r?\n/);
+    /* 行边界集与 Python splitlines 对齐（engine.js LINE_BREAK_RE 同步） */
+    var lines = String(text).split(/(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/);
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim().replace(LEAD_MARKER_RE, "");
       if (!line) continue;
@@ -1031,6 +1044,7 @@ let lastResult = null;   // 检测模式最近一次结果（复制按钮的数�
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
 let copyResetTimer = null;
+let analyzeGen = 0;   // 大文本 rAF 任务的代数——换档/换模式后旧任务作废
 let shouldAnimate = true;   // 上下文切换（空态/换档/换模式）时给一次入场动画
 
 const reportEl = document.getElementById("report");
@@ -1190,6 +1204,7 @@ function renderAdvice() {
 
 function analyzeNow() {
   clearTimeout(debounceTimer);
+  const gen = ++analyzeGen;
   const text = inputEl.value;
   if (!text.trim()) {
     // 空文本不给"未发现"的假全清判定，回到初始提示
@@ -1200,11 +1215,13 @@ function analyzeNow() {
     reportEl.innerHTML = '<div class="empty">粘贴正文即出报告。</div>';
     return;
   }
-  // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算
+  // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算。
+  // 代数守卫：等帧期间输入已变或又触发了新任务（换档/换模式不改变
+  // 文本，仅靠文本相等判断会放行过期任务→重复全量分析）
   if (text.length > 60000) {
     reportEl.innerHTML = '<div class="empty busy">分析中…</div>';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (inputEl.value !== text) return;  // 过期任务：输入已变
+      if (gen !== analyzeGen || inputEl.value !== text) return;
       doAnalyze(text);
     }));
   } else {

@@ -232,6 +232,7 @@ let lastResult = null;   // 检测模式最近一次结果（复制按钮的数�
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
 let copyResetTimer = null;
+let analyzeGen = 0;   // 大文本 rAF 任务的代数——换档/换模式后旧任务作废
 let shouldAnimate = true;   // 上下文切换（空态/换档/换模式）时给一次入场动画
 
 const reportEl = document.getElementById("report");
@@ -391,6 +392,7 @@ function renderAdvice() {
 
 function analyzeNow() {
   clearTimeout(debounceTimer);
+  const gen = ++analyzeGen;
   const text = inputEl.value;
   if (!text.trim()) {
     // 空文本不给"未发现"的假全清判定，回到初始提示
@@ -401,11 +403,13 @@ function analyzeNow() {
     reportEl.innerHTML = '<div class="empty">粘贴正文即出报告。</div>';
     return;
   }
-  // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算
+  // 大文本同步分析会冻结输入框：先给出反馈，等一帧再算。
+  // 代数守卫：等帧期间输入已变或又触发了新任务（换档/换模式不改变
+  // 文本，仅靠文本相等判断会放行过期任务→重复全量分析）
   if (text.length > 60000) {
     reportEl.innerHTML = '<div class="empty busy">分析中…</div>';
     requestAnimationFrame(() => requestAnimationFrame(() => {
-      if (inputEl.value !== text) return;  // 过期任务：输入已变
+      if (gen !== analyzeGen || inputEl.value !== text) return;
       doAnalyze(text);
     }));
   } else {

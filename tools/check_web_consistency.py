@@ -55,6 +55,13 @@ PROBE_TEXTS = [
     ("cjk_pseudo_email", "长@长.cn 不是邮箱。第二句。"),
     # 未闭合 "[" 洪水：LINK/IMG 内容无上限时是 O(n²)
     ("bracket_flood", "[" + "a" * 500 + " 正文。第二句。"),
+    # Python splitlines 行界全集（\u2028 等在段中也要拆行，段内再 \n 拼接）
+    ("line_sep_mid", "随着人工智能的快速发展。\u2028综上所述，该方法具有重要意义。此外还需验证。与此同时保持完整。最后总结收束。"),
+    ("lone_cr_mid", "随着人工智能的快速发展。\r综上所述，该方法具有重要意义。此外还需验证。与此同时保持完整。最后总结收束。"),
+    # 边界标点后的闭引号并入本句（句长分布随之不同）
+    ("curly_close_unbalanced", "结论如此。”下一句话。最后再确认一次边界无误。这一句是第四句。第五句总结。"),
+    # 孤立低代理：Python len 算 1 码点（JS cpLength 配对漏数曾致 19≠20）
+    ("lone_low_surrogate", "测试\udc00文本。第二句正常表述。第三句也是正常的。"),
     # 长文（≥600 字触发 scoring.tiers 长档系数）：首段重复 12 次凑足长度与句数
     ("long_text", ("随着人工智能技术的快速发展，该方法在多个数据集上取得了优异的性能。"
                    "首先，我们回顾了相关工作；其次，我们提出了新的框架；最后，我们完成了验证。"
@@ -76,7 +83,12 @@ const rw = {};
 for (const [name, text] of Object.entries(texts)) {
   rw[name] = HvARewrite.rewriteText(text, rules);
 }
-process.stdout.write(JSON.stringify({ analyze: out, rewrite: rw }));
+// 孤立代理（无配对的高/低代理项）转义回 \uXXXX 再出管道；成对代理保持原样
+const LONE_HI = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g;
+const LONE_LO = /(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
+const escS = t => t.replace(LONE_HI, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+                 .replace(LONE_LO, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+process.stdout.write(escS(JSON.stringify({ analyze: out, rewrite: rw })));
 """
 
 # 改写器探针语料：覆盖每个判档分支（删/改/保留 × 腔调/功能说明/R1 数据保护）
@@ -177,7 +189,7 @@ def main() -> None:
         rules_json = json.dumps(rules_to_json(profile), ensure_ascii=False)
         probes = {n: t for n, t in PROBE_TEXTS}
         probes.update({f"rw{i}": t for i, t in enumerate(REWRITE_PROBES)})
-        texts_json = json.dumps(probes, ensure_ascii=False)
+        texts_json = json.dumps(probes, ensure_ascii=True)  # 转义通道：孤立代理进不了裸 UTF-8
         script = ROOT / "_qa/_web_check.js"
         script.write_text(NODE_SCRIPT, encoding="utf-8")
         rules_path = ROOT / "_qa/_web_rules.json"
@@ -216,8 +228,8 @@ def main() -> None:
                 print(f"[FAIL] {profile}/{name}")
                 for key in ("findings", "hints", "stats", "score", "score_note"):
                     if py_norm[key] != js_norm[key]:
-                        print(f"  {key}:\n    py={json.dumps(py_norm[key], ensure_ascii=False)[:400]}"
-                              f"\n    js={json.dumps(js_norm[key], ensure_ascii=False)[:400]}")
+                        print(f"  {key}:\n    py={json.dumps(py_norm[key], ensure_ascii=True)[:400]}"
+                              f"\n    js={json.dumps(js_norm[key], ensure_ascii=True)[:400]}")
             else:
                 print(f"[ok] {profile}/{name}")
 
@@ -231,8 +243,8 @@ def main() -> None:
             if py_rw != js_rw:
                 failed = True
                 print(f"[FAIL] {profile}/rewrite#{i} {text[:24]}")
-                print(f"    py={json.dumps(py_rw, ensure_ascii=False)[:300]}"
-                      f"\n    js={json.dumps(js_rw, ensure_ascii=False)[:300]}")
+                print(f"    py={json.dumps(py_rw, ensure_ascii=True)[:300]}"
+                      f"\n    js={json.dumps(js_rw, ensure_ascii=True)[:300]}")
             else:
                 print(f"[ok] {profile}/rewrite#{i}")
 

@@ -19,17 +19,25 @@
   "use strict";
 
   var SENT_END = "。！？；…!?;";
+  /* 句尾吸收集：边界标点后紧跟的闭引号/句点并入本句（与 Python
+     segment.py 的 _SENT_END + ".””』」" 逐码点一致） */
+  var SENT_TAIL = SENT_END + ".\u201d\u300f\u300d";
   var OPEN_Q_RE = /[“『「]/;
   var CLOSE_Q_RE = /[”』」]/;
   var PUNCT_RE = /[，。！？；：、…“”‘’《》（）()[\]【】,\.!\?;:"'—\-\s]/g;
 
   /* 码点长度：.length 数的是 UTF-16 码元，emoji/扩展区汉字（𠮷）一个占
-     2——Python 的 len 数码点，所有"字数"统计必须走这里（对拍实证漂移） */
+     2——Python 的 len 数码点，所有"字数"统计必须走这里（对拍实证漂移）。
+     孤立低代理：Python len 算 1 个码点，前面没有高代理配对时也要数 1 */
   function cpLength(s) {
     var n = 0;
     for (var i = 0; i < s.length; i++) {
       var c = s.charCodeAt(i);
-      if (c < 0xDC00 || c > 0xDFFF) n++;
+      if (c >= 0xDC00 && c <= 0xDFFF) {
+        var p = i > 0 ? s.charCodeAt(i - 1) : 0;
+        if (p >= 0xD800 && p <= 0xDBFF) continue;
+      }
+      n++;
     }
     return n;
   }
@@ -57,11 +65,15 @@
       .trim();
   }
 
-  /* 行 → 有序单元 ["p"|"li"|"tr"|"b", 文本] */
+  /* 行 → 有序单元 ["p"|"li"|"tr"|"b", 文本]。
+     行边界集与 Python str.splitlines 对齐（\v \f \x1c-\x1e \x85
+     \u2028 \u2029 也是行界；裸 \r 也拆）——段落内硬换行随后在
+     groupBlocks 用 \n 重新拼接，两端段落文本逐字一致 */
+  var LINE_BREAK_RE = /(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/;
   function lineUnits(text) {
     var units = [];
     var inCode = false;
-    var rawLines = text.split(/\r?\n/);
+    var rawLines = text.split(LINE_BREAK_RE);
     for (var i = 0; i < rawLines.length; i++) {
       var s = rawLines[i].trim().replace(QUOTE_PREFIX_RE, "");
       if (FENCE_RE.test(s)) { inCode = !inCode; units.push(["b", ""]); continue; }
@@ -142,7 +154,7 @@
       if (depth > 0) continue;
       if (SENT_END.indexOf(ch) >= 0) {
         var j = i + 1;
-        while (j < n && SENT_END.indexOf(text[j]) >= 0) j++;
+        while (j < n && SENT_TAIL.indexOf(text[j]) >= 0) j++;
         var body = text.slice(start, j).trim();
         if (body) sents.push({ text: body, para: 0 });
         start = j;

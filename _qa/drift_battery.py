@@ -58,7 +58,18 @@ PROBES = {
     "table_align": "| 左 | 中 |右|\n|:---|:---:|---:|\n| a | b | c |",
     "trailing_spaces": "句子后有空格。   \n\n  段首有空格。再句。",
     "bold_list": "- **首先**要明确目标。\n- *其次*要持续投入。",
+    # ---- 下排：对拍实证过的漂移类（修复后固化为回归）----
+    # Python splitlines 行界全集：\u2028 等在段中也要拆行再 \n 拼接
+    "line_sep_mid": "随着人工智能的快速发展。\u2028综上所述，该方法具有重要意义。此外还需验证。与此同时保持完整。最后总结收束。",
+    "lone_cr_mid": "随着人工智能的快速发展。\r综上所述，该方法具有重要意义。此外还需验证。与此同时保持完整。最后总结收束。",
+    # 边界标点后的闭引号并入本句（句长分布随之不同）
+    "curly_close_unbalanced": "结论如此。”下一句话。最后再确认一次边界无误。这一句是第四句。第五句总结。",
+    # 孤立低代理：Python len 算 1 码点，JS 旧版 cpLength 漏数
+    "lone_low_surrogate": "测试\udc00文本。第二句正常表述。第三句也是正常的。",
+    # 40 个扩展区码点恰好踩独句段阈值（cpLength 配对计数回归）
+    "astral_oneliner": "\U0001F600" * 40,
 }
+
 
 rows = {}
 for name, text in PROBES.items():
@@ -73,10 +84,11 @@ for name, text in PROBES.items():
                    "human_p90": sc.human_p90} if sc else None),
         "score_note": r.scoring_note,
     }
-Path("_qa/_drift_py.json").write_text(json.dumps(rows, ensure_ascii=False), encoding="utf-8")
+# 孤立代理进不了 ensure_ascii=False 的 UTF-8 文件——探针/产物一律转义通道
+Path("_qa/_drift_py.json").write_text(json.dumps(rows, ensure_ascii=True), encoding="utf-8")
 
 js_probe = Path("_qa/_drift_js.js")
-texts_json = json.dumps(PROBES, ensure_ascii=False)
+texts_json = json.dumps(PROBES, ensure_ascii=True)
 js_probe.write_text(f'''
 const HvA = require("{(ROOT / "web/engine.js").as_posix()}");
 const RULES = require("{(ROOT / "_qa/_drift_rules.json").as_posix()}");
@@ -87,7 +99,12 @@ for (const [name, text] of Object.entries(texts)) {{
   const r = HvA.analyze(text, RULES.academic, SCORING || null);
   out[name] = r;
 }}
-console.log(JSON.stringify(out));
+// 孤立代理（无配对的高/低代理项）转义回 \\uXXXX 再出管道；成对代理保持原样
+const LONE_HI = /[\\uD800-\\uDBFF](?![\\uDC00-\\uDFFF])/g;
+const LONE_LO = /(?<![\\uD800-\\uDBFF])[\\uDC00-\\uDFFF]/g;
+const escS = t => t.replace(LONE_HI, c => "\\\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
+                 .replace(LONE_LO, c => "\\\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
+console.log(escS(JSON.stringify(out)));
 ''', encoding="utf-8")
 
 sys.path.insert(0, str(ROOT / "tools"))
@@ -114,10 +131,10 @@ def norm_num(v):
 fails = 0
 for name in PROBES:
     p, j = py[name], js[name]
-    pf = json.dumps(p["findings"], ensure_ascii=False, sort_keys=True)
-    jf = json.dumps(j["findings"], ensure_ascii=False, sort_keys=True)
-    ph = json.dumps(p["hints"], ensure_ascii=False, sort_keys=True)
-    jh = json.dumps(j["hints"], ensure_ascii=False, sort_keys=True)
+    pf = json.dumps(p["findings"], ensure_ascii=True, sort_keys=True)
+    jf = json.dumps(j["findings"], ensure_ascii=True, sort_keys=True)
+    ph = json.dumps(p["hints"], ensure_ascii=True, sort_keys=True)
+    jh = json.dumps(j["hints"], ensure_ascii=True, sort_keys=True)
     diffs = []
     if pf != jf:
         diffs.append(f"  findings:\n    py={pf[:300]}\n    js={jf[:300]}")

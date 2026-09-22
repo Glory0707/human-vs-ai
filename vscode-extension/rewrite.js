@@ -166,7 +166,8 @@
   function rewriteText(text, rules) {
     var compiled = compile(rules);
     var advices = [];
-    var lines = String(text).split(/\r?\n/);
+    /* 行边界集与 Python splitlines 对齐（engine.js LINE_BREAK_RE 同步） */
+    var lines = String(text).split(/(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/);
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim().replace(LEAD_MARKER_RE, "");
       if (!line) continue;

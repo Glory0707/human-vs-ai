@@ -87,6 +87,20 @@ class TestSegment:
     def test_link_strip(self):
         assert segment._inline_clean("[文字](https://x.com/a)混排。") == "文字混排。"
 
+    def test_sentence_absorbs_closing_quote(self):
+        # 边界标点后的闭引号并入本句（对拍实证 JS 曾漏吸收 → 句长分布漂移）
+        sents = segment.split_sentences("结论如此。”下一句话。最后再确认一次无误。")
+        assert sents[0].text == "结论如此。”"
+        assert sents[1].text == "下一句话。"
+
+    def test_unicode_line_breaks_join_with_newline(self):
+        # Python splitlines 的行界全集（\u2028/\u2029/\v/\f/\x85/\x1c-\x1e/裸\r）
+        # 都拆行；段内硬换行用 \n 重新拼接（JS 端 LINE_BREAK_RE 逐字符对齐）
+        for br in ("\u2028", "\u2029", "\x0b", "\x0c", "\x85", "\x1c", "\x1d", "\x1e", "\r"):
+            blocks = segment.split_document(f"段落一{br}段落二完整。")
+            assert len(blocks) == 1, f"{br!r} 拆成了 {len(blocks)} 块"
+            assert blocks[0].sents[0].text == "段落一\n段落二完整。"
+
     def test_empty_and_short(self):
         assert segment.split_sentences("") == []
         assert segment.split_sentences("无标点结尾") != []
@@ -395,6 +409,11 @@ class TestScore:
         short_score = engine.compute_score(st, [], [], scoring)
         assert long_score.index > short_score.index  # 长档 hit_density 权重更大且截距更高
         assert long_score.human_p50 == 10 and long_score.corpus == "test"  # 元字段取全局
+        # 边界：min_chars 含端点（600 用长档，599 用全局）
+        st.n_chars = 600
+        assert engine.compute_score(st, [], [], scoring).index == long_score.index
+        st.n_chars = 599
+        assert engine.compute_score(st, [], [], scoring).index == short_score.index
 
     def test_score_note_in_renders_and_json(self):
         import json as _json

@@ -77,6 +77,8 @@ def main() -> None:
                 continue
             feats["_ai"] = cfg["ai"](s)
             rows.append(feats)
+        if not rows:
+            sys.exit(f"{profile}: 过 {MIN_SENTS} 句门槛的样本为 0，无法拟合")
         ai = [r for r in rows if r["_ai"]]
         hu = [r for r in rows if not r["_ai"]]
 
