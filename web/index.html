@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>human-vs-ai · 中文 AI 味分析</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='2' width='28' height='28' rx='4' fill='none' stroke='%23b8462e' stroke-width='2.6'/%3E%3Ctext x='16' y='23' font-family='serif' font-size='17' font-weight='700' fill='%23b8462e' text-anchor='middle'%3E%E9%89%B4%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2.2' y='2.2' width='27.6' height='27.6' rx='5' fill='none' stroke='%23b8462e' stroke-width='2.4'/%3E%3Cpath d='M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9' fill='none' stroke='%23b8462e' stroke-width='2.7' stroke-linecap='round'/%3E%3C/svg%3E">
 <script>
 /* 主题先行：localStorage 手动选择优先，否则跟系统——与渲染同帧，不闪 */
 (() => {
@@ -183,8 +183,9 @@ body {
 /* 分析中：印章按压节拍 + 鉴字呼吸 */
 .mark-busy { animation: markBusy 2.6s ease-in-out infinite; }
 @keyframes markBusy { 0%, 100% { transform: rotate(0); } 25% { transform: rotate(-2.6deg); } 75% { transform: rotate(2.6deg); } }
+/* 干活时字迹线呼吸（eggpaper 字条流过同款节拍） */
 .mark-busy .glyph { animation: glyphRead 2.4s linear infinite; }
-@keyframes glyphRead { 0%, 30%, 100% { opacity: 1; } 12% { opacity: .4; } }
+@keyframes glyphRead { 0%, 30%, 100% { opacity: 1; } 12% { opacity: .35; } }
 
 .segmented {
   position: relative; display: inline-flex;
@@ -413,13 +414,15 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 <header class="topbar">
   <span class="wordmark">
     <span class="egg-wrap" id="brandMark" title="戳我">
+      <!-- 徽记：印框里的一行字迹——左半手写波浪（人），右半被拉直（AI），
+           接点切线水平零拐角。工具的活儿就是把被抹平的字迹重新标出来给人看。 -->
       <svg viewBox="0 0 32 32" aria-hidden="true">
-        <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="4.5" fill="none" stroke="currentColor" stroke-width="2.4"/>
-        <text class="glyph" x="16" y="22.6" font-family="Georgia, 'Times New Roman', serif" font-size="16.5" font-weight="700" fill="currentColor" text-anchor="middle">鉴</text>
+        <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="5" fill="none" stroke="currentColor" stroke-width="2.2"/>
+        <path class="glyph" d="M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/>
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.13.1</span>
+    <span class="head-ver">v0.13.2</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1300,8 +1303,8 @@ const toastEl = document.getElementById("toast");
 
 const EMPTY_HTML = `<div class="empty-block">
   <svg class="mark-big" viewBox="0 0 32 32" aria-hidden="true">
-    <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="4.5" fill="none" stroke="currentColor" stroke-width="1.6"/>
-    <text x="16" y="22.6" font-family="Georgia, 'Times New Roman', serif" font-size="16.5" font-weight="700" fill="currentColor" text-anchor="middle">鉴</text>
+    <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
+    <path class="glyph" d="M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </svg>
   <div class="e-title">粘贴正文，报告随写随出</div>
   <div class="e-sub">逐句指出哪里像模板、为什么、怎么改</div>
