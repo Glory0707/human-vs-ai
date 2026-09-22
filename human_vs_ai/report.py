@@ -98,8 +98,9 @@ def _group_top(group: list[Finding]) -> str:
 
 
 def _group_title(group: list[Finding]) -> str:
-    ids = " + ".join(f.rule_id for f in group)
-    names = " + ".join(f.rule_name for f in group)
+    # 重复句折叠后同一规则会出现几十次——标题去重（matches 同口径）
+    ids = " + ".join(dict.fromkeys(f.rule_id for f in group))
+    names = " + ".join(dict.fromkeys(f.rule_name for f in group))
     loc = f"¶{group[0].para + 1}"
     return f"[{_SEV_LABEL[_group_top(group)]}] {ids} {names}{_taste_suffix(group)} · {loc}"
 

@@ -193,7 +193,7 @@ mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1
 </head>
 <body>
 <header>
-  <span class="wordmark">human-vs-ai<span class="v">0.12.3</span></span>
+  <span class="wordmark">human-vs-ai<span class="v">0.12.4</span></span>
   <nav class="profiles" id="profiles"></nav>
   <nav class="modes" id="modes"></nav>
   <span class="note">纯本地分析 · 文本不上传</span>
@@ -1141,8 +1141,9 @@ function renderReport(result) {
   groups.forEach(g => {
     const top = g.items.reduce((acc, i) =>
       (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
-    const ids = g.items.map(i => i.rule_id).join(" + ");
-    const names = g.items.map(i => i.rule_name).join(" + ");
+    // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
+    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
+    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
     const taste = [...new Set(g.items.map(i => i.taste).filter(Boolean))].join("/");
     const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
     const why = g.items.find(i => !explained.has(i.rule_id));
@@ -1267,8 +1268,8 @@ function reportToMarkdown() {
   groups.forEach(g => {
     const top = g.items.reduce((acc, i) =>
       (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
-    const ids = g.items.map(i => i.rule_id).join(" + ");
-    const names = g.items.map(i => i.rule_name).join(" + ");
+    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
+    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
     const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
     L.push(`### [${SEV_NAME[top.severity]}] ${ids} ${names} · ¶${g.para + 1}`, "");
     if (g.sentence) L.push(`> ${g.sentence}`, "");

@@ -256,6 +256,15 @@ class TestProseQuality:
         md = report.render_markdown(result)
         assert md.count("这批词本身没有错") == 1
 
+    def test_group_title_dedupes_repeated_rules(self):
+        # 同段大量相同句折叠成一组：标题不许把同一 ID 拼接几十遍
+        # （浏览器实测：1200 个相同句曾生成整版 "G-SAFE-01 + G-SAFE-01 + …"）
+        result = engine.analyze("首先，做了这件事。" * 60, "academic")
+        assert len(result.findings) >= 40, "前置条件：同段相同句大量命中"
+        for out in (report.render_markdown(result), report.render_terminal(result)):
+            assert "L-CONN-01 + L-CONN-01" not in out
+            assert "模板连接词 + 模板连接词" not in out
+
     def test_dir_input_clean_error(self, tmp_path, capsys):
         # 目录当输入：干净报错，不抛裸堆栈
         from human_vs_ai import cli
