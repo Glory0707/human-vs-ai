@@ -332,7 +332,7 @@ async function pickProfile(vscode) {
     profile: p,
   }));
   const picked = await vscode.window.showQuickPick(items, {
-    placeHolder: "选择场景——词表按文体分治，选错会误报",
+    placeHolder: "选择场景",
   });
   return picked ? picked.profile : null;
 }

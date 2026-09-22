@@ -231,7 +231,7 @@ function makePlugin(obsidian) {
           <button class="hva-copy" disabled>复制 Markdown</button>
         </div>
         <div class="hva-file"></div>
-        <div class="hva-report"><div class="hva-empty">打开或选中一篇笔记，点「重新分析」。</div></div>`;
+        <div class="hva-report"><div class="hva-empty">打开一篇笔记即可分析。</div></div>`;
       root.querySelector(".hva-profiles").onchange = (e) => {
         this.profile = e.target.value;
         this.plugin.settings.profile = this.profile;

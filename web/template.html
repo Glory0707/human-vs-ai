@@ -368,7 +368,6 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 }
 .empty-block .mark-big { width: 104px; height: 104px; color: var(--accent); opacity: 0.94; }
 .empty-block .e-title { font-size: var(--fs-display); font-weight: 700; letter-spacing: -0.01em; }
-.empty-block .e-sub { font-size: var(--fs-sm); color: var(--ink-3); }
 .empty-block .e-acts { display: flex; align-items: center; gap: 18px; margin-top: 2px; }
 .empty-block .e-btn {
   border: 1px solid var(--hairline); background: var(--card-2); color: var(--ink-2);
@@ -486,9 +485,9 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     <div class="pane-head"><span class="p-t">原稿</span><span class="mono-num" id="charCount"></span><button id="clearBtn" class="ghost" disabled>清空</button></div>
     <textarea id="input" spellcheck="false" autocapitalize="off" autocorrect="off" placeholder="粘贴正文"></textarea>
   </section>
-  <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整宽度 · 双击复位 · 方向键微调"></div>
+  <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出脱敏校准样本（.jsonl，自愿提交帮词表进化；手机号/邮箱等已打码）">匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本（自动脱敏）">匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -533,8 +532,7 @@ const EMPTY_HTML = `<div class="empty-block">
     <path class="glyph" d="M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </svg>
   <div class="e-title">粘贴正文，报告随写随出</div>
-  <div class="e-sub">逐句指出哪里像模板、为什么、怎么改</div>
-  <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button><button class="stamp" id="mottoStamp" title="这也是本工具的底线">推断不是判定</button></div>
+  <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button><button class="stamp" id="mottoStamp">推断不是判定</button></div>
 </div>`;
 
 /* 首次体验用的合成样例（自写，AI 味浓度高，非真实语料） */
@@ -1108,7 +1106,7 @@ document.getElementById("sampleBtn").onclick = async () => {
   a.download = `hva-sample-${sample.text_sha256}.jsonl`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast("样本已导出（脱敏后）· 提交方式见项目 README");
+  toast("样本已导出");
 };
 
 renderProfiles();

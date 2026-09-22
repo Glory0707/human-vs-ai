@@ -89,7 +89,7 @@
     return `<div class="row score">` +
       `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
       `<span class="score-main"><span class="t">${idx} / 100</span>` +
-      `<span class="sub">风格综合分 · 真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
+      `<span class="sub">真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
   }
 
   function hintsHtml(hints) {
