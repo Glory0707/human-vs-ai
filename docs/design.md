@@ -41,7 +41,7 @@
 
 ## 4. 排队事项（按需启动）
 
-- **P2**：general profile 当代语料校准（公开渠道反爬与条款风险高，优先本地生成+用户自愿提交的匿名样本，评估见 plan.md M5）· 公文 AI 真实样本扩充（当前为构造样本，有自我偏差；Obsidian 插件已于 v0.15.0 完成）
+- **P2**：general 当代长文 QA 评分语料积累（词表当代验证已于 v0.14 完成，C-ReD QA；样本入口为 collect 导出的匿名 JSONL）· 公文 AI 真实样本扩充（当前为构造样本，有自我偏差）
 - **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移）· 句级困惑度（Qwen 本地小模型，可选插件不进默认依赖）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）
 
 ## 5. 架构（已验证）
@@ -49,9 +49,10 @@
 ```
 CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / explain / profiles）
         │
-引擎 engine.analyze() ── 规则库 YAML（四 profile）+ 统计 stats + 切分 segment
+引擎 engine.analyze() ── 规则库 YAML（七 profile）+ 统计 stats + 切分 segment
         │
-报告 report（terminal ANSI / markdown / json，同一份内容三种出口）
+报告 report（terminal ANSI / markdown / json，同一份内容多出口；
+        sarif / html 由 sarif.py、htreport.py 供 CLI 直接调用）
 
 网页版：web/index.html（单文件；engine.js 同构引擎 + render.js 共享渲染层 +
 规则 JSON 注入；tools/build_web.py 构建，tools/check_web_consistency.py 守护）
@@ -59,19 +60,24 @@ CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / ex
 VS Code 扩展：vscode-extension/（复用 engine.js/rewrite.js/render.js 与规则 JSON，
 tools/build_vscode.py 注入；命令 analyze + rewrite 各一个 Webview 面板，
 node smoke-test.js 冒烟）
+
+Obsidian 插件：obsidian-plugin/（同一套注入，tools/build_obsidian.py 生成
+main.js/manifest.json；侧边视图 + 命令 + 设置页，node smoke-test.js 冒烟）
 ```
 
 工程纪律：零网络调用；切分口径全文唯一且跨端可复现（字级 2-gram，不依赖任何分词库，v0.11.0 起 jieba 退场）；规则阈值全部放 YAML 不进代码（校准只改数据）；报告渲染与引擎解耦（JSON 是唯一事实源，terminal/md 都是它的投影）；双实现不许独立演化（一致性测试是网页版的发布门）。
 
 ## 6. 验证基线（当前值，复现命令见 README「开发」）
 
-- **单元测试**：119 项（切分/统计/引擎/边界/报告与文案/评分/口味与改写/格式与工作流/端到端区分度）；私库回归 5 项无 corpus_private/ 时自动跳过
+- **单元测试**：131 项（切分/统计/引擎/边界/报告与文案/评分/口味与改写/格式与工作流/多文体 profile/端到端区分度）；私库回归 5 项无 corpus_private/ 时自动跳过
 - **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.046 vs AI 0.170–0.307，AUROC **0.804**；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
 - **HC3-Chinese 校准**：词表 AUROC 0.476（学术词表在问答文体失效——profile 分治的实证）；CV 0.763；字级 2-gram TTR 0.684
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
 - **公文**：真人公开公文误报 **0/15**（验收 <20% PASS）；AI 样本 7 处命中逐条人工核对成立
 - **fixture 冒烟**：AI 样本 20 处命中（高 4）vs 人类样本 0 高 0 中（tests/data/）
-- **双引擎一致性**：27 段语料 + 15 条改写探针 × 4 profile = **168 项**逐字段 diff 全绿；含 emoji 码点/行分隔符全集/孤立低代理/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水等对抗探针
+- **多文体扩展（v0.14）**：essay 评分留出 **0.951**、news **0.935**（C-ReD 全量类平衡）；review 短评词表层不出分；general 词表当代验证（QA 域三连排比 AI 77 vs 真人 34）——详见 rules.md §9
+- **引擎性能**：10 万字 112ms（线性，2026-09 基准）
+- **双引擎一致性**：27 段语料 + 15 条改写探针 × 7 profile = **294 项**逐字段 diff 全绿；含 emoji 码点/行分隔符全集/孤立低代理/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水等对抗探针
 - **口味校准层**：personal 12 条口味条目 + rewrite；被毙稿召回 31/31、定稿误报 0/37、改写维度 5/6；`tools/check_private_leak.py` 守护边界
 
 ### 轮次日志（细节见 [plan.md](plan.md) 轮次注记与 [rules.md](rules.md) §8）
@@ -95,14 +101,14 @@ node smoke-test.js 冒烟）
 | v0.12.4 | 端到端+视觉审查：修重复句分组标题爆炸（web/md/CLI 三处去重）；11 测试点全过、控制台零错误 |
 | v0.13.0 | 能力与格式扩展（v0.13）：docx/odt 输入（纯 stdlib 解包）；批量扫描（目录/glob→指数排序汇总表，csv/json）；diff 改进闭环（规则级已消除/新增/增减 + 指数/构成 delta）；--fail-above CI 门禁；SARIF 2.1.0 与 html 静态报告出口；网页端「文纸·朱批」设计语言重做（印章指数/批注卡/信纸横线/竖排铭文，超高分辨率视觉审查三轮实修：改写器空转候选、多句段落截半句候选、T12 校准比例笔误） |
 | v0.13.1 | 网页端设计语言完全对照 eggpaper 重写（v0.13.1）：token 同源（暖墨白纸/发丝线/深青工作色+朱砂批改色/Fraunces 品牌字/mono 标签/弹簧缓动/阴影），segmented 滑块分段控件、56px 顶栏+分析流光、眉批式批注卡、命中改 b-warn 波浪线配方、空态=大徽记+铭文章、toast、手动亮/暗（html.dark + localStorage）、印章徽记陪伴交互（戳/三连戳翻滚/1/24 喷嚏/分析 busy 节拍）；移动端触控目标 24→44px（视觉审查闭环）；htreport 同步 token |
+| v0.13.2 | Logo 重设计（无文字）：印章框内一行字迹——左半手写波浪（人）右半拉直（AI），接点切线水平；单色 currentColor 成立、16px 可读（缩放标尺 16→104px 验证 + 视觉验收）；徽记沿用波浪几何与报告命中线同源；favicon/顶栏/空态三处同步 |
 | v0.14.0 | 多文体扩展：接入 C-ReD 五域语料（真人+9 当代模型，164MB），新增 news/essay/review 三 profile——news 留出 0.935、essay 留出 0.951（全量类平衡拟合），review 短评词表层不出分（中位 132 字过门槛 0.2%）；general 词表获当代验证（QA 域三连排比 0.17、收束词复现）；collect 脱敏校准样本导出（CLI+网页按钮）；词表挖掘/侦察/拟合工具三件套（mine_patterns/domain_recon/fit_domain）；多文体砍掉清单入 rules.md §9 |
 | v0.14.1 | 交互优化：原稿/报告分隔线可拖（eggpaper rail-grip 同款：悬停青线/拖动全局 col-resize 禁选中/双击复位/方向键微调/localStorage 记忆，22-78% 限幅）；清空带一级撤销 toast；原稿栏头部实时字数·句数+不足 8 句提示；txt/md 拖稿入栏；空态「看个例子」合成样例；场景/模式记忆；segmented 滑块改按活动按钮真实几何定位（修复盖住邻项文字的缺陷） |
 | v0.15.0 | Obsidian 插件：obsidian-plugin/（main.template.js + styles.css + 构建产物 main.js/manifest.json/versions.json），tools/build_obsidian.py 注入引擎/规则/评分（四端同一事实源），命令「分析当前文档/改写建议」+ 侧边视图（印章/批注卡/波浪线，亮暗跟随 Obsidian 主题）+ 笔记修改 800ms 防抖自动重析 + 设置页默认场景；冒烟 14 项（obsidian 桩装配 + 产物完整性 + 预览页） |
 | v0.16.0 | 全端打磨轮：弱命中三端折叠（details，默认收起降噪）；VS Code webview 报告对齐 eggpaper 设计（印章+眉批卡+波浪线，修亮色档位变量缺失/CSP 拦 data 图两处真实缺陷）+ 场景 QuickPick（记住上次）；网页印章入场动画/筛选计数与记忆；移动端分段换行+填充高亮（修 7 项溢出）；引擎基准 10 万字 112ms 线性 |
 | v0.16.1 | 冗余清理轮（零功能变化）：render.js 死叶 scoreRow 移除、sealHtml 三份拷贝收敛为共享叶子；死 CSS（.seal.none/旧 b.s-* 档位色）清理；pyflakes 清零（htreport OrderedDict、build_obsidian shutil、domain_recon re/hvastats、fit_score rng 与无占位 f-string、fit_domain 死赋值、report.py _TIER_LABEL）；pyflakes 纳入日常自查 |
-| v0.16.3 | 测试员轮（131 项测试）：修 4 个边界 bug——①batch 字面路径优先于 glob（文件名带 [ ] 被字符类吃掉误报"无匹配"）；②web 全局拦截文件拖放默认行为（拖到栏外浏览器整页跳转丢会话）；③VS Code QuickPick Esc 取消不再拿默认场景偷偷分析；④collect 空文本守卫。7 场景 × 19 组模糊轰炸（孤立代理/控制字符/纯标点/不平衡引号/超长行）0 炸 |
 | v0.16.2 | 文件与文案清理轮：删 .playwright-mcp/gui-test-screenshots 等中间文件；全端文案收短（拖动提示/样本导出悬浮与 toast/空态副题/铭文悬浮/QuickPick 占位/指数副行去掉与印章重复的"风格综合分"前缀），保留纯本地信任行与免责行 |
-| v0.13.2 | Logo 重设计（无文字）：印章框内一行字迹——左半手写波浪（人）右半拉直（AI），接点切线水平；单色 currentColor 成立、16px 可读（缩放标尺 16→104px 验证 + 视觉验收）；徽记沿用波浪几何与报告命中线同源；favicon/顶栏/空态三处同步 |
+| v0.16.3 | 测试员轮（131 项测试）：修 4 个边界 bug——①batch 字面路径优先于 glob（文件名带 [ ] 被字符类吃掉误报"无匹配"）；②web 全局拦截文件拖放默认行为（拖到栏外浏览器整页跳转丢会话）；③VS Code QuickPick Esc 取消不再拿默认场景偷偷分析；④collect 空文本守卫。7 场景 × 19 组模糊轰炸（孤立代理/控制字符/纯标点/不平衡引号/超长行）0 炸 |
 
 ## 7. 已知限制
 

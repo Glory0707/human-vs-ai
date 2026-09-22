@@ -2,7 +2,7 @@
  *
  * 与 CLI/网页版的关系：引擎直接复用 web/engine.js（与 Python 引擎由
  * tools/check_web_consistency.py 守护逐字段一致），规则 JSON 由
- * tools/build_vscode.py 从同一 YAML 源注入——三端（CLI/网页/插件）
+ * tools/build_vscode.py 从同一 YAML 源注入——四端（CLI/网页/VS Code/Obsidian）
  * 同一事实源，插件端不允许独立演化。
  *
  * 纯本地：无任何网络调用。

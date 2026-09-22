@@ -20,7 +20,7 @@ const HvA = (function () {
  * 测试抓住。改动切分或统计逻辑时两端必须同步改。
  *
  * 口径说明:全文唯一切分口径是字级 2-gram(Python 端 v0.11.0 起同口径),
- * TTR 三端同数并纳入一致性对比。所有 doc 统计(D-UNIF/D-CONN/D-PARA/
+ * TTR 四端同数并纳入一致性对比。所有 doc 统计(D-UNIF/D-CONN/D-PARA/
  * D-NGRAM/D-DASH)都与分词器无关。
  */
 (function (root, factory) {

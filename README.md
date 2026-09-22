@@ -100,7 +100,7 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 128 项单元+边界+评分+口味+格式+多文体+私库回归（私库层缺语料自动跳过）
+python -m pytest tests/ -q              # 131 项单元+边界+评分+口味+格式+多文体+私库回归（私库层缺语料自动跳过）
 python tools/check_web_consistency.py   # Python/JS 双引擎一致性 294 项 × 7 场景（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
