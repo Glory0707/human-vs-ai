@@ -74,7 +74,7 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 已知限制
 
 - 统计指标需要**足够文本**：句长 CV 至少 3 句才有意义，一段话的分析只看词表命中
-- 阈值按**摘要与问答语料**首轮校准；完整论文正文、公文体（天然工整，易误报）的分档阈值在排队
+- 阈值按**摘要与问答语料**校准；长度分档已上线（CV 三档阈值、评分 ≥600 字长档系数），公文体与当代问答真实语料的扩充在排队
 - 词表规则面向**当代模型文风**，会随模型版本漂移（delve 在 GPT-5 后骤降、破折号在 GPT-5.1 被官方压制）；规则库按 era 标注、季度重挖
 - 词汇丰富度（TTR）用**字级 2-gram 口径**（与网页/插件端逐位一致）；不做词级切分
 - 本工具**不能**用于证明或豁免任何"AI 代写"指控——它没有这个能力，也不该有
@@ -82,8 +82,9 @@ human-vs-ai profiles                 # academic（学术）· general（问答/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 90 项单元+边界+评分+口味+私库回归（私库层缺语料自动跳过）
-python tools/check_web_consistency.py   # Python/JS 双引擎一致性 140 项（需 node）
+python -m pytest tests/ -q              # 93 项单元+边界+评分+口味+私库回归（私库层缺语料自动跳过）
+python tools/check_web_consistency.py   # Python/JS 双引擎一致性 156 项（需 node）
+python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
 python tools/build_web.py               # 重新生成网页单文件
 python tools/build_vscode.py            # 重新注入扩展规则与引擎
