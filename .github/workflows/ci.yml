@@ -28,10 +28,12 @@ jobs:
         run: |
           python tools/build_web.py
           python tools/build_vscode.py
+          python tools/build_obsidian.py
           git diff --exit-code web/index.html vscode-extension/rules.json \
             vscode-extension/scoring.json vscode-extension/engine.js \
             vscode-extension/rewrite.js vscode-extension/render.js \
-            vscode-extension/package.json
+            vscode-extension/package.json obsidian-plugin/main.js \
+            obsidian-plugin/manifest.json obsidian-plugin/versions.json
 
       - uses: actions/setup-node@v4
         with:
@@ -42,3 +44,6 @@ jobs:
 
       - name: 扩展冒烟测试
         run: node vscode-extension/smoke-test.js
+
+      - name: Obsidian 插件冒烟测试
+        run: node obsidian-plugin/smoke-test.js

@@ -1,0 +1,145 @@
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../obsidian-plugin/styles.css">
+<style>body{margin:0;display:grid} .wrap{padding:16px} .wrap.dark{background:#1e1e1e}</style>
+</head><body>
+<div class="wrap"><div class="hva-root"><div class="stats"><div class="row score"><span class="seal high"><span class="n">100</span><span class="u">AI味指数</span></span><span class="score-main"><span class="t">100 / 100</span><span class="sub">风格综合分 · 真人 p50≈15 / p90≈63 · 构成：规则 +18 · 节奏 −5 · 词汇 +80 · 重复 +1</span></span></div><div class="row">规模：7 段 · 19 句 · 520 字</div><div class="row">节奏：句长 CV 0.34 · 段长 CV 0.41</div><div class="row">词汇：TTR 0.96 · 连接词密度 0.32 条/句 · 4-gram 重复率 0.03</div></div><div class="summary">发现 20 处（高 4 · 中 9 · 低 7）</div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-FORM-01</span><span class="rname">公式化开头</span><span class="loc">¶1</span></div>
+      <blockquote><mark>随着人工智能技术的快速发展</mark>，深度学习在材料科学领域得到了越来越广泛的应用。</blockquote>
+      <div class="match">命中：<code>随着人工智能技术的快速发展</code></div>
+      <div class="why">“随着…的快速发展”是中文 AI 生成文本的第一开场白——人大编码研究里 142 条被标记“AI 感”的小红书笔记中，模板开场是命中率最高的单项。它放在论文引言里的问题是双重的：既不提供文献综述信息，又立刻让评阅人想到“这段是 AI 写的”</div><div class="tip">→ 开头直接进研究缺口：谁的问题、卡在哪、本文接哪一棒。</div>
+    </div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-INFL-01 + L-TAIL-01 + L-PAD-01</span><span class="rname">意义拔高 + 公式化展望尾 + 「进行X」填充句</span><span class="loc">¶3</span></div>
+      <blockquote>这一发现<mark>标志着</mark>钙钛矿材料研究<mark>取得了重要进展</mark>，为后续的器件优化<mark>奠定了坚实的基础</mark>。</blockquote>
+      <div class="match">命中：<code>标志着、奠定了坚实的基础、取得了重要进展</code></div>
+      <div class="why">把一个具体结果包装成历史节点、范式转移或“重要意义”，是维基清单第一条（对意义/遗产的过度拔高）的中文变体：陈述一个事实，再挂一句它“标志着/揭示了/为…提供了新思路”。拔高句不增加任何信息——删掉后论文一个字不少，审稿人却少了一个皱眉的理由。「为…提供新思路」在医学摘要结尾是体裁常规，归 L-TAIL-01 按 medium 提示；本条只留人类极少刻意为之的标志性拔高</div><div class="tip">→ 只留事实和数字。“为…提供了新思路”改为具体说明新在哪：跟哪个已知方法的差别是什么。</div>
+    </div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-FORM-01</span><span class="rname">公式化开头</span><span class="loc">¶4</span></div>
+      <blockquote><mark>在当今快速发展的时代</mark>背景下，能源问题日益凸显。</blockquote>
+      <div class="match">命中：<code>在当今快速发展的时代</code></div>
+      
+    </div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-INFL-01 + L-TAIL-01 + L-CONN-01</span><span class="rname">意义拔高 + 公式化展望尾 + 模板连接词</span><span class="loc">¶4</span></div>
+      <blockquote><mark>此外</mark>，钙钛矿太阳能电池作为一种新兴的光伏技术，<mark>扮演着越来越重要</mark>的角色，<mark>有望在</mark>未来的能源格局中发挥关键作用。</blockquote>
+      <div class="match">命中：<code>扮演着越来越重要、有望在、此外</code></div>
+      <div class="why">这批词本身没有错，问题是密度：AI 把逻辑衔接当作每段必备的仪式，人类只在真需要转折/递进时才用。社科院语言所把“'首先其次总之'式虚假逻辑衔接”列为中文 AI 味的核心特征之一——衔接词在，但衔接的内容之间并没有真正的推导关系。单次出现只是提示，本文是否“衔接词病”看全文密度统计（D-CONN-01）</div><div class="tip">→ 删掉读一遍——句子之间的逻辑如果本来就通，连接词就是赘余；如果删掉就不通，说明缺的是论证不是连接词。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-HYPE-01</span><span class="rname">政策腔大词</span><span class="loc">¶1</span></div>
+      <blockquote>近年来，机器学习方法受到研究人员的广泛关注，成为推动材料研发的<mark>重要抓手</mark>。</blockquote>
+      <div class="match">命中：<code>重要抓手</code></div>
+      <div class="why">公文/自媒体的高热度词混进学术文本，是 AI 在错误语域生成的典型症状（它的训练语料里“赋能”高频出现在所有文体，所以顺手就用在论文里）。学术文本有术语体系，这类词既不是术语也没有操作性定义</div><div class="tip">→ 换成领域术语或具体动作。“AI 赋能实验教学”→“AI 用于预判滴定终点，减少 30% 重做率”。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-CONN-02 + L-CONN-01</span><span class="rname">首先…其次固定套路 + 模板连接词</span><span class="loc">¶2</span></div>
+      <blockquote><mark>首先，</mark>本文制备了系列的钙钛矿样品。</blockquote>
+      <div class="match">命中：<code>首先，、首先</code></div>
+      <div class="why">“首先…其次…”是 AI 组织段落的默认骨架，也是维基清单与中文社区鉴定共识的重叠区。真人学术写作更常用“（1）（2）”编号或直接分节，因为编号便于审稿人引用；散落的“首先其次”反而难定位</div><div class="tip">→ 换成编号列表或小节标题，或者干脆按实验/论证的自然顺序直陈。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-COPO-01</span><span class="rname">无证据强化词</span><span class="loc">¶5</span></div>
+      <blockquote>实验结果表明，该方法<mark>显著提升</mark>了器件的光电转换效率，<mark>充分证明</mark>了其优越性。</blockquote>
+      <div class="match">命中：<code>显著提升、充分证明</code></div>
+      <div class="why">“显著/有效/充分/深入/全面”这类强化副词本该有统计检验或对照数据背书。AI 的用法是系统性地、无证据地撒——“显著提升”旁边没有一个 p 值。学术规则库里区分度最高的一条（C-ReD：AI 命中率 48% vs 真人 9%）；在论文里它还有实际代价：审稿人会追问“显著到什么程度”</div><div class="tip">→ 每个强化词二选一：给出证据（数字、检验、对照），或删掉降为中性陈述。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-TAIL-01</span><span class="rname">公式化展望尾</span><span class="loc">¶6</span></div>
+      <blockquote>本研究为钙钛矿太阳能电池的产业化发展<mark>奠定了坚实基础</mark>，<mark>具有广阔的应用前景</mark>。</blockquote>
+      <div class="match">命中：<code>具有广阔的应用前景、奠定了坚实基础</code></div>
+      
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-TAIL-01 + L-COPO-01</span><span class="rname">公式化展望尾 + 无证据强化词</span><span class="loc">¶6</span></div>
+      <blockquote>未来的研究将进一步<mark>深入探讨</mark>界面复合的抑制策略，<mark>有望推动</mark>该技术走向实际应用。</blockquote>
+      <div class="match">命中：<code>有望推动、深入探讨</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶2</span></div>
+      <blockquote><mark>其次</mark>，我们对样品进行了全面的表征分析。</blockquote>
+      <div class="match">命中：<code>其次</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶2</span></div>
+      <blockquote><mark>综上所述</mark>，本文开展了一系列深入而有效的研究工作。</blockquote>
+      <div class="match">命中：<code>综上所述</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶3</span></div>
+      <blockquote><mark>值得注意的是</mark>，该材料不仅具有优异的光电性能，更是展现出了良好的稳定性。</blockquote>
+      <div class="match">命中：<code>值得注意的是</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶4</span></div>
+      <blockquote><mark>与此同时</mark>，传统的硅基太阳能电池逐渐接近其理论效率极限。</blockquote>
+      <div class="match">命中：<code>与此同时</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">D-CONN-01</span><span class="rname">连接词密度过高</span><span class="loc">全文</span></div>
+      <div class="match">命中：<code>conn_density=0.316（阈值 0.08）</code></div>
+      <div class="why">每句平均出现的模板连接词（L-CONN-01 词表）超过 0.08 条。社科院语言所描述的“虚假逻辑衔接”在统计上的样子：衔接词密度与论证密度脱钩——词在，推导不在。阈值按摘要语料从宽校准（完整论文正文的基线更高，后续按文体细分）</div><div class="tip">→ 按段清理：先删所有连接词读一遍，补不回逻辑的地方才补词。</div>
+    </div><div class="hints"><div class="t">另有 3 处弱命中</div><div class="h">· L-NEGA-01 否定式排比（¶3）</div><div class="h">· L-EVADE-01 系动词回避（¶4）</div><div class="h">· S-CLOS-01 独句总结段（¶7）</div></div><div class="disclaimer">风格提示，不是 AI 判定。</div></div></div>
+<div class="wrap dark"><div class="theme-dark hva-root"><div class="stats"><div class="row score"><span class="seal high"><span class="n">100</span><span class="u">AI味指数</span></span><span class="score-main"><span class="t">100 / 100</span><span class="sub">风格综合分 · 真人 p50≈15 / p90≈63 · 构成：规则 +18 · 节奏 −5 · 词汇 +80 · 重复 +1</span></span></div><div class="row">规模：7 段 · 19 句 · 520 字</div><div class="row">节奏：句长 CV 0.34 · 段长 CV 0.41</div><div class="row">词汇：TTR 0.96 · 连接词密度 0.32 条/句 · 4-gram 重复率 0.03</div></div><div class="summary">发现 20 处（高 4 · 中 9 · 低 7）</div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-FORM-01</span><span class="rname">公式化开头</span><span class="loc">¶1</span></div>
+      <blockquote><mark>随着人工智能技术的快速发展</mark>，深度学习在材料科学领域得到了越来越广泛的应用。</blockquote>
+      <div class="match">命中：<code>随着人工智能技术的快速发展</code></div>
+      <div class="why">“随着…的快速发展”是中文 AI 生成文本的第一开场白——人大编码研究里 142 条被标记“AI 感”的小红书笔记中，模板开场是命中率最高的单项。它放在论文引言里的问题是双重的：既不提供文献综述信息，又立刻让评阅人想到“这段是 AI 写的”</div><div class="tip">→ 开头直接进研究缺口：谁的问题、卡在哪、本文接哪一棒。</div>
+    </div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-INFL-01 + L-TAIL-01 + L-PAD-01</span><span class="rname">意义拔高 + 公式化展望尾 + 「进行X」填充句</span><span class="loc">¶3</span></div>
+      <blockquote>这一发现<mark>标志着</mark>钙钛矿材料研究<mark>取得了重要进展</mark>，为后续的器件优化<mark>奠定了坚实的基础</mark>。</blockquote>
+      <div class="match">命中：<code>标志着、奠定了坚实的基础、取得了重要进展</code></div>
+      <div class="why">把一个具体结果包装成历史节点、范式转移或“重要意义”，是维基清单第一条（对意义/遗产的过度拔高）的中文变体：陈述一个事实，再挂一句它“标志着/揭示了/为…提供了新思路”。拔高句不增加任何信息——删掉后论文一个字不少，审稿人却少了一个皱眉的理由。「为…提供新思路」在医学摘要结尾是体裁常规，归 L-TAIL-01 按 medium 提示；本条只留人类极少刻意为之的标志性拔高</div><div class="tip">→ 只留事实和数字。“为…提供了新思路”改为具体说明新在哪：跟哪个已知方法的差别是什么。</div>
+    </div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-FORM-01</span><span class="rname">公式化开头</span><span class="loc">¶4</span></div>
+      <blockquote><mark>在当今快速发展的时代</mark>背景下，能源问题日益凸显。</blockquote>
+      <div class="match">命中：<code>在当今快速发展的时代</code></div>
+      
+    </div><div class="found sev-high">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">高</span><span class="rid">L-INFL-01 + L-TAIL-01 + L-CONN-01</span><span class="rname">意义拔高 + 公式化展望尾 + 模板连接词</span><span class="loc">¶4</span></div>
+      <blockquote><mark>此外</mark>，钙钛矿太阳能电池作为一种新兴的光伏技术，<mark>扮演着越来越重要</mark>的角色，<mark>有望在</mark>未来的能源格局中发挥关键作用。</blockquote>
+      <div class="match">命中：<code>扮演着越来越重要、有望在、此外</code></div>
+      <div class="why">这批词本身没有错，问题是密度：AI 把逻辑衔接当作每段必备的仪式，人类只在真需要转折/递进时才用。社科院语言所把“'首先其次总之'式虚假逻辑衔接”列为中文 AI 味的核心特征之一——衔接词在，但衔接的内容之间并没有真正的推导关系。单次出现只是提示，本文是否“衔接词病”看全文密度统计（D-CONN-01）</div><div class="tip">→ 删掉读一遍——句子之间的逻辑如果本来就通，连接词就是赘余；如果删掉就不通，说明缺的是论证不是连接词。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-HYPE-01</span><span class="rname">政策腔大词</span><span class="loc">¶1</span></div>
+      <blockquote>近年来，机器学习方法受到研究人员的广泛关注，成为推动材料研发的<mark>重要抓手</mark>。</blockquote>
+      <div class="match">命中：<code>重要抓手</code></div>
+      <div class="why">公文/自媒体的高热度词混进学术文本，是 AI 在错误语域生成的典型症状（它的训练语料里“赋能”高频出现在所有文体，所以顺手就用在论文里）。学术文本有术语体系，这类词既不是术语也没有操作性定义</div><div class="tip">→ 换成领域术语或具体动作。“AI 赋能实验教学”→“AI 用于预判滴定终点，减少 30% 重做率”。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-CONN-02 + L-CONN-01</span><span class="rname">首先…其次固定套路 + 模板连接词</span><span class="loc">¶2</span></div>
+      <blockquote><mark>首先，</mark>本文制备了系列的钙钛矿样品。</blockquote>
+      <div class="match">命中：<code>首先，、首先</code></div>
+      <div class="why">“首先…其次…”是 AI 组织段落的默认骨架，也是维基清单与中文社区鉴定共识的重叠区。真人学术写作更常用“（1）（2）”编号或直接分节，因为编号便于审稿人引用；散落的“首先其次”反而难定位</div><div class="tip">→ 换成编号列表或小节标题，或者干脆按实验/论证的自然顺序直陈。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-COPO-01</span><span class="rname">无证据强化词</span><span class="loc">¶5</span></div>
+      <blockquote>实验结果表明，该方法<mark>显著提升</mark>了器件的光电转换效率，<mark>充分证明</mark>了其优越性。</blockquote>
+      <div class="match">命中：<code>显著提升、充分证明</code></div>
+      <div class="why">“显著/有效/充分/深入/全面”这类强化副词本该有统计检验或对照数据背书。AI 的用法是系统性地、无证据地撒——“显著提升”旁边没有一个 p 值。学术规则库里区分度最高的一条（C-ReD：AI 命中率 48% vs 真人 9%）；在论文里它还有实际代价：审稿人会追问“显著到什么程度”</div><div class="tip">→ 每个强化词二选一：给出证据（数字、检验、对照），或删掉降为中性陈述。</div>
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-TAIL-01</span><span class="rname">公式化展望尾</span><span class="loc">¶6</span></div>
+      <blockquote>本研究为钙钛矿太阳能电池的产业化发展<mark>奠定了坚实基础</mark>，<mark>具有广阔的应用前景</mark>。</blockquote>
+      <div class="match">命中：<code>具有广阔的应用前景、奠定了坚实基础</code></div>
+      
+    </div><div class="found sev-medium">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">中</span><span class="rid">L-TAIL-01 + L-COPO-01</span><span class="rname">公式化展望尾 + 无证据强化词</span><span class="loc">¶6</span></div>
+      <blockquote>未来的研究将进一步<mark>深入探讨</mark>界面复合的抑制策略，<mark>有望推动</mark>该技术走向实际应用。</blockquote>
+      <div class="match">命中：<code>有望推动、深入探讨</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶2</span></div>
+      <blockquote><mark>其次</mark>，我们对样品进行了全面的表征分析。</blockquote>
+      <div class="match">命中：<code>其次</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶2</span></div>
+      <blockquote><mark>综上所述</mark>，本文开展了一系列深入而有效的研究工作。</blockquote>
+      <div class="match">命中：<code>综上所述</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶3</span></div>
+      <blockquote><mark>值得注意的是</mark>，该材料不仅具有优异的光电性能，更是展现出了良好的稳定性。</blockquote>
+      <div class="match">命中：<code>值得注意的是</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">L-CONN-01</span><span class="rname">模板连接词</span><span class="loc">¶4</span></div>
+      <blockquote><mark>与此同时</mark>，传统的硅基太阳能电池逐渐接近其理论效率极限。</blockquote>
+      <div class="match">命中：<code>与此同时</code></div>
+      
+    </div><div class="found sev-low">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">低</span><span class="rid">D-CONN-01</span><span class="rname">连接词密度过高</span><span class="loc">全文</span></div>
+      <div class="match">命中：<code>conn_density=0.316（阈值 0.08）</code></div>
+      <div class="why">每句平均出现的模板连接词（L-CONN-01 词表）超过 0.08 条。社科院语言所描述的“虚假逻辑衔接”在统计上的样子：衔接词密度与论证密度脱钩——词在，推导不在。阈值按摘要语料从宽校准（完整论文正文的基线更高，后续按文体细分）</div><div class="tip">→ 按段清理：先删所有连接词读一遍，补不回逻辑的地方才补词。</div>
+    </div><div class="hints"><div class="t">另有 3 处弱命中</div><div class="h">· L-NEGA-01 否定式排比（¶3）</div><div class="h">· L-EVADE-01 系动词回避（¶4）</div><div class="h">· S-CLOS-01 独句总结段（¶7）</div></div><div class="disclaimer">风格提示，不是 AI 判定。</div></div></div>
+</body></html>

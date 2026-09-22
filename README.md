@@ -41,6 +41,8 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 
 **VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
+**Obsidian 插件**：把 [obsidian-plugin/](obsidian-plugin/) 目录复制到 `<仓库>/.obsidian/plugins/human-vs-ai/`（文件夹名必须是 human-vs-ai），启用插件后：左侧栏印章图标或命令「分析当前文档」在侧边视图出报告（场景下拉/检测与改写建议切换/复制 Markdown），笔记修改 800ms 后自动重析；「改写建议（个人口味）」给删/改/留建议；设置页可选默认场景。视图跟随 Obsidian 亮暗主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_obsidian.py` 重新生成。
+
 **七个场景词表**：academic/general/official/personal 之外，v0.14 新增 essay（作文，C-ReD composition 域校准，留出 0.951）、news（新闻，C-ReD news 域，留出 0.935）、review（影评/短评——短文本统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
 
 **贡献校准样本（collect）**：`human-vs-ai collect 稿件.md --label miss|fp|hit` 导出脱敏 JSONL（手机号/邮箱/证件/卡号自动打码，附判定快照），自愿提交到项目渠道，帮词表在真实文本上进化。网页版报告栏「匿名样本」按钮同款。
@@ -102,6 +104,7 @@ python -m pytest tests/ -q              # 128 项单元+边界+评分+口味+格
 python tools/check_web_consistency.py   # Python/JS 双引擎一致性 294 项 × 7 场景（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
+node obsidian-plugin/smoke-test.js      # Obsidian 插件冒烟 14 项
 python tools/build_web.py               # 重新生成网页单文件
 python tools/build_vscode.py            # 重新注入扩展规则与引擎
 python tools/evaluate_cred.py           # C-ReD 学术语料评测（语料下载见 docs/rules.md）
