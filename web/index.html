@@ -263,6 +263,13 @@ body.resizing .pane { transition: none; }
 #report.swap .found:nth-child(4) { animation: popIn var(--t-base) var(--ease-out) .06s backwards; }
 #report.swap .found:nth-child(n+5) { animation: popIn var(--t-base) var(--ease-out) .09s backwards; }
 #report.swap .disclaimer { animation: popIn var(--t-base) var(--ease-out) .12s backwards; }
+/* 指数印章随内容入场落印：缩收 + 微转 + 透明度 */
+@keyframes stampIn {
+  from { opacity: 0; transform: rotate(-8deg) scale(1.5); }
+  60%  { opacity: 1; }
+  to   { opacity: 1; transform: rotate(-4deg) scale(1); }
+}
+#report.swap .seal { animation: stampIn .34s var(--ease-spring) .08s backwards; }
 .empty-busy { animation: dotsBreath 1.1s ease-in-out infinite; }
 @keyframes dotsBreath { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
 
@@ -340,8 +347,12 @@ mark {
 html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 
 .hints { margin-top: 12px; padding-top: 9px; border-top: 1.5px dotted var(--hairline); }
-.hints .t { font-size: var(--fs-sm); color: var(--ink-3); font-weight: 600; margin-bottom: 4px; }
-.hints .h { font-size: var(--fs-sm); color: var(--ink-3); }
+.hints summary.t { cursor: pointer; user-select: none; list-style: none; }
+.hints summary.t::-webkit-details-marker { display: none; }
+.hints summary.t::before { content: '▸ '; color: var(--ink-3); }
+.hints[open] summary.t::before { content: '▾ '; }
+.hints summary.t:hover { color: var(--ink); }
+.hints .h { font-size: var(--fs-sm); color: var(--ink-3); margin-top: 2px; }
 .hints .h .rid, .hints .rid { font-family: var(--mono); font-size: var(--fs-xs); }
 
 .disclaimer {
@@ -358,6 +369,11 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 .empty-block .mark-big { width: 104px; height: 104px; color: var(--accent); opacity: 0.94; }
 .empty-block .e-title { font-size: var(--fs-display); font-weight: 700; letter-spacing: -0.01em; }
 .empty-block .e-sub { font-size: var(--fs-sm); color: var(--ink-3); }
+.empty-block .e-acts { display: flex; align-items: center; gap: 18px; margin-top: 2px; }
+.empty-block .e-btn {
+  border: 1px solid var(--hairline); background: var(--card-2); color: var(--ink-2);
+}
+.empty-block .e-btn:hover { color: var(--accent-deep); border-color: var(--accent-line); background: var(--accent-soft); }
 .empty-block .stamp {
   font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.16em; cursor: pointer;
   color: var(--vermilion); border: 1.5px solid var(--vermilion);
@@ -397,6 +413,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 }
 .filters button:hover:not(.on) { background: var(--btn-hover); color: var(--ink); }
 .filters button.on { color: var(--accent-deep); background: var(--accent-soft); font-weight: 600; }
+.filters button .f-n { font-family: var(--mono); font-size: var(--fs-xs); margin-left: 3px; color: var(--ink-3); }
 
 /* —— toast（eggpaper：吸底居中、墨底纸字），可携带一个撤销动作 */
 .toast {
@@ -431,10 +448,12 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   .topbar { height: auto; padding: 8px 12px; row-gap: 6px; }
   .topbar .note { flex-basis: 100%; margin-left: 0; order: 10; }
   .wordmark .name { font-size: var(--fs-xl); }
-  /* 触控目标：分段按钮加高到 ~44px，间距拉开防误触 */
-  .segmented { gap: 0; }
-  .segmented + .segmented { margin-left: 4px; }
-  .segmented button { padding: 14px 14px; }
+  /* 触控目标：分段按钮加高到 ~44px；允许换行，滑块在多行下无意义，
+     改用填充高亮标示活动项 */
+  .segmented { flex-wrap: wrap; }
+  .segmented .seg-thumb { display: none; }
+  .segmented button { padding: 12px 14px; }
+  .segmented button.on { background: var(--accent); color: #fff; }
   #themeBtn { padding: 12px 12px; }
 }
 @media (prefers-reduced-motion: reduce) {
@@ -454,7 +473,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.15.0</span>
+    <span class="head-ver">v0.16.0</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1297,10 +1316,11 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
     const more = hints.length - shown.length;
-    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中</div>` +
+    /* 折叠为 details：弱命中只是参考信息，默认收起不淹没正文发现 */
+    return `<details class="hints"><summary class="t">另有 ${hints.length} 处弱命中</summary>` +
       shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       (more ? `<div class="h">…等 ${more} 处</div>` : "") +
-      `</div>`;
+      `</details>`;
   }
 
   return {
@@ -1327,6 +1347,7 @@ let debounceTimer = null;
 let lastResult = null;   // 检测模式最近一次结果（复制按钮的数据源）
 let lastAdvice = null;   // 改写模式最近一次结果
 let adviceFilter = "all";
+try { const f = localStorage.getItem("hva:filter"); if (["all", "删", "改", "保留"].includes(f)) adviceFilter = f; } catch (e) {}
 let analyzeGen = 0;   // 大文本 rAF 任务的代数——换档/换模式后旧任务作废
 let shouldAnimate = true;   // 上下文切换（空态/换档/换模式）时给一次入场动画
 
@@ -1572,7 +1593,7 @@ function renderAdvice() {
   const n = k => A.filter(a => a.action === k).length;
   const parts = [`<div class="counts"><span>共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></span>` +
     `<span class="filters">${FILTERS.map(([key, label]) =>
-      `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}</button>`).join("")}</span></div>`];
+      `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}${key !== "all" ? `<span class="f-n">${n(key)}</span>` : ""}</button>`).join("")}</span></div>`];
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
   if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目。</div>');
   shown.forEach(a => {
@@ -1590,7 +1611,11 @@ function renderAdvice() {
   shouldAnimate = false;
   reportEl.innerHTML = parts.join("");
   reportEl.querySelectorAll(".filters button").forEach(b => {
-    b.onclick = () => { adviceFilter = b.dataset.f; renderAdvice(); };
+    b.onclick = () => {
+      adviceFilter = b.dataset.f;
+      try { localStorage.setItem("hva:filter", adviceFilter); } catch (e) {}
+      renderAdvice();
+    };
   });
 }
 

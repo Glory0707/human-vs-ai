@@ -17,12 +17,23 @@ const RULES = require("./rules.json");
 let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, scoreRow, scoreNoteRow, hintsHtml,
+const { esc, fmt, hiSentence, hintsHtml, componentsText,
         SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
    编辑器装饰必须给实色；hint 档不画装饰） */
-const SEV_COLOR = { high: "#B3261E", medium: "#9A6B00", low: "#0F766E" };
+const SEV_COLOR = { high: "#B3351F", medium: "#9C7414", low: "#1D4E5F" };
+
+/* 指数印章（web 同款：mono + 大字距 + 档位色 + 斜放） */
+function sealHtml(score) {
+  if (!score) return "";
+  const idx = score.index.toFixed(0);
+  const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+  return `<div class="row score">` +
+    `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
+    `<span class="score-main"><span class="t">${idx} / 100</span>` +
+    `<span class="sub">风格综合分 · 真人 p50≈${score.human_p50} / p90≈${score.human_p90} · 构成：${componentsText(score.components)}</span></span></div>`;
+}
 
 /* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
    样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
@@ -32,8 +43,8 @@ function renderReportHtml(fileName, profile, result) {
   const parts = [];
 
   parts.push(`<div class="stats">
-    ${scoreRow(result.score)}
-    ${scoreNoteRow(result.score_note)}
+    ${sealHtml(result.score)}
+    ${result.score_note ? `<div class="row score-note">AI 味指数 —（${esc(result.score_note)}）</div>` : ""}
     <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
     ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
@@ -54,8 +65,8 @@ function renderReportHtml(fileName, profile, result) {
       const showWhy = !explained.has(f.rule_id);
       if (showWhy) explained.add(f.rule_id);
       const matchArr = [...new Set(f.matches)];
-      parts.push(`<div class="found">
-        <div class="head"><span class="dot" style="background:${SEV_COLOR[sev]}"></span>${SEV_NAME[sev]} · ${esc(f.rule_id)} ${esc(f.rule_name)}<span class="loc">${loc}</span></div>
+      parts.push(`<div class="found sev-${sev}">
+        <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[sev]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">${loc}</span></div>
         ${f.sentence ? `<blockquote>${hiSentence(f.sentence, matchArr)}</blockquote>` : ""}
         ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${showWhy ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
@@ -70,7 +81,7 @@ function renderReportHtml(fileName, profile, result) {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">
 <style>
 body {
   font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -83,40 +94,86 @@ body {
   --ink-3: var(--vscode-descriptionForeground, #8A8A86);
   --chip: var(--vscode-textCodeBlock-background, #F4F4F2);
   --soft: var(--vscode-textBlockQuote-background, #FAFAF8);
-  --mark: rgba(154, 107, 0, 0.20);
+  --accent-soft: rgba(29, 78, 95, 0.12);
+  --accent-line: rgba(29, 78, 95, 0.34);
+  --accent-deep: #123a47;
+  --mark: rgba(184, 70, 46, 0.12);
+  --sev-high: #B3351F;
+  --sev-medium: #9C7414;
+  --sev-low: #1D4E5F;
+  --mono: 'JetBrains Mono', ui-monospace, 'Cascadia Mono', 'Consolas', monospace;
   overflow-wrap: anywhere;
 }
 body.vscode-dark, body.vscode-high-contrast {
-  --sev-high: #E5706A;
-  --sev-medium: #D0A238;
-  --sev-low: #45B8A8;
-  --mark: rgba(208, 162, 56, 0.30);
+  --sev-high: #E06A50;
+  --sev-medium: #CFA23A;
+  --sev-low: #74b4c7;
+  --accent-soft: rgba(116, 180, 199, 0.16);
+  --accent-line: rgba(116, 180, 199, 0.4);
+  --accent-deep: #9ad0e0;
+  --mark: rgba(224, 106, 80, 0.16);
+  --chip: rgba(255, 255, 255, 0.06);
+  --soft: rgba(255, 255, 255, 0.05);
 }
 b { font-variant-numeric: tabular-nums; }
 @keyframes riseIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 .found, .hints, .advice, .counts, .disclaimer { animation: riseIn .26s cubic-bezier(.2,.7,.3,1) backwards; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 .stats { padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
-.stats .row { font-size: 12px; color: var(--ink-2); }
+.stats .row { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
 .stats .row + .row { margin-top: 2px; }
-.stats .row.score b.s-high { color: var(--sev-high); }
-.stats .row.score b.s-medium { color: var(--sev-medium); }
-.stats .row.score b.s-low { color: var(--sev-low); }
-.stats .row.score .comp { color: var(--ink-3); }
-.stats .row.score b { color: inherit; }
-.summary { padding: 12px 0 4px; font-weight: 600; }
-.found { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
-.found .head { font-weight: 600; }
-.found .head .loc { color: var(--ink-3); font-weight: 400; font-size: 10.5px; margin-left: 8px; }
+.row.score { display: flex; align-items: center; gap: 14px; margin-bottom: 10px; }
+.seal {
+  flex: none; display: inline-flex; flex-direction: column; align-items: center;
+  justify-content: center; padding: 6px 12px; border: 1.5px solid currentColor;
+  border-radius: 3px; transform: rotate(-4deg); font-family: var(--mono); line-height: 1;
+}
+.seal .n { font-size: 24px; font-weight: 700; }
+.seal .u { font-size: 8.5px; letter-spacing: 0.3em; margin-top: 3px; }
+.seal.high { color: var(--sev-high); }
+.seal.medium { color: var(--sev-medium); }
+.seal.low { color: var(--sev-low); }
+.score-main .t { font-weight: 650; font-size: 14px; }
+.score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.row.score-note { color: var(--ink-3); }
+.summary { padding: 12px 0 4px; font-weight: 650; }
+.found {
+  background: var(--chip); border: 1px solid var(--hairline);
+  border-left-width: 2.5px; border-radius: 0 3px 3px 0;
+  padding: 7px 10px 8px; margin-bottom: 8px;
+}
+.found.sev-high { border-left-color: var(--sev-high); }
+.found.sev-medium { border-left-color: var(--sev-medium); }
+.found.sev-low { border-left-color: var(--sev-low); }
+.mg-head { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; flex-wrap: wrap; }
+.mg-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+.sev-high .mg-dot { background: var(--sev-high); }
+.sev-medium .mg-dot { background: var(--sev-medium); }
+.sev-low .mg-dot { background: var(--sev-low); }
+.mg-kind { font-size: 10.5px; font-weight: 600; }
+.sev-high .mg-kind { color: var(--sev-high); }
+.sev-medium .mg-kind { color: var(--sev-medium); }
+.sev-low .mg-kind { color: var(--sev-low); }
+.rid { font-family: var(--mono, Consolas); font-size: 10.5px; color: var(--ink-2); }
+.rname { font-weight: 600; font-size: 12px; }
+.found .head .loc, .loc { color: var(--ink-3); font-weight: 400; font-size: 10.5px; margin-left: auto; font-family: var(--mono, Consolas); }
 blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid var(--hairline); color: var(--ink-2); }
 .match { font-size: 12px; color: var(--ink-3); margin: 2px 0 6px; }
-.match code { background: var(--chip); padding: 0 4px; border-radius: 2px; }
+.match code { background: var(--accent-soft, var(--chip)); border: 1px solid var(--accent-line, var(--chip)); padding: 0 4px; border-radius: 2px; }
 .why { margin: 3px 0; }
 .tip { color: var(--sev-low); margin-top: 3px; }
-mark { background: var(--mark); color: inherit; border-radius: 2px; padding: 0 1px; }
+mark {
+  background-color: var(--mark);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 3q1.75 -2.4 3.5 0t3.5 0' fill='none' stroke='%23b8462e' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
+  background-repeat: repeat-x; background-position: 0 100%; background-size: 7px 4px;
+  color: inherit; border-radius: 1px; padding: 0 1px;
+}
 .hints { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--hairline); }
-.hints .t { font-size: 12px; color: var(--ink-3); font-weight: 600; margin-bottom: 4px; }
-.hints .h { font-size: 12px; color: var(--ink-3); }
+.hints summary.t { cursor: pointer; user-select: none; list-style: none; }
+.hints summary.t::-webkit-details-marker { display: none; }
+.hints summary.t::before { content: '▸ '; }
+.hints[open] summary.t::before { content: '▾ '; }
+.hints .h { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
 .disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
               color: var(--ink-3); border-radius: 3px; }
 .docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
@@ -145,7 +202,7 @@ function renderAdviceHtml(fileName, result) {
   return `<!DOCTYPE html>
 <html lang="zh-CN">
 <head><meta charset="UTF-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; img-src data:;">
 <style>
 body {
   font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
@@ -172,11 +229,11 @@ b { font-variant-numeric: tabular-nums; }
 .counts { padding: 6px 0 12px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--hairline); }
 .advice { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
 .tag { display: inline-block; min-width: 18px; text-align: center; font-size: 10.5px; font-weight: 600;
-       border-radius: 2px; padding: 1px 5px; margin-right: 8px;
-       background: var(--vscode-textCodeBlock-background, #F4F4F2); color: var(--ink-2); }
-.advice.del .tag { background: rgba(179, 38, 30, 0.14); color: var(--sev-high); }
-.advice.chg .tag { background: rgba(154, 107, 0, 0.14); color: var(--sev-medium); }
-.advice.keep .tag { background: rgba(15, 118, 110, 0.12); color: var(--sev-low); }
+       border-radius: 3px; padding: 1px 5px; margin-right: 8px;
+       border: 1px solid currentColor; background: transparent; color: var(--ink-2); }
+.advice.del .tag { color: var(--sev-high); }
+.advice.chg .tag { color: var(--sev-medium); }
+.advice.keep .tag { color: var(--sev-low); }
 .taste { font-size: 10.5px; color: var(--ink-3); margin-left: 6px; }
 .why { color: var(--ink-2); margin: 4px 0 0 26px; }
 .cand { color: var(--sev-low); margin: 3px 0 0 26px; }
@@ -273,19 +330,38 @@ function rewriteActive() {
   );
 }
 
-function analyzeActive() {
+let lastProfile = null;   // 会话内记住上次场景，QuickPick 排最前
+
+async function pickProfile(vscode) {
+  const configured = vscode.workspace.getConfiguration("human-vs-ai").get("profile", "academic");
+  const names = Object.keys(RULES).sort((a, b) =>
+    (a === lastProfile ? -1 : b === lastProfile ? 1 : 0) || a.localeCompare(b));
+  const items = names.map(p => ({
+    label: (PROFILE_META[p] || [p])[0],
+    description: (p === configured ? "设置默认 · " : "") + (PROFILE_META[p] || ["", ""])[1],
+    profile: p,
+  }));
+  const picked = await vscode.window.showQuickPick(items, {
+    placeHolder: "选择场景——词表按文体分治，选错会误报",
+  });
+  return picked ? picked.profile : null;
+}
+
+async function analyzeActive() {
   const vscode = require("vscode");
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
     vscode.window.showInformationMessage("human-vs-ai：先打开一个文本文件。");
     return;
   }
-  const profile = vscode.workspace.getConfiguration("human-vs-ai").get("profile", "academic");
+  const profile = (await pickProfile(vscode)) || lastProfile ||
+    vscode.workspace.getConfiguration("human-vs-ai").get("profile", "academic");
   const rules = RULES[profile];
   if (!rules) {
     vscode.window.showErrorMessage(`human-vs-ai：未知场景 ${profile}（可用：${Object.keys(RULES).join("、")}）`);
     return;
   }
+  lastProfile = profile;
   const text = editor.document.getText();
   const result = HvA.analyze(text, rules, SCORING[profile] || null);
   const fileName = path.basename(editor.document.fileName);

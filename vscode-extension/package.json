@@ -2,7 +2,7 @@
   "name": "human-vs-ai",
   "displayName": "human-vs-ai · 中文 AI 味分析",
   "description": "可解释的中文 AI 味分析器：逐句指出哪里像模板、为什么、怎么改。纯本地，不判 AI 概率。",
-  "version": "0.15.0",
+  "version": "0.16.0",
   "publisher": "glory0707",
   "license": "MIT",
   "icon": "icon.png",
@@ -45,13 +45,19 @@
             "academic",
             "general",
             "official",
-            "personal"
+            "personal",
+            "essay",
+            "news",
+            "review"
           ],
           "enumDescriptions": [
             "学术/论文（学位论文、期刊论文、实验报告）",
             "通用/问答/自媒体（知乎、公众号、科普、博客）",
             "公文/公务文书（通知、意见、实施方案）",
-            "个人口味短文案（界面文案、标题、提示语）"
+            "个人口味短文案（界面文案、标题、提示语）",
+            "作文/议论文（高考作文、考场写作、征文）",
+            "新闻/资讯（报道、通稿、资讯内容）",
+            "影评/短评（影评书评、商品点评；短文本仅词表层）"
           ],
           "default": "academic",
           "description": "分析场景——词表规则按文体分治，选错场景会误报。"

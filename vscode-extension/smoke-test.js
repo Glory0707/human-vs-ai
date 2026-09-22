@@ -86,7 +86,7 @@ check("hints capped at 12", !capHtml.includes("列前") && capHtml.includes("…
 check("dark theme hooks", aiHtml.includes("vscode-dark") && aiHtml.includes("--vscode-editor-background"));
 
 // 8.5 综合评分行：指数 + 构成 + 分档（academic 带 scoring 注入）
-check("score row rendered", aiHtml.includes("AI 味指数") && /s-(high|medium|low)/.test(aiHtml),
+check("score row rendered", aiHtml.includes("AI味指数") && /class="seal (high|medium|low)"/.test(aiHtml),
   "index row missing");
 check("score components shown", aiHtml.includes("构成"));
 const officialResult = HvA.analyze("首先进行研究。其次进行分析。此外完成验证。与此同时记录数据。最后归纳结论。另外补充实验。总之效果良好。结果表明方法可行。", RULES.official, null);
@@ -136,10 +136,10 @@ check("locate first", located[0].start === doc.indexOf("首先要明确目标。
 check("locate duplicates advance", located.length === 2 && located[1].start > located[0].start,
   JSON.stringify(located));
 
-// 6. 输出预览文件(视觉审查用)
-const previewText = fs.readFileSync(path.join(ROOT, "tests/data/ai_official.txt"), "utf-8");
-const previewResult = HvA.analyze(previewText, RULES.official);
-const previewHtml = renderReportHtml("ai_official.txt", "official", previewResult);
+// 6. 输出预览文件(视觉审查用):academic 带评分,印章可见
+const previewText = fs.readFileSync(path.join(ROOT, "tests/data/ai_academic.txt"), "utf-8");
+const previewResult = HvA.analyze(previewText, RULES.academic, SCORING.academic || null);
+const previewHtml = renderReportHtml("ai_academic.txt", "academic", previewResult);
 const out = path.join(ROOT, "_qa", "vscode-preview.html");
 fs.mkdirSync(path.dirname(out), { recursive: true });
 fs.writeFileSync(out, previewHtml, "utf-8");

@@ -93,10 +93,11 @@
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
     const more = hints.length - shown.length;
-    return `<div class="hints"><div class="t">另有 ${hints.length} 处弱命中</div>` +
+    /* 折叠为 details：弱命中只是参考信息，默认收起不淹没正文发现 */
+    return `<details class="hints"><summary class="t">另有 ${hints.length} 处弱命中</summary>` +
       shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       (more ? `<div class="h">…等 ${more} 处</div>` : "") +
-      `</div>`;
+      `</details>`;
   }
 
   return {

@@ -118,8 +118,12 @@ mark {
   color: inherit; padding: 0 1px;
 }
 .hints { margin-top: 12px; padding-top: 9px; border-top: 1.5px dotted var(--hairline); }
+.hints summary.t { cursor: pointer; user-select: none; list-style: none; }
+.hints summary.t::-webkit-details-marker { display: none; }
+.hints summary.t::before { content: '▸ '; }
+.hints[open] summary.t::before { content: '▾ '; }
 .hints .t { font-size: 12px; color: var(--ink-3); font-weight: 600; margin-bottom: 4px; }
-.hints .h { font-size: 12px; color: var(--ink-3); }
+.hints .h { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
 .disclaimer {
   margin-top: 14px; padding: 8px 12px; background: var(--paper-deep);
   font-size: 10.5px; color: var(--ink-2); border-radius: 4px;
