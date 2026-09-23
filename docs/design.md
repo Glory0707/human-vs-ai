@@ -41,8 +41,8 @@
 
 ## 4. 排队事项（按需启动）
 
-- **P2**：general 当代长文 QA 评分语料积累（词表当代验证已于 v0.14 完成，C-ReD QA；样本入口为 collect 导出的匿名 JSONL）· 公文 AI 真实样本扩充（当前为构造样本，有自我偏差）
-- **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移）· 句级困惑度（Qwen 本地小模型，可选插件不进默认依赖）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）
+- **P2**：general 当代长文 QA **评分**语料积累（词表当代验证 v0.17 双代际完成；gen2026 问答 69 篇已入库 `_qa/corpus/`，评分拟合等样本扩量；样本入口为 collect 导出的匿名 JSONL）· official 事务公文真人样本扩充（v0.17 词表初步验证完成：9 模型 AI 公文组合覆盖 100% / 真人 0 误伤，但真人侧仅 15 篇规章文体）
+- **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移；漂移监测机制 v0.17 已上线 `tools/drift_monitor.py`）· 句级困惑度（Qwen 本地小模型，可选插件不进默认依赖）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）
 
 ## 5. 架构（已验证）
 
@@ -50,6 +50,8 @@
 CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / explain / profiles）
         │
 引擎 engine.analyze() ── 规则库 YAML（七 profile）+ 统计 stats + 切分 segment
+        │                   ├ ood.detect（域外文体：文言/诗行 → 报告随行提示）
+        │                   └ para_heat（段落热度：混写文本定位哪几段最像 AI）
         │
 报告 report（terminal ANSI / markdown / json，同一份内容多出口；
         sarif / html 由 sarif.py、htreport.py 供 CLI 直接调用）
@@ -63,21 +65,26 @@ node smoke-test.js 冒烟）
 
 Obsidian 插件：obsidian-plugin/（同一套注入，tools/build_obsidian.py 生成
 main.js/manifest.json；侧边视图 + 命令 + 设置页，node smoke-test.js 冒烟）
+
+校准工具链（v0.17）：tools/gen_samples.py（大模型 API 生成当季评测语料，
+key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器/LLM 当
+攻击者）· tools/drift_monitor.py（collect 样本分布漂移监测）
 ```
 
 工程纪律：零网络调用；切分口径全文唯一且跨端可复现（字级 2-gram，不依赖任何分词库，v0.11.0 起 jieba 退场）；规则阈值全部放 YAML 不进代码（校准只改数据）；报告渲染与引擎解耦（JSON 是唯一事实源，terminal/md 都是它的投影）；双实现不许独立演化（一致性测试是网页版的发布门）。
 
 ## 6. 验证基线（当前值，复现命令见 README「开发」）
 
-- **单元测试**：131 项（切分/统计/引擎/边界/报告与文案/评分/口味与改写/格式与工作流/多文体 profile/端到端区分度）；私库回归 5 项无 corpus_private/ 时自动跳过
+- **单元测试**：161 项（切分/统计/引擎/边界/报告与文案/评分/口味与改写/格式与工作流/多文体 profile/域外与漂移/端到端区分度）；私库回归 5 项无 corpus_private/ 时自动跳过
 - **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.046 vs AI 0.170–0.307，AUROC **0.804**；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
 - **HC3-Chinese 校准**：词表 AUROC 0.476（学术词表在问答文体失效——profile 分治的实证）；CV 0.763；字级 2-gram TTR 0.684
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
 - **公文**：真人公开公文误报 **0/15**（验收 <20% PASS）；AI 样本 7 处命中逐条人工核对成立
 - **fixture 冒烟**：AI 样本 20 处命中（高 4）vs 人类样本 0 高 0 中（tests/data/）
-- **多文体扩展（v0.14）**：essay 评分留出 **0.951**、news **0.935**（C-ReD 全量类平衡）；review 短评词表层不出分；general 词表当代验证（QA 域三连排比 AI 77 vs 真人 34）——详见 rules.md §9
+- **多文体扩展（v0.14）**：essay 评分留出 **0.951**、news **0.935**（C-ReD 全量类平衡）；review 短评词表层不出分——详见 rules.md §9
+- **当代验证（v0.17）**：essay 全量重跑 AUROC **0.942** / news **0.933**（按模型分解：qwen-2.5/claude/gpt-4o 召回 95%+，gpt-3.5 旧代仅 53%）；general 词表双代际验证（C-ReD QA 全量 + gen2026 当季 9 模型 69 篇：三连排比 83% 命中仍是当代最顽固指纹）；official 词表初步验证（9 模型 AI 公文组合覆盖 100% / 真人 0 误伤）；**域外探测**判据 C-ReD 全量 10.4 万篇校准（正样本 5/5、误报 0.005%）；**对抗自评测**（LLM 洗稿攻击后仍 100% 超阈值——统计底盘扛住定向规避）——详见 rules.md §9 与 _qa/*.md
 - **引擎性能**：10 万字 112ms（线性，2026-09 基准）
-- **双引擎一致性**：27 段语料 + 15 条改写探针 × 7 profile = **294 项**逐字段 diff 全绿；含 emoji 码点/行分隔符全集/孤立低代理/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水等对抗探针
+- **双引擎一致性**：27 段语料 + 15 条改写探针 × 7 profile = **308 项**逐字段 diff 全绿（含 ood/para_heat 字段对拍）；含 emoji 码点/行分隔符全集/孤立低代理/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水等对抗探针
 - **口味校准层**：personal 12 条口味条目 + rewrite；被毙稿召回 31/31、定稿误报 0/37、改写维度 5/6；`tools/check_private_leak.py` 守护边界
 
 ### 轮次日志（细节见 [plan.md](plan.md) 轮次注记与 [rules.md](rules.md) §8）
@@ -109,12 +116,15 @@ main.js/manifest.json；侧边视图 + 命令 + 设置页，node smoke-test.js �
 | v0.16.1 | 冗余清理轮（零功能变化）：render.js 死叶 scoreRow 移除、sealHtml 三份拷贝收敛为共享叶子；死 CSS（.seal.none/旧 b.s-* 档位色）清理；pyflakes 清零（htreport OrderedDict、build_obsidian shutil、domain_recon re/hvastats、fit_score rng 与无占位 f-string、fit_domain 死赋值、report.py _TIER_LABEL）；pyflakes 纳入日常自查 |
 | v0.16.2 | 文件与文案清理轮：删 .playwright-mcp/gui-test-screenshots 等中间文件；全端文案收短（拖动提示/样本导出悬浮与 toast/空态副题/铭文悬浮/QuickPick 占位/指数副行去掉与印章重复的"风格综合分"前缀），保留纯本地信任行与免责行 |
 | v0.16.3 | 测试员轮（131 项测试）：修 4 个边界 bug——①batch 字面路径优先于 glob（文件名带 [ ] 被字符类吃掉误报"无匹配"）；②web 全局拦截文件拖放默认行为（拖到栏外浏览器整页跳转丢会话）；③VS Code QuickPick Esc 取消不再拿默认场景偷偷分析；④collect 空文本守卫。7 场景 × 19 组模糊轰炸（孤立代理/控制字符/纯标点/不平衡引号/超长行）0 炸 |
+| v0.17.0 | 当代验证+域外+锚点轮：general 词表双代际当代验证（C-ReD QA 全量 + gen2026 当季 9 模型 69 篇，D-DASH 问答域反向砍掉）；域外文体探测器 ood.py + JS 同构（文言×低"的地得"×零"了"三信号、等长对句诗行，四端随行提示）；四端分数读数语言（"超过 90% 校准真人"，p50/p90 移入悬浮）；tools/gen_samples.py 大模型 API 语料生成器（key 外读） |
+| v0.17.1 | 段落热度轮：compute_para_heat 每段加权密度（与全文 hit_density 同口径，level 三档），混写文本定位"哪几段最像 AI"，四端同行展示；density 保留全精度（Py banker's vs JS half-up 漂移规避） |
+| v0.17.2 | 校准机制化轮：tools/adversarial_eval.py 对抗自评测（改写器/LLM 双攻击者：LLM 洗稿后词表层归零但统计底盘扛住、仍 100% 超阈值）；tools/drift_monitor.py 漂移监测（collect 样本按 profile 聚合对比基线，p50≥15 分/规则≥10pp 信号）；official 场景 gen2026 公文 70 篇初步验证（组合覆盖 100%/真人 0 误伤） |
 
 ## 7. 已知限制
 
 - 摘要级短文本：统计指标样本不足时静默不判（不报"数据不足"是设计——报告里 `—` 已说明）
 - 公文体/新闻体：天然工整，句长 CV 低是真人文风，现阈值会误伤——分档阈值在 P2
-- 词表特征随模型漂移：英文侧 delve（GPT-5 后骤降）、破折号（GPT-5.1 压制）已证明静态词表会过期；era 字段与季度重挖在 P3
+- 词表特征随模型漂移：英文侧 delve（GPT-5 后骤降）、破折号（GPT-5.1 压制）已证明静态词表会过期；漂移监测机制已上线（v0.17 `tools/drift_monitor.py`），era 季度重挖在 P3
 - C-ReD 摘要语料测不到"首先…其次"等展开型套路（摘要太短），这些规则的区分度数字待完整论文语料补充
 - 评分的长度语义：字级 2-gram TTR 在数百字以上趋饱和（≈0.92），polished 长文指数偏高——长档（≥600 字）分档系数已上线（v0.12.0，长档 holdout 0.975），但校准人群仍是摘要级语料，真实长文真人样本待积累；毕设实测（2.9 万字，指数 92→99）为该边界实例
 

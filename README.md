@@ -45,7 +45,11 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 
 **七个场景词表**：academic/general/official/personal 之外，v0.14 新增 essay（作文，C-ReD composition 域校准，留出 0.951）、news（新闻，C-ReD news 域，留出 0.935）、review（影评/短评——短文本统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
 
-**贡献校准样本（collect）**：`human-vs-ai collect 稿件.md --label miss|fp|hit` 导出脱敏 JSONL（手机号/邮箱/证件/卡号自动打码，附判定快照），自愿提交到项目渠道，帮词表在真实文本上进化。网页版报告栏「匿名样本」按钮同款。
+**域外文体提示**：文言/诗行超出评测语料域，指数会系统性虚高——检测到时四端随行提示"文体域外，指数仅供参考"，而不是让虚高分数挂着不解释。
+
+**段落热度**：人改 AI 初稿的混写文本里全篇一个分数必然失真——报告标出"哪几段最像 AI"（每段命中密度/句，前 3 段）。
+
+**贡献校准样本（collect）**：`human-vs-ai collect 稿件.md --label miss|fp|hit` 导出脱敏 JSONL（手机号/邮箱/证件/卡号自动打码，附判定快照），自愿提交到项目渠道，帮词表在真实文本上进化。网页版报告栏「匿名样本」按钮同款。样本进料后用 `tools/drift_monitor.py` 按月看分布漂移（p50/规则命中率变化即触发词表复审）。
 
 **口味校准层（personal）**：三个公开 profile 校准通用 AI 味；`personal` 校准的是作者本人的文案取舍——私库标注链（被毙 31 vs 定稿 37）归纳出 12 条口味条目，配套 `rewrite` 子命令。详见 [docs/taste_zhouao.md](docs/taste_zhouao.md)，语料永不入库。
 
@@ -100,8 +104,8 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 131 项单元+边界+评分+口味+格式+多文体+私库回归（私库层缺语料自动跳过）
-python tools/check_web_consistency.py   # Python/JS 双引擎一致性 294 项 × 7 场景（需 node）
+python -m pytest tests/ -q              # 161 项单元+边界+评分+口味+格式+多文体+域外+漂移+私库回归（私库层缺语料自动跳过）
+python tools/check_web_consistency.py   # Python/JS 双引擎一致性 308 项 × 7 场景（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
 node obsidian-plugin/smoke-test.js      # Obsidian 插件冒烟 14 项
@@ -111,6 +115,9 @@ python tools/evaluate_cred.py           # C-ReD 学术语料评测（语料下�
 python tools/evaluate.py                # HC3-Chinese 问答语料评测
 python tools/evaluate_official.py       # 公文语料评测（误报率验收）
 python tools/eval_taste_regression.py   # 口味回归（需私库语料，缺失自动跳过）
+python tools/gen_samples.py --scene qa  # 大模型 API 生成当季评测语料（key 外读，语料不入库）
+python tools/adversarial_eval.py        # 对抗自评测：改写器/LLM 当攻击者
+python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
 ```
 
 设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）· [中文AI味领域深度研究.md](docs/中文AI味领域深度研究.md)（立项调研）。
