@@ -18,20 +18,21 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-# 与 stats._PUNCT 同一标点口径（含中英文），去标点后才是”正文字符”
-PUNCT = re.compile(r"[，。！？；：、…“”‘’《》（）()\[\]【】,\.!\?;:\"'—\-\s]")
-# 文言虚词强表：白话零频字。禁收”之/者/也/或/亦/耳/耶”——白话/专名误伤实测教训
+from .stats import PUNCT  # 标点口径单一事实源：与统计层逐字一致靠共用，不靠人肉同步
+
+# 文言虚词强表：白话零频字。禁收"之/者/也/或/亦/耳/耶"——白话/专名误伤实测教训
 _STRONG = "乎哉兮矣焉欤俟汝尓乃遂皆曰"
 _DE = "的地得"
-_INNER = "，、；"  # 对句内部分隔
-_INNER_RE = re.compile(f"[{_INNER}]")  # 预编译：detect 对每句调用，10 万字级可省 10% 分析耗时
-_N_MIN = 80  # 更短的正文字数信号不稳，不判
-DeMax = 0.010   # classical：的地得密度上限
-StrongMin = 0.008  # classical：文言虚词密度下限
-LeMax = 0.006   # classical：了字密度上限
-BalMin = 0.60   # verse：等长对句占比下限
-BalSentsMin = 4  # verse：最少句数
-PartLen = (5, 9)  # verse：对句分句字数窗（五言~九言）
+_LE = "了"
+# 对句内部分隔；预编译——detect 对每句调用，长文上缓存查找开销可观
+_INNER_RE = re.compile("[，、；]")
+_N_MIN = 80        # 更短的正文字数信号不稳，不判
+_DE_MAX = 0.010    # classical：的地得密度上限
+_STRONG_MIN = 0.008  # classical：文言虚词密度下限
+_LE_MAX = 0.006    # classical：了字密度上限
+_BAL_MIN = 0.60    # verse：等长对句占比下限
+_BAL_SENTS_MIN = 4  # verse：最少句数
+_PART_LEN = (5, 9)  # verse：对句分句字数窗（五言~九言）
 
 
 def detect(sentences: list[str]) -> list[str]:
@@ -47,21 +48,21 @@ def detect(sentences: list[str]) -> list[str]:
     cnt = Counter(clean)
     de = sum(cnt[c] for c in _DE) / n
     strong = sum(cnt[c] for c in _STRONG) / n
-    le = cnt["了"] / n
+    le = cnt[_LE] / n
 
     kinds: list[str] = []
-    if de < DeMax and strong >= StrongMin and le < LeMax:
+    if de < _DE_MAX and strong >= _STRONG_MIN and le < _LE_MAX:
         kinds.append("classical")
 
     bal = 0
     lens: set[int] = set()
-    lo, hi = PartLen
+    lo, hi = _PART_LEN
     for s in sentences:
         parts = [p for p in _INNER_RE.split(s) if p.strip()]
         ls = [len(PUNCT.sub("", p)) for p in parts]
         if len(parts) == 2 and all(lo <= x <= hi for x in ls):
             bal += 1
             lens.update(ls)
-    if bal >= BalSentsMin and bal / len(sentences) >= BalMin and len(lens) == 1:
+    if bal >= _BAL_SENTS_MIN and bal / len(sentences) >= _BAL_MIN and len(lens) == 1:
         kinds.append("verse")
     return kinds

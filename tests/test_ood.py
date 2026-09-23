@@ -103,7 +103,8 @@ class TestEngineIntegration:
                 "综上所述，唯有坚持方能谱写青春华章。让我们携手共进，绽放属于自己的光彩。")
         r = engine.analyze(text, "essay")
         if r.score:
-            line = report_score_line(r)
+            from human_vs_ai.report import _score_line
+            line = _score_line(r.score)
             assert ("校准真人" in line) or line.endswith("/ 100")
 
     def test_ood_hint_does_not_affect_score(self):
@@ -153,7 +154,3 @@ class TestParaHeat:
         r = engine.analyze(MIXED, "general")
         assert all(h["para"] >= 0 for h in r.para_heat)
 
-
-def report_score_line(r):
-    from human_vs_ai.report import _score_line
-    return _score_line(r.score)

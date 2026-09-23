@@ -88,13 +88,17 @@ def aggregate(rows: list[dict], by_month: bool = False) -> dict:
 def compare(old: dict, new: dict) -> list[str]:
     """同 key 场景漂移信号；只在新旧都存在的组间对比。"""
     signals = []
+
+    def finite(x) -> bool:
+        return x is not None and x == x  # None / NaN（无样本组分位）都不比
+
     for key, cur in new.items():
         base = old.get(key)
         if not base:
             continue
         for stat, name in (("p50", "指数 p50"), ("p90", "指数 p90")):
             b, c = base.get(stat), cur.get(stat)
-            if b is not None and c is not None and c is c and b == b and abs(c - b) >= P50_DRIFT:
+            if finite(b) and finite(c) and abs(c - b) >= P50_DRIFT:
                 signals.append(f"[{key}] {name}漂移 {b:.0f} → {c:.0f}（≥{P50_DRIFT} 分）")
         b_rate, c_rate = base.get("score_rate", 0), cur.get("score_rate", 0)
         if abs(c_rate - b_rate) >= SCORE_RATE_DRIFT:

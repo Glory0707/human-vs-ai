@@ -138,11 +138,11 @@
 
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
-    componentsText: componentsText, compsHtml: compsHtml,
+    componentsText: componentsText,
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, OOD_NAME: OOD_NAME, paraHeatHtml: paraHeatHtml,
+    oodHtml: oodHtml, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
-    SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
+    SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
   };
 });

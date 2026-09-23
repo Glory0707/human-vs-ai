@@ -19,7 +19,7 @@ import re
 from collections import Counter
 from dataclasses import dataclass, field
 
-_PUNCT = re.compile(r"[，。！？；：、…“”‘’《》（）\(\)\[\]【】,\.!\?;:\"'—\-\s]")
+PUNCT = re.compile(r"[，。！？；：、…“”‘’《》（）\(\)\[\]【】,\.!\?;:\"'—\-\s]")
 
 
 def _mean(xs: list[float]) -> float:
@@ -39,7 +39,7 @@ def _cv(xs: list[float]) -> float:
 
 def tokenize_2gram(text: str) -> list[str]:
     """字级 2-gram 切分——全文唯一的切分口径（TTR/评分都用它）。"""
-    clean = _PUNCT.sub("", text)
+    clean = PUNCT.sub("", text)
     if len(clean) < 2:
         return [c for c in clean if c.strip()]
     return [clean[i : i + 2] for i in range(len(clean) - 1)]
@@ -141,7 +141,7 @@ def compute_doc_stats(
     """
     raw_sents = [s for para in paragraphs for s in para]
     # 标点清洗每句只做一次，下游长度/CV/4-gram 全部复用
-    clean_paras = [[_PUNCT.sub("", s) for s in para] for para in paragraphs]
+    clean_paras = [[PUNCT.sub("", s) for s in para] for para in paragraphs]
     clean_sents = [c for para in clean_paras for c in para]
     lens = [len(c) for c in clean_sents]
     para_lens = [sum(len(c) for c in para) for para in clean_paras]

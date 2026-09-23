@@ -17,7 +17,7 @@ const RULES = require("./rules.json");
 let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, oodHtml, paraHeatHtml, hintsHtml, componentsText,
+const { esc, fmt, hiSentence, sealHtml, oodHtml, paraHeatHtml, hintsHtml,
         SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
