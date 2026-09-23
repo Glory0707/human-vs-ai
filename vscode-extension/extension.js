@@ -128,9 +128,9 @@ b { font-variant-numeric: tabular-nums; }
 .score-main .t { font-weight: 650; font-size: 14px; }
 .score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
 .row.score-note { color: var(--ink-3); }
-.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
+.stats .row.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
-.heat-note { font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+.stats .row.heat-note { font-size: 11px; color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
 .ph-high { color: var(--sev-high); }
 .ph-medium { color: var(--accent-deep); }
