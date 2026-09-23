@@ -444,6 +444,28 @@ const HvA = (function () {
     return kinds;
   }
 
+  /* ---------- 段落热度：与 Python compute_para_heat 同构 ---------- */
+
+  function computeParaHeat(doc, findings, hints) {
+    var weighted = {};
+    function acc(f) {
+      if (f.para >= 0) weighted[f.para] = (weighted[f.para] || 0) + (SCORE_WEIGHT[f.severity] || 1.0);
+    }
+    findings.forEach(acc);
+    hints.forEach(acc);
+    var heat = [];
+    for (var pi = 0; pi < doc.length; pi++) {
+      var n = doc[pi].sents.length;
+      if (!n || weighted[pi] === undefined) continue;
+      /* density 全精度：round 的半值行为两端不同（banker's vs half-up） */
+      var density = weighted[pi] / n;
+      var level = density >= 1.0 ? "high" : (density >= 0.5 ? "medium" : "low");
+      heat.push({ para: pi, n_sents: n, density: density, level: level });
+    }
+    heat.sort(function (a, b) { return b.density - a.density; });
+    return heat;
+  }
+
   /* ---------- 引擎 ---------- */
 
   /* 编译结果按规则数组引用缓存（网页端每次按键都调 analyze，
@@ -577,7 +599,8 @@ const HvA = (function () {
     var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoring || null),
-             score_note: scoreNote, ood: detectOod(allSents) };
+             score_note: scoreNote, ood: detectOod(allSents),
+             para_heat: computeParaHeat(doc, findings, hints) };
   }
 
   return {
@@ -894,6 +917,17 @@ const HvARender = (function () {
     return `<div class="row ood-note">文体域外（${esc(names)}）：超出评测语料范围，指数与统计仅供参考</div>`;
   }
 
+  /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
+     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现 */
+  function paraHeatHtml(result) {
+    const heat = ((result && result.para_heat) || []).slice(0, 3);
+    if (!heat.length) return "";
+    const items = heat.map(h =>
+      `<span class="ph ph-${esc(h.level)}">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+    ).join('<span class="ph-sep"> · </span>');
+    return `<div class="row heat-note">段落热度（命中密度/句）：${items}</div>`;
+  }
+
   function hintsHtml(hints) {
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
@@ -908,7 +942,7 @@ const HvARender = (function () {
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, OOD_NAME: OOD_NAME,
+    oodHtml: oodHtml, OOD_NAME: OOD_NAME, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
@@ -924,7 +958,7 @@ const VERSION = "0.17.0";
 const PROFILES = Object.keys(RULES);
 
 /* 渲染共享层（web/render.js）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, oodHtml, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, oodHtml, paraHeatHtml, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 
@@ -964,7 +998,7 @@ function buildGroups(F) {
 
 function renderReportHtml(profile, result) {
   const parts = [];
-  parts.push(`<div class="stats">${sealHtml(result.score)}${result.score_note ? `<div class="row score-note">AI 味指数 —（${esc(result.score_note)}）</div>` : ""}${statsRows(result.stats).map(r => `<div class="row">${esc(r)}</div>`).join("")}${oodHtml(result.ood)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${result.score_note ? `<div class="row score-note">AI 味指数 —（${esc(result.score_note)}）</div>` : ""}${statsRows(result.stats).map(r => `<div class="row">${esc(r)}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };

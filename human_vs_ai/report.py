@@ -54,6 +54,14 @@ def _ood_line(result: AnalysisResult) -> str:
     return f"※ 文体域外（{names}）：超出评测语料范围，指数与统计仅供参考"
 
 
+def _heat_line(result: AnalysisResult) -> str:
+    if not result.para_heat:
+        return ""
+    shown = result.para_heat[:3]
+    parts = " · ".join(f"¶{h['para'] + 1} {h['density']:.2f}" for h in shown)
+    return f"段落热度（命中密度/句）：{parts}"
+
+
 def _score_line(score: Score) -> str:
     # 整数显示：逻辑回归压到 0-100 后小数位是假精度（网页端同口径）
     return f"AI 味指数：{round(score.index)} / 100（{_band_text(score)}）"
@@ -82,6 +90,7 @@ def stats_lines(result: AnalysisResult) -> list[str]:
         # 够 8 句却没分：给一行原因，免得用户在各文体间切换时纳闷分去哪了
         rows.append(f"AI 味指数：—（{result.scoring_note}）")
     rows.append(_ood_line(result))
+    rows.append(_heat_line(result))
     rows.append(f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
     # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
@@ -253,6 +262,7 @@ def render_json(result: AnalysisResult) -> str:
             "score": result.score.to_dict() if result.score else None,
             "score_note": result.scoring_note or None,
             "ood": result.ood or None,
+            "para_heat": result.para_heat or None,
             "findings": [f.to_dict() for f in result.findings],
             "hints": [f.to_dict() for f in result.hints],
             "disclaimer": _DISCLAIMER,

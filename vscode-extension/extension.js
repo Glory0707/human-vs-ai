@@ -17,7 +17,7 @@ const RULES = require("./rules.json");
 let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, oodHtml, hintsHtml, componentsText,
+const { esc, fmt, hiSentence, sealHtml, oodHtml, paraHeatHtml, hintsHtml, componentsText,
         SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
@@ -38,6 +38,7 @@ function renderReportHtml(fileName, profile, result) {
     ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
     <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
     ${oodHtml(result.ood)}
+    ${paraHeatHtml(result)}
   </div>`);
 
   const F = result.findings;
@@ -129,6 +130,11 @@ b { font-variant-numeric: tabular-nums; }
 .row.score-note { color: var(--ink-3); }
 .ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
+.heat-note { font-size: 11px; color: var(--ink-3); margin-top: 6px; }
+.ph b { font-weight: 650; }
+.ph-high { color: var(--sev-high); }
+.ph-medium { color: var(--accent-deep); }
+.ph-sep { color: var(--hairline); }
 .summary { padding: 12px 0 4px; font-weight: 650; }
 .found {
   background: var(--chip); border: 1px solid var(--hairline);

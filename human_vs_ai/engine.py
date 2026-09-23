@@ -154,6 +154,8 @@ class AnalysisResult:
     scoring_note: str = ""
     # 域外文体（"classical"/"verse"）：指数会系统性虚高，报告须随行提示
     ood: list[str] = field(default_factory=list)
+    # 段落热度：每段门控前加权密度（与全文 hit_density 同口径），混写文本定位用
+    para_heat: list[dict] = field(default_factory=list)
 
     @property
     def n_high(self) -> int:
@@ -217,6 +219,36 @@ _DENSITY_PREFIXES = ("L-CONN", "O-STK")  # 词表规则同时供全文密度统�
 
 # 评分特征权重：严重级 → 加权密度系数（拟合工具 fit_score*.py 直接引用本表）
 _SCORE_WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
+
+
+def compute_para_heat(para_texts: list[list[str]], findings: list[Finding],
+                      hints: list[Finding]) -> list[dict]:
+    """段落级 AI 味热度：每段门控前加权密度（与全文 hit_density 同口径）。
+
+    人改 AI 初稿的混写文本里，全篇一个分数必然失真——热度把"哪一段
+    最像 AI"指出来。density = 该段命中权重和 / 段句数；level 是可读
+    分档（≥1.0 平均每句都有命中 / ≥0.5 / >0 / 无命中不出现在列表里）。
+    doc 级发现（para=-1）是全文属性，不摊进任何段落。
+    """
+    weighted: dict[int, float] = {}
+    for f in findings:
+        if f.para >= 0:
+            weighted[f.para] = weighted.get(f.para, 0.0) + _SCORE_WEIGHT.get(f.severity, 1.0)
+    for f in hints:
+        if f.para >= 0:
+            weighted[f.para] = weighted.get(f.para, 0.0) + _SCORE_WEIGHT.get(f.severity, 1.0)
+    heat = []
+    for pi, para in enumerate(para_texts):
+        n = len(para)
+        if not n or pi not in weighted:
+            continue
+        density = weighted[pi] / n
+        level = "high" if density >= 1.0 else ("medium" if density >= 0.5 else "low")
+        # density 保留全精度：渲染层各自格式化（Py round 是 banker's、
+        # JS 是 half-up，0.125 这类值会漂移，一致性对拍会抓）
+        heat.append({"para": pi, "n_sents": n, "density": density, "level": level})
+    heat.sort(key=lambda h: -h["density"])
+    return heat
 # scoring 段里的元字段，不是特征
 _SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90")
 
@@ -357,7 +389,6 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     result.ood = ood.detect([s for para in para_texts for s in para])
 
     raw_hits: dict[str, list[Finding]] = {}
-
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
     for pi, block in enumerate(doc):
         for sent in block.sents:
@@ -429,4 +460,5 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     )
     if result.score is None and scoring is None and result.doc_stats.n_sentences >= 8:
         result.scoring_note = "该文体未校准评分"
+    result.para_heat = compute_para_heat(para_texts, result.findings, result.hints)
     return result

@@ -32,7 +32,7 @@ const VERSION = "__VERSION__";
 const PROFILES = Object.keys(RULES);
 
 /* 渲染共享层（web/render.js）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, oodHtml, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, oodHtml, paraHeatHtml, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 
@@ -72,7 +72,7 @@ function buildGroups(F) {
 
 function renderReportHtml(profile, result) {
   const parts = [];
-  parts.push(`<div class="stats">${sealHtml(result.score)}${result.score_note ? `<div class="row score-note">AI 味指数 —（${esc(result.score_note)}）</div>` : ""}${statsRows(result.stats).map(r => `<div class="row">${esc(r)}</div>`).join("")}${oodHtml(result.ood)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${result.score_note ? `<div class="row score-note">AI 味指数 —（${esc(result.score_note)}）</div>` : ""}${statsRows(result.stats).map(r => `<div class="row">${esc(r)}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };

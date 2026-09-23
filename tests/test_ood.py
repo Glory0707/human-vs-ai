@@ -100,6 +100,48 @@ class TestEngineIntegration:
         assert r.score is not None or r.scoring_note == "该文体未校准评分"
 
 
+MIXED = ("在这个日新月异的时代，技术赋能千行百业。综上所述，底层逻辑不言而喻。"
+         "首先，要赋能。其次，要闭环。最后，要抓手。\n\n"
+         "我昨天去楼下买菜，萝卜贵了两毛钱。摊主说下雨天进货难。我买了两根，回家炖了汤。")
+
+
+class TestParaHeat:
+    def test_mixed_text_locates_hot_para(self):
+        r = engine.analyze(MIXED, "general")
+        assert r.para_heat, "有命中的段落应出现在热度列表"
+        assert r.para_heat[0]["para"] == 0, "AI 味浓的第 1 段应排最前"
+        assert r.para_heat[0]["level"] == "high"
+
+    def test_clean_para_absent(self):
+        r = engine.analyze(MIXED, "general")
+        paras = {h["para"] for h in r.para_heat}
+        assert 0 in paras and 1 not in paras, "无命中的段落不出现"
+
+    def test_density_matches_weighted_hits(self):
+        r = engine.analyze(MIXED, "general")
+        h0 = next(h for h in r.para_heat if h["para"] == 0)
+        manual = sum({"high": 3.0, "medium": 2.0, "low": 1.0}[f.severity]
+                     for f in r.findings + r.hints if f.para == 0) / h0["n_sents"]
+        assert abs(h0["density"] - manual) < 1e-9
+
+    def test_json_export_contains_para_heat(self):
+        import json as _json
+        from human_vs_ai import report
+        r = engine.analyze(MIXED, "general")
+        data = _json.loads(report.render_json(r))
+        assert data["para_heat"] and data["para_heat"][0]["para"] == 0
+
+    def test_terminal_report_heat_line(self):
+        from human_vs_ai import report
+        out = report.render_terminal(engine.analyze(MIXED, "general"))
+        assert "段落热度" in out and "¶1" in out
+
+    def test_doc_level_findings_not_in_heat(self):
+        # doc 级发现（para=-1）是全文属性，不摊进任何段落
+        r = engine.analyze(MIXED, "general")
+        assert all(h["para"] >= 0 for h in r.para_heat)
+
+
 def report_score_line(r):
     from human_vs_ai.report import _score_line
     return _score_line(r.score)

@@ -67,6 +67,11 @@
 .row.score-note { color: var(--ink-3); }
 .ood-note { font-size: 11.5px; color: var(--vermilion); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
+.heat-note { font-size: 11.5px; color: var(--ink-3); margin-top: 6px; }
+.ph b { font-weight: 650; }
+.ph-high { color: var(--vermilion); }
+.ph-medium { color: var(--accent-deep); }
+.ph-sep { color: var(--hairline); }
 .seal {
   flex: none; display: inline-flex; flex-direction: column; align-items: center;
   justify-content: center; padding: 6px 12px; border: 1.5px solid currentColor;

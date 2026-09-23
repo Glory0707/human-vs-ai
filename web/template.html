@@ -299,6 +299,11 @@ body.resizing .pane { transition: none; }
 .row.score .comp { color: var(--ink-3); }
 .ood-note { font-size: var(--fs-s); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
+.heat-note { font-size: var(--fs-s); color: var(--ink-3); margin-top: 6px; }
+.ph b { font-weight: 650; }
+.ph-high { color: var(--vermilion); }
+.ph-medium { color: var(--accent-deep); }
+.ph-sep { color: var(--hairline); }
 
 .summary { padding: 12px 0 8px; font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 
@@ -508,7 +513,7 @@ const RULES_BY_PROFILE = __RULES_JSON__;
 const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
@@ -696,7 +701,7 @@ function renderReport(result) {
   shouldAnimate = false;
   const parts = [];
 
-  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}${oodHtml(result.ood)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };

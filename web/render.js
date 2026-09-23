@@ -103,6 +103,17 @@
     return `<div class="row ood-note">文体域外（${esc(names)}）：超出评测语料范围，指数与统计仅供参考</div>`;
   }
 
+  /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
+     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现 */
+  function paraHeatHtml(result) {
+    const heat = ((result && result.para_heat) || []).slice(0, 3);
+    if (!heat.length) return "";
+    const items = heat.map(h =>
+      `<span class="ph ph-${esc(h.level)}">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+    ).join('<span class="ph-sep"> · </span>');
+    return `<div class="row heat-note">段落热度（命中密度/句）：${items}</div>`;
+  }
+
   function hintsHtml(hints) {
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
@@ -117,7 +128,7 @@
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, OOD_NAME: OOD_NAME,
+    oodHtml: oodHtml, OOD_NAME: OOD_NAME, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,

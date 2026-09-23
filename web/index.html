@@ -299,6 +299,11 @@ body.resizing .pane { transition: none; }
 .row.score .comp { color: var(--ink-3); }
 .ood-note { font-size: var(--fs-s); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
+.heat-note { font-size: var(--fs-s); color: var(--ink-3); margin-top: 6px; }
+.ph b { font-weight: 650; }
+.ph-high { color: var(--vermilion); }
+.ph-medium { color: var(--accent-deep); }
+.ph-sep { color: var(--hairline); }
 
 .summary { padding: 12px 0 8px; font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 
@@ -927,6 +932,28 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     return kinds;
   }
 
+  /* ---------- 段落热度：与 Python compute_para_heat 同构 ---------- */
+
+  function computeParaHeat(doc, findings, hints) {
+    var weighted = {};
+    function acc(f) {
+      if (f.para >= 0) weighted[f.para] = (weighted[f.para] || 0) + (SCORE_WEIGHT[f.severity] || 1.0);
+    }
+    findings.forEach(acc);
+    hints.forEach(acc);
+    var heat = [];
+    for (var pi = 0; pi < doc.length; pi++) {
+      var n = doc[pi].sents.length;
+      if (!n || weighted[pi] === undefined) continue;
+      /* density 全精度：round 的半值行为两端不同（banker's vs half-up） */
+      var density = weighted[pi] / n;
+      var level = density >= 1.0 ? "high" : (density >= 0.5 ? "medium" : "low");
+      heat.push({ para: pi, n_sents: n, density: density, level: level });
+    }
+    heat.sort(function (a, b) { return b.density - a.density; });
+    return heat;
+  }
+
   /* ---------- 引擎 ---------- */
 
   /* 编译结果按规则数组引用缓存（网页端每次按键都调 analyze，
@@ -1060,7 +1087,8 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoring || null),
-             score_note: scoreNote, ood: detectOod(allSents) };
+             score_note: scoreNote, ood: detectOod(allSents),
+             para_heat: computeParaHeat(doc, findings, hints) };
   }
 
   return {
@@ -1373,6 +1401,17 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     return `<div class="row ood-note">文体域外（${esc(names)}）：超出评测语料范围，指数与统计仅供参考</div>`;
   }
 
+  /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
+     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现 */
+  function paraHeatHtml(result) {
+    const heat = ((result && result.para_heat) || []).slice(0, 3);
+    if (!heat.length) return "";
+    const items = heat.map(h =>
+      `<span class="ph ph-${esc(h.level)}">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+    ).join('<span class="ph-sep"> · </span>');
+    return `<div class="row heat-note">段落热度（命中密度/句）：${items}</div>`;
+  }
+
   function hintsHtml(hints) {
     if (!hints || !hints.length) return "";
     const shown = hints.slice(0, HINTS_MAX);
@@ -1387,7 +1426,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, OOD_NAME: OOD_NAME,
+    oodHtml: oodHtml, OOD_NAME: OOD_NAME, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
@@ -1400,7 +1439,7 @@ const RULES_BY_PROFILE = {"academic": [{"id": "L-CONN-01", "name": "模板连接
 const SCORING = {"academic": {"corpus": "C-ReD paper 245 篇过 8 句门槛样本（真人 33 vs 四模型 212），2026-09", "intercept": -69.8327, "hit_density": 8.9025, "sentence_cv": -14.8899, "ttr": 83.377, "ngram_repeat": 22.6387, "auroc": 0.984, "auroc_holdout": 0.974, "human_p50": 15, "human_p90": 63, "tiers": [{"min_chars": 600, "intercept": -79.959, "hit_density": 1.7466, "sentence_cv": -6.0175, "ttr": 89.2265, "ngram_repeat": 37.0485}]}, "essay": {"corpus": "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09", "intercept": -42.9291, "hit_density": 9.1763, "sentence_cv": -16.4304, "ttr": 52.7223, "ngram_repeat": 4.1655, "auroc": 0.952, "auroc_holdout": 0.951, "human_p50": 6, "human_p90": 55}, "general": {"corpus": "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300，类平衡加权），2026-09", "intercept": 18.0167, "hit_density": 1.9553, "sentence_cv": -7.4254, "ttr": -17.0713, "ngram_repeat": -5.8575, "auroc": 0.838, "auroc_holdout": 0.87, "human_p50": 27, "human_p90": 69}, "news": {"corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09", "intercept": -60.4796, "hit_density": 5.9358, "sentence_cv": -5.344, "ttr": 65.9004, "ngram_repeat": -2.4644, "auroc": 0.938, "auroc_holdout": 0.935, "human_p50": 7, "human_p90": 61}, "official": null, "personal": null, "review": null};
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
@@ -1588,7 +1627,7 @@ function renderReport(result) {
   shouldAnimate = false;
   const parts = [];
 
-  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}${oodHtml(result.ood)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
   const F = result.findings;
   const bySev = { high: [], medium: [], low: [] };

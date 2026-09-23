@@ -183,6 +183,10 @@ def normalize(result: dict) -> dict:
         "score": norm_score,
         "score_note": result.get("score_note", ""),
         "ood": sorted(result.get("ood") or []),
+        "para_heat": [
+            {**h, "density": round(float(h["density"]), 4)}
+            for h in (result.get("para_heat") or [])
+        ],
     }
 
 
@@ -229,13 +233,14 @@ def main() -> None:
                  "score": ({"index": score.index, "components": score.components,
                             "corpus": score.corpus, "human_p50": score.human_p50,
                             "human_p90": score.human_p90} if score else None),
-                 "score_note": py.scoring_note, "ood": py.ood}
+                 "score_note": py.scoring_note, "ood": py.ood,
+                 "para_heat": py.para_heat}
             )
             js_norm = normalize(js_results[name])
             if py_norm != js_norm:
                 failed = True
                 print(f"[FAIL] {profile}/{name}")
-                for key in ("findings", "hints", "stats", "score", "score_note", "ood"):
+                for key in ("findings", "hints", "stats", "score", "score_note", "ood", "para_heat"):
                     if py_norm[key] != js_norm[key]:
                         print(f"  {key}:\n    py={json.dumps(py_norm[key], ensure_ascii=True)[:400]}"
                               f"\n    js={json.dumps(js_norm[key], ensure_ascii=True)[:400]}")

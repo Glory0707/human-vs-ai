@@ -430,6 +430,28 @@
     return kinds;
   }
 
+  /* ---------- 段落热度：与 Python compute_para_heat 同构 ---------- */
+
+  function computeParaHeat(doc, findings, hints) {
+    var weighted = {};
+    function acc(f) {
+      if (f.para >= 0) weighted[f.para] = (weighted[f.para] || 0) + (SCORE_WEIGHT[f.severity] || 1.0);
+    }
+    findings.forEach(acc);
+    hints.forEach(acc);
+    var heat = [];
+    for (var pi = 0; pi < doc.length; pi++) {
+      var n = doc[pi].sents.length;
+      if (!n || weighted[pi] === undefined) continue;
+      /* density 全精度：round 的半值行为两端不同（banker's vs half-up） */
+      var density = weighted[pi] / n;
+      var level = density >= 1.0 ? "high" : (density >= 0.5 ? "medium" : "low");
+      heat.push({ para: pi, n_sents: n, density: density, level: level });
+    }
+    heat.sort(function (a, b) { return b.density - a.density; });
+    return heat;
+  }
+
   /* ---------- 引擎 ---------- */
 
   /* 编译结果按规则数组引用缓存（网页端每次按键都调 analyze，
@@ -563,7 +585,8 @@
     var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoring || null),
-             score_note: scoreNote, ood: detectOod(allSents) };
+             score_note: scoreNote, ood: detectOod(allSents),
+             para_heat: computeParaHeat(doc, findings, hints) };
   }
 
   return {
