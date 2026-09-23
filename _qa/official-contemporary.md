@@ -31,9 +31,7 @@
 
 1. **词表组合有效**：单条规则命中率低（公文模板化程度天然高，词表
    只能抓增量痕迹），但组合覆盖 9 模型全捕获、真人零误伤——方向正确。
-2. **证据等级：初步**。真人侧仅 15 篇且为规章文体（与 AI 生成的
-   600 字事务公文不同文种）；评分拟合继续排队（official 本就无
-   scoring 段，宁缺毋滥），等真实事务公文样本扩充后再拟合。
+2. **证据等级：初步**（真人侧当时仅 15 篇规章文体）。
 3. gen2026/official.jsonl 已入库 `_qa/corpus/`（gitignore），可复现：
    `python tools/gen_samples.py --scene official`
 
@@ -43,3 +41,18 @@
 python tools/gen_samples.py --scene official
 python tools/adversarial_eval.py --attacker llm   # 对抗评测见同目录报告
 ```
+
+## 评分拟合（v0.17.9 更新）
+
+真人侧扩充后（gov.cn + 教育部 + 农业农村部 + 广东省门户，87 篇有效 /
+71 篇过 8 句门槛），评分拟合解锁：
+
+| 指标 | 值 |
+|---|---|
+| 样本 | 真人事务公文 71 vs gen2026 当季模型公文 70 |
+| 单特征最强 | TTR **0.848**；ngram_repeat **0.061** 与 conn_density 0.288 **反向**（真人公文本身是套语复现+连接词密集文体，模型转负权重） |
+| 全量 AUROC | **0.957** |
+| 分层留出 ×10 | 均值 **0.923**（min 0.831 / max 0.969） |
+| 真人指数分位 | p50 4 / p90 57 |
+
+系数已落地 `official.yaml` scoring 段，复现：`python tools/fit_official.py`。

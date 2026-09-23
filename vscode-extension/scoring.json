@@ -34,16 +34,16 @@
   "human_p90": 55
  },
  "general": {
-  "corpus": "HC3-Chinese 391 篇过 8 句门槛样本（真人 91 vs ChatGPT 300，类平衡加权），2026-09",
-  "intercept": 18.0167,
-  "hit_density": 1.9553,
-  "sentence_cv": -7.4254,
-  "ttr": -17.0713,
-  "ngram_repeat": -5.8575,
-  "auroc": 0.838,
-  "auroc_holdout": 0.87,
-  "human_p50": 27,
-  "human_p90": 69
+  "corpus": "知乎真实长回答 110 篇 vs gen2026 当季 9 模型 600 字回答 69 篇，类平衡，2026-09",
+  "intercept": -61.9705,
+  "hit_density": 7.239,
+  "sentence_cv": -4.848,
+  "ttr": 67.6841,
+  "ngram_repeat": -107.1588,
+  "auroc": 0.945,
+  "auroc_holdout": 0.935,
+  "human_p50": 2,
+  "human_p90": 77
  },
  "news": {
   "corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09",
@@ -57,7 +57,18 @@
   "human_p50": 7,
   "human_p90": 61
  },
- "official": null,
+ "official": {
+  "corpus": "真人事务公文 71 篇（gov.cn/部委/省门户）vs gen2026 当季 9 模型公文 70 篇，类平衡，2026-09",
+  "intercept": 44.4895,
+  "hit_density": 13.7992,
+  "sentence_cv": 3.1677,
+  "ttr": -44.4823,
+  "ngram_repeat": -67.5341,
+  "auroc": 0.957,
+  "auroc_holdout": 0.923,
+  "human_p50": 4,
+  "human_p90": 57
+ },
  "personal": null,
  "review": null
 }

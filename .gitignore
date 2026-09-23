@@ -36,3 +36,4 @@ gui-test-screenshots/
 
 # 分档拟合特征缓存（可由公共语料重新抽取）
 _qa/_tier_rows_cache.json
+_qa/_gov_*.json

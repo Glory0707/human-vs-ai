@@ -180,3 +180,19 @@ rules:
     references:
       - https://github.com/blader/humanizer
 
+# 综合评分（AI 味指数）：v0.17.8 落地。真人事务公文（gov.cn + 部委/省政府门户
+# 抓取 87 篇有效，过 8 句门槛 71 篇）vs gen2026 当季 9 模型公文 70 篇，类平衡
+# 逻辑回归（tools/fit_official.py）。全量 AUROC 0.957 / 分层留出 ×10 均值 0.923。
+# 特征注意：ngram_repeat 与 conn_density 在公文文体方向为负（真人公文本身是
+# 套语复现+连接词密集文体），模型已转为负权重；TTR 为最强单特征（0.848）。
+scoring:
+  corpus: "真人事务公文 71 篇（gov.cn/部委/省门户）vs gen2026 当季 9 模型公文 70 篇，类平衡，2026-09"
+  intercept: 44.4895
+  hit_density: 13.7992
+  sentence_cv: 3.1677
+  ttr: -44.4823
+  ngram_repeat: -67.5341
+  auroc: 0.957
+  auroc_holdout: 0.923
+  human_p50: 4
+  human_p90: 57

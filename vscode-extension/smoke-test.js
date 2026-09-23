@@ -26,7 +26,7 @@ function check(name, cond, extra) {
 
 // 1. 七个 profile 的规则都注入了；评分模型只注入到已校准的 profile
 check("profiles injected", ["academic", "essay", "general", "news", "official", "personal", "review"].every(p => Array.isArray(RULES[p]) && RULES[p].length));
-check("scoring injected for calibrated profiles", !!SCORING.academic && !!SCORING.general && !!SCORING.essay && !!SCORING.news && !SCORING.official && !SCORING.personal && !SCORING.review);
+check("scoring injected for calibrated profiles", !!SCORING.academic && !!SCORING.general && !!SCORING.essay && !!SCORING.news && !!SCORING.official && !SCORING.personal && !SCORING.review);
 
 // 2. AI 学术 fixture:academic 下有命中,报告含规则 ID 与免责
 const aiText = fs.readFileSync(path.join(ROOT, "tests/data/ai_academic.txt"), "utf-8");

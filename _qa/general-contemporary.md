@@ -49,3 +49,18 @@ kimi-k2.8-preview、minimax-m3、glm-5.3、glm-5.3-flash、deepseek-flash。
 python tools/gen_samples.py --scene qa          # 生成 gen2026/qa.jsonl
 python -m pytest tests/test_profiles.py -q      # 词表纪律回归
 ```
+
+## 评分重拟合（v0.17.9 更新）
+
+词表验证之后，评分系数也完成了当代重拟合：
+
+| 口径 | 当代长文语料 AUROC |
+|---|---|
+| 现役 HC3（2023 ChatGPT）系数 | **0.602（≈失效）** |
+| 新拟合（知乎真实长回答 110 vs gen2026 当季回答 69） | **0.945**（全量）|
+| 新拟合分层留出 ×10 | **0.935** 均值（min 0.910 / max 0.957）|
+
+新系数已落地 general.yaml scoring 段（真人 p50 2 / p90 77）。注意 TTR
+权重方向反转（当代模型长文词汇密度高于真人回答），与 HC3 时代相反。
+知乎语料为用户本人账号授权 Playwright 低频抓取（115 篇去重 / 110 过门槛），
+`_qa/corpus/zhihu/`（gitignore）。

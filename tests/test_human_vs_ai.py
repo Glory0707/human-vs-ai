@@ -390,15 +390,16 @@ class TestScore:
         assert engine.analyze("你好呀。", "academic").score is None
 
     def test_score_uncalibrated_profiles_none(self):
-        # 公文没有真人配对的 AI 语料，宁缺毋滥；personal 是改写层不出分
-        assert engine.load_scoring("official") is None
+        # v0.17.8 起 official 获真人配对语料出分（71 真人 vs 70 AI 拟合）；
+        # personal 是改写层仍不出分
+        assert engine.load_scoring("official") is not None
         assert engine.load_scoring("personal") is None
-        r = engine.analyze(AI_TEXT, "official")
+        r = engine.analyze(AI_TEXT, "personal")
         assert r.score is None
         # 够 8 句却没分要给原因（不然用户从学术切过来纳闷分去哪了）；
         # 短文本保持空——短文本不展示统计行，多一行解释反而吵
         assert "未校准" in r.scoring_note
-        short = engine.analyze("你好呀。今天天气不错。", "official")
+        short = engine.analyze("你好呀。今天天气不错。", "personal")
         assert short.scoring_note == ""
 
     def test_score_tier_override_by_length(self):
@@ -426,7 +427,7 @@ class TestScore:
 
     def test_score_note_in_renders_and_json(self):
         import json as _json
-        r = engine.analyze(AI_TEXT, "official")
+        r = engine.analyze(AI_TEXT, "personal")
         assert "该文体未校准评分" in report.render_terminal(r)
         payload = _json.loads(report.render_json(r))
         assert payload["score"] is None
