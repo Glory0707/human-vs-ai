@@ -41,7 +41,7 @@
 
 ## 4. 排队事项（按需启动）
 
-- **P2**：~~general 当代长文评分~~（v0.17.8 落地：知乎 110 vs gen2026 69，留出 0.935）· ~~official 评分拟合~~（v0.17.8 落地：真人 71 vs 当季模型 70，留出 0.923）· 剩余：真人侧语料持续积累（collect 入口），general/official 系数随漂移信号迭代
+- **P2**：~~general 当代长文评分~~（v0.17.8 落地，v0.18.1 样本外体检 PASS 0.923）· ~~official 评分拟合~~（v0.17.8 落地；v0.18.1 体检定位**文种边界**：系数绑定事务公文，印发全文附录/批复类真人侧误报大面积偏高）· official 文种域外提示（ood 同思路：识别"现印发/批复如下"结构 + 规划指标密度 → 报告标注"文种域外，指数仅供参考"）或文种内二次校准（需按文种配对的双侧语料，`tools/oos_check.py` 已备切片口径）· 剩余：真人侧语料持续积累（collect 入口），general/official 系数随漂移信号迭代
 - **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移；漂移监测机制 v0.17 已上线 `tools/drift_monitor.py`）· 句级困惑度（Qwen 本地小模型，可选插件不进默认依赖）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）
 
 ## 5. 架构（已验证）
@@ -86,6 +86,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 - **引擎性能**：7.1 万字 Py 140ms / JS 34ms（min-of-N，2026-09 复测，含 ood/para_heat）
 - **双引擎一致性**：27 段语料 + 15 条改写探针 × 7 profile = **308 项**逐字段 diff 全绿（含 ood/para_heat 字段对拍）；含 emoji 码点/行分隔符全集/孤立低代理/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水等对抗探针
 - **当代评分重拟合（v0.17.8）**：official 全量 0.957 / 留出 ×10 均值 0.923（真人事务公文 71 vs gen2026 当季公文 70，ngram/连接词在公文文体反向、模型转负权重）；general 全量 0.945 / 留出 0.935（知乎真实长回答 110 vs gen2026 69；旧 HC3 系数在同期语料仅 0.602≈失效，重拟合动机）——详见 rules.md §8/§9 与 _qa/official-contemporary.md
+- **泛化体检（v0.18.1，冻结 v0.18.0 系数只测不调）**：general 样本外 **0.923**（豆瓣/果壳真人 78 vs 未参拟合四模型 27，掉幅 0.012 PASS）；official 样本外 **0.731**——AI 侧分布正常（无特征漂移），真人不达标是**文种边界**：省级门户"印发类"（正文=规划全文附录，p50=76）与"批复"（p90=98）真人侧大面积高分，同文种对照印发类 AUROC 0.294 反转、批复 0.614 近随机——详见 _qa/generalization-check.md
 - **口味校准层**：personal 12 条口味条目 + rewrite；被毙稿召回 31/31、定稿误报 0/37、改写维度 5/6；`tools/check_private_leak.py` 守护边界
 
 ### 轮次日志（细节见 [plan.md](plan.md) 轮次注记与 [rules.md](rules.md) §8）
@@ -122,7 +123,8 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 | v0.17.2 | 校准机制化轮：tools/adversarial_eval.py 对抗自评测（改写器/LLM 双攻击者）；tools/drift_monitor.py 漂移监测（collect 样本按 profile 聚合对比基线，p50≥15 分/规则≥10pp 信号）；official 场景 gen2026 公文 70 篇初步验证（组合覆盖 100%/真人 0 误伤） |
 | v0.17.3 | T6 收尾：.stats .row 特异性覆盖 .ood-note 致暗色域外提示退化灰字——三端选择器提升（visual-judge 抓出）；对抗评测双攻击者合并报告（LLM 洗稿削词表 89%、93.3% 仍超阈值——统计底盘扛住定向规避）；10 状态高分辨率视觉走查 9 pass / 1 截图脚本失误 |
 | v0.17.6 | 文件与文案清理轮：删本地产物（.playwright-mcp/.pytest_cache/egg-info/__pycache__/_qa 截图与运行缓存，语料与私人数据不动）；文案收短——域外行"超出评测语料范围，指数与统计仅供参考"→"指数仅供参考"、热度行去"（命中密度/句）"括注（定位交互改悬浮提示）、collect 输出与 help 若干条收短、空态句号统一 |
-| v0.17.9 | 官方与问答当代评分双落地：真人事务公文扩充（gov.cn+部委+省门户 87 篇有效/71 过门槛，tools/expand_gov_corpus.py 多源抓取）；official 评分拟合落地（留出 0.923）；知乎真实长回答 115 篇（用户授权 Playwright 低频抓取，110 过门槛）；general 评分重拟合落地（旧 HC3 系数在当代长文仅 0.602，新拟合留出 0.935）；computer use 端到端 14 项用户流程走查零产品 bug |
+| v0.18.1 | 泛化体检轮（冻结 v0.18.0 系数只测不调，tools/oos_check.py）：样本外语料四路零重叠——AI 侧换四模型（doubao-seed-2.0-pro/glm-4.7-flash/deepseek-chat/deepseek-reasoner，gen_samples.py 增 --models 与 gov-genre 文种场景），真人问答换渠道（豆瓣影评 60 + 果壳 32，Playwright 域内 fetch + localStorage + 回环 POST 落盘），真人公文换省门户（湖北 27 + 四川 19）。结果：general **0.923 PASS**（掉幅 0.012，README 获样本外背书）；official **0.731 FAIL** 定位为文种边界——AI 侧分布正常，真人"印发类全文附录"p50=76（TTR 0.898/ngram 0.088）、"批复"p90=98，同文种对照印发类 AUROC 0.294 反转、批复 0.614；文种域外提示/文种内校准入 P2；语料卫生：豆瓣营销搬运文 12 篇按推广标记整篇剔除 |
+| v0.18.0 | 官方与问答当代评分双落地：真人事务公文扩充（gov.cn+部委+省门户 87 篇有效/71 过门槛，tools/expand_gov_corpus.py 多源抓取）；official 评分拟合落地（留出 0.923）；知乎真实长回答 115 篇（用户授权 Playwright 低频抓取，110 过门槛）；general 评分重拟合落地（旧 HC3 系数在当代长文仅 0.602，新拟合留出 0.935）；computer use 端到端 14 项用户流程走查零产品 bug |
 | v0.17.8 | 文档审计轮：plan.md 精简（删 v0.9-v0.12 时代 15 段过程注记——与轮次日志重复，121→73 行；排队清单收敛为 design.md §4 单一来源）；README/design/rules/taste 四处"四场景/三个 profile/161 项"陈旧口径统一为现状；rules.md 游离表格残片并入正文、§7 补漂移监测上线；配置文件核查无冗余 |
 | v0.17.7 | 测试员轮（164 项测试）：修 2 个 bug——①collect.sanitize 卡号正则只认 16-19 位，22 位长数字串（订单号等）整段漏打码，改 16 位起整段打码（脱敏宁枉勿纵）+ 回归；②drift_monitor 目录输入抛 PermissionError traceback，抽 resolve_inputs 跳目录并干净报错 + 回归。排查无恙层：Py/JS 15 组对抗探针 ood/para_heat/excerpt 逐字段一致；CLI 黑盒 10 组边界（GB18030/二进制/空文件/不可写输出/不存在规则与场景/空 stdin）全过；web 竞态守卫（clearTimeout+analyzeGen 代际+双 rAF）与 Obsidian 同步 analyze（读当前活动文件，无错位）确认完备 |
 | v0.17.5 | 冗余清理轮（零功能变化）：rewrite.py 死映射 _VOICE_RULES 删除（口味编号实际来自 personal.yaml 的 taste 字段）；render.js 纯内部叶子（compsHtml/OOD_NAME/SCORE_LABEL）移出导出表、vscode 幽灵解构 componentsText 移除；标点正则收敛单一事实源（stats.PUNCT，ood.py 删本地拷贝改导入——口径一致从人肉同步变结构保证）；ood.py 常量统一私有命名、drift_monitor NaN 判断收敛 finite()；test_ood 尾部 helper 归位 |
@@ -135,6 +137,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 - 词表特征随模型漂移：英文侧 delve（GPT-5 后骤降）、破折号（GPT-5.1 压制）已证明静态词表会过期；漂移监测机制已上线（v0.17 `tools/drift_monitor.py`），era 季度重挖在 P3
 - C-ReD 摘要语料测不到"首先…其次"等展开型套路（摘要太短），这些规则的区分度数字待完整论文语料补充
 - 评分的长度语义：字级 2-gram TTR 在数百字以上趋饱和（≈0.92），polished 长文指数偏高——长档（≥600 字）分档系数已上线（v0.12.0，长档 holdout 0.975），但校准人群仍是摘要级语料，真实长文真人样本待积累；毕设实测（2.9 万字，指数 92→99）为该边界实例
+- official 评分的**文种边界**（v0.18.1 泛化体检实证）：系数对事务公文（通知/通报/方案正文）有效，对省级门户"印发类"（正文=规划/方案全文附录）与"批复"不可靠——真人规划全文的指标密度/低 ngram 比 AI 默认公文更"AI"，印发类同文种 AUROC 0.294 反转；此类文本指数仅供参考，文种域外提示在 P2
 
 ## 8. 开源边界（永不混流）
 

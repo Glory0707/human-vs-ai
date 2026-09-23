@@ -35,12 +35,12 @@ def load_endpoints(api_file: Path) -> list[dict]:
     return [
         {"url": openai_compat, "key": keys[0],
          "models": ["doubao-seed-2.1-pro", "doubao-seed-2.1-turbo",
-                    "doubao-seed-2.0-lite", "kimi-k3", "kimi-k2.8-preview",
-                    "minimax-m3", "glm-5.3"]},
+                    "doubao-seed-2.0-lite", "doubao-seed-2.0-pro", "kimi-k3",
+                    "kimi-k2.8-preview", "minimax-m3", "glm-5.3"]},
         {"url": "https://open.bigmodel.cn/api/coding/paas/v4/chat/completions",
-         "key": keys[1], "models": ["glm-5.3-flash"]},
+         "key": keys[1], "models": ["glm-5.3-flash", "glm-4.7-flash"]},
         {"url": "https://api.deepseek.com/chat/completions",
-         "key": keys[2], "models": ["deepseek-flash"]},
+         "key": keys[2], "models": ["deepseek-flash", "deepseek-chat", "deepseek-reasoner"]},
     ]
 
 # ---------- 场景模板 ----------
@@ -91,10 +91,31 @@ OFFICIAL_TASKS = [
     "关于评选劳动模范和先进工作者的通知（某市总工会）",
 ]
 
+# 省级门户常见文种（泛化体检对照用）：印发类含所印文件全文附录，批复为事项答复
+GOV_GENRE_TASKS = [
+    "关于印发《某市\"十五五\"科技创新规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某省\"十五五\"生态环境保护规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某市数字经济发展\"十五五\"规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某省综合交通运输\"十五五\"规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某市卫生健康\"十五五\"规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某省农业农村现代化\"十五五\"规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某市文化和旅游发展\"十五五\"规划》的通知，附规划全文，总长 4000 字左右",
+    "关于印发《某省教育事业发展\"十五五\"规划》的通知，附规划全文，总长 4000 字左右",
+    "关于某市国土空间总体规划的批复，800 字左右",
+    "关于某高速公路项目用地预审与选址的批复，800 字左右",
+    "关于同意设立某省级经济开发区的批复，800 字左右",
+    "关于某流域防洪规划的批复，800 字左右",
+    "关于某历史文化名城保护规划的批复，800 字左右",
+    "关于某市城市总体规划修改方案的批复，800 字左右",
+    "关于同意某航道整治工程可行性研究报告的批复，800 字左右",
+    "关于某自然保护区范围和功能区调整的批复，800 字左右",
+]
+
 SCENES = {
     # 每题一个最小干预 prompt：问题 + 长度约束
     "qa": [f"{q} 请写一篇 600 字左右的回答。" for q in QA_QUESTIONS],
     "official": [f"请以公文格式写一份{t}，600 字左右。" for t in OFFICIAL_TASKS],
+    "gov-genre": [f"请以公文格式写一份{t}。" for t in GOV_GENRE_TASKS],
 }
 
 PER_MODEL = 8  # 每个模型抽的题目数（轮转覆盖整池）
@@ -127,15 +148,18 @@ def main():
     ap.add_argument("--api-file", type=Path, default=Path(r"D:/科研/API.txt"))
     ap.add_argument("--out", type=Path, default=None)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--models", default=None, help="逗号分隔，只保留这些模型（样本外生成用）")
     args = ap.parse_args()
 
     out_dir = args.out or (ROOT / "_qa" / "corpus" / "gen2026")
     out_dir.mkdir(parents=True, exist_ok=True)
     endpoints = load_endpoints(args.api_file)
+    keep = {m.strip() for m in args.models.split(",")} if args.models else None
 
     jobs = []
     for ep in endpoints:
-        jobs.extend((ep, job) for job in assign_jobs(args.scene, ep["models"]))
+        models = ep["models"] if keep is None else [m for m in ep["models"] if m in keep]
+        jobs.extend((ep, job) for job in assign_jobs(args.scene, models))
 
     out_path = out_dir / f"{args.scene}.jsonl"
     done = set()

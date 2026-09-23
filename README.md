@@ -82,6 +82,8 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 | C-ReD news（真人 1413 vs 7 模型 15112） | 综合评分 | AI | 真人 | **0.938**（留出 0.935） |
 | gen2026 当季公文（真人事务公文 71 vs 9 模型 70） | 综合评分 | AI | 真人 | **0.957**（留出 0.923） |
 | 知乎真实长回答 110 vs gen2026 当季回答 69（general 重拟合） | 综合评分 | AI | 真人 | **0.945**（留出 0.935；旧 HC3 系数在同期语料仅 0.602） |
+| **样本外体检**：豆瓣/果壳真人 78 vs 未参拟合的四模型 27（general） | 综合评分 | AI | 真人 | **0.923**（冻结系数只测不调，掉幅 0.012 → PASS） |
+| 样本外体检：湖北/四川公文真人 44 vs 四模型 27（official） | 综合评分 | AI | 真人 | 0.731（**文种边界**：系数绑定事务公文，印发全文附录/批复类真人侧大面积误报，见 `_qa/generalization-check.md`） |
 
 句长 CV 是对四个模型（含最难检的推理模型 deepseek-r1）一致有效的唯一指标；CV 阈值按长度三档（<300 字 0.30 / <600 字 0.33 / 更长 0.37）。general 词表的互动尾巴、万能开场是当代特征，2023 语料测不到——诚实标注，不造数字。完整校准表与被证伪删除的规则见 [docs/rules.md](docs/rules.md)。
 
@@ -99,6 +101,7 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 
 - 统计指标需要**足够文本**：句长 CV 至少 3 句才有意义，一段话的分析只看词表命中
 - 阈值按**摘要与问答语料**校准；长度分档已上线（CV 三档阈值、评分 ≥600 字长档系数）；general/official 评分已完成当代语料重拟合（v0.17.8），评分类语料仍会随模型换代持续积累
+- general 评分通过样本外体检（换模型+换渠道，0.923）；official 评分**绑定事务文种**——对"印发《规划》全文附录""批复"等省级门户文种，真人侧会大面积高分（误报方向），这类文本的指数仅供参考；文种域外提示已排队
 - 词表规则面向**当代模型文风**，会随模型版本漂移（delve 在 GPT-5 后骤降、破折号在 GPT-5.1 被官方压制）；漂移监测已上线（`tools/drift_monitor.py`），季度重挖在排队
 - 词汇丰富度（TTR）用**字级 2-gram 口径**（与网页/插件端逐位一致）；不做词级切分
 - 本工具**不能**用于证明或豁免任何"AI 代写"指控——它没有这个能力，也不该有
@@ -119,6 +122,7 @@ python tools/evaluate_official.py       # 公文语料评测（误报率验收�
 python tools/eval_taste_regression.py   # 口味回归（需私库语料，缺失自动跳过）
 python tools/gen_samples.py --scene qa  # 大模型 API 生成当季评测语料（key 外读，语料不入库）
 python tools/adversarial_eval.py        # 对抗自评测：改写器/LLM 当攻击者
+python tools/oos_check.py               # 泛化体检：冻结系数跑样本外语料（语料见 _qa/corpus/）
 python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
 ```
 
