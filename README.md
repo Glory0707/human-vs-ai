@@ -120,6 +120,9 @@ python tools/adversarial_eval.py        # 对抗自评测：改写器/LLM 当攻
 python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
 ```
 
+推送后确认 CI 绿（`gh run list --limit 1`）——CI 含构建产物新鲜度守护，
+重新生成后与入库产物零 diff 才放行。
+
 设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）· [中文AI味领域深度研究.md](docs/中文AI味领域深度研究.md)（立项调研）。
 
 ## License
