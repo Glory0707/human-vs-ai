@@ -13,7 +13,7 @@
 1. **可解释** —— 每处命中带规则名、语言学解释、修改方向、研究出处；商业工具给分数不给解释，我们反过来。
 2. **过评测的规则** —— 每条规则带着 C-ReD/HC3 上的区分度数字；证伪即删，砍掉清单防复活。
 3. **本地优先** —— 零网络调用，文本不上传；唯一硬依赖 PyYAML。
-4. **按场景组织** —— 词表规则分 profile（学术/问答/公文/口味），统计底盘共用；实测证明跨文体复用词表必然失效。
+4. **按场景组织** —— 词表规则分七 profile（学术/作文/问答/新闻/公文/口味/短评），统计底盘共用；实测证明跨文体复用词表必然失效。
 
 ## 2. 设计原则
 
@@ -75,7 +75,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 ## 6. 验证基线（当前值，复现命令见 README「开发」）
 
-- **单元测试**：161 项（切分/统计/引擎/边界/报告与文案/评分/口味与改写/格式与工作流/多文体 profile/域外与漂移/端到端区分度）；私库回归 5 项无 corpus_private/ 时自动跳过
+- **单元测试**：164 项（切分/统计/引擎/边界/报告与文案/评分/口味与改写/格式与工作流/多文体 profile/域外与漂移/端到端区分度）；私库回归 5 项无 corpus_private/ 时自动跳过
 - **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.046 vs AI 0.170–0.307，AUROC **0.804**；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
 - **HC3-Chinese 校准**：词表 AUROC 0.476（学术词表在问答文体失效——profile 分治的实证）；CV 0.763；字级 2-gram TTR 0.684
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
@@ -83,7 +83,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 - **fixture 冒烟**：AI 样本 20 处命中（高 4）vs 人类样本 0 高 0 中（tests/data/）
 - **多文体扩展（v0.14）**：essay 评分留出 **0.951**、news **0.935**（C-ReD 全量类平衡）；review 短评词表层不出分——详见 rules.md §9
 - **当代验证（v0.17）**：essay 全量重跑 AUROC **0.942** / news **0.933**（按模型分解：qwen-2.5/claude/gpt-4o 召回 95%+，gpt-3.5 旧代仅 53%）；general 词表双代际验证（C-ReD QA 全量 + gen2026 当季 9 模型 69 篇：三连排比 83% 命中仍是当代最顽固指纹）；official 词表初步验证（9 模型 AI 公文组合覆盖 100% / 真人 0 误伤）；**域外探测**判据 C-ReD 全量 10.4 万篇校准（正样本 5/5、误报 0.005%）；**对抗自评测**（LLM 洗稿削词表 89% 后仍 93.3% 超阈值——统计底盘扛住定向规避）——详见 rules.md §9 与 _qa/*.md
-- **引擎性能**：10 万字 112ms（线性，2026-09 基准）
+- **引擎性能**：7.1 万字 Py 140ms / JS 34ms（min-of-N，2026-09 复测，含 ood/para_heat）
 - **双引擎一致性**：27 段语料 + 15 条改写探针 × 7 profile = **308 项**逐字段 diff 全绿（含 ood/para_heat 字段对拍）；含 emoji 码点/行分隔符全集/孤立低代理/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水等对抗探针
 - **口味校准层**：personal 12 条口味条目 + rewrite；被毙稿召回 31/31、定稿误报 0/37、改写维度 5/6；`tools/check_private_leak.py` 守护边界
 
@@ -120,8 +120,9 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 | v0.17.1 | 段落热度轮：compute_para_heat 每段加权密度（与全文 hit_density 同口径，level 三档），混写文本定位"哪几段最像 AI"，四端同行展示；density 保留全精度（Py banker's vs JS half-up 漂移规避） |
 | v0.17.2 | 校准机制化轮：tools/adversarial_eval.py 对抗自评测（改写器/LLM 双攻击者）；tools/drift_monitor.py 漂移监测（collect 样本按 profile 聚合对比基线，p50≥15 分/规则≥10pp 信号）；official 场景 gen2026 公文 70 篇初步验证（组合覆盖 100%/真人 0 误伤） |
 | v0.17.3 | T6 收尾：.stats .row 特异性覆盖 .ood-note 致暗色域外提示退化灰字——三端选择器提升（visual-judge 抓出）；对抗评测双攻击者合并报告（LLM 洗稿削词表 89%、93.3% 仍超阈值——统计底盘扛住定向规避）；10 状态高分辨率视觉走查 9 pass / 1 截图脚本失误 |
-| v0.17.7 | 测试员轮（162 项测试）：修 2 个 bug——①collect.sanitize 卡号正则只认 16-19 位，22 位长数字串（订单号等）整段漏打码，改 16 位起整段打码（脱敏宁枉勿纵）+ 回归；②drift_monitor 目录输入抛 PermissionError traceback，抽 resolve_inputs 跳目录并干净报错 + 回归。排查无恙层：Py/JS 15 组对抗探针 ood/para_heat/excerpt 逐字段一致；CLI 黑盒 10 组边界（GB18030/二进制/空文件/不可写输出/不存在规则与场景/空 stdin）全过；web 竞态守卫（clearTimeout+analyzeGen 代际+双 rAF）与 Obsidian 同步 analyze（读当前活动文件，无错位）确认完备 |
 | v0.17.6 | 文件与文案清理轮：删本地产物（.playwright-mcp/.pytest_cache/egg-info/__pycache__/_qa 截图与运行缓存，语料与私人数据不动）；文案收短——域外行"超出评测语料范围，指数与统计仅供参考"→"指数仅供参考"、热度行去"（命中密度/句）"括注（定位交互改悬浮提示）、collect 输出与 help 若干条收短、空态句号统一 |
+| v0.17.8 | 文档审计轮：plan.md 精简（删 v0.9-v0.12 时代 15 段过程注记——与轮次日志重复，121→73 行；排队清单收敛为 design.md §4 单一来源）；README/design/rules/taste 四处"四场景/三个 profile/161 项"陈旧口径统一为现状；rules.md 游离表格残片并入正文、§7 补漂移监测上线；配置文件核查无冗余 |
+| v0.17.7 | 测试员轮（164 项测试）：修 2 个 bug——①collect.sanitize 卡号正则只认 16-19 位，22 位长数字串（订单号等）整段漏打码，改 16 位起整段打码（脱敏宁枉勿纵）+ 回归；②drift_monitor 目录输入抛 PermissionError traceback，抽 resolve_inputs 跳目录并干净报错 + 回归。排查无恙层：Py/JS 15 组对抗探针 ood/para_heat/excerpt 逐字段一致；CLI 黑盒 10 组边界（GB18030/二进制/空文件/不可写输出/不存在规则与场景/空 stdin）全过；web 竞态守卫（clearTimeout+analyzeGen 代际+双 rAF）与 Obsidian 同步 analyze（读当前活动文件，无错位）确认完备 |
 | v0.17.5 | 冗余清理轮（零功能变化）：rewrite.py 死映射 _VOICE_RULES 删除（口味编号实际来自 personal.yaml 的 taste 字段）；render.js 纯内部叶子（compsHtml/OOD_NAME/SCORE_LABEL）移出导出表、vscode 幽灵解构 componentsText 移除；标点正则收敛单一事实源（stats.PUNCT，ood.py 删本地拷贝改导入——口径一致从人肉同步变结构保证）；ood.py 常量统一私有命名、drift_monitor NaN 判断收敛 finite()；test_ood 尾部 helper 归位 |
 | v0.17.4 | 全端打磨轮：段落热度可点击——原稿自动选中对应段落首句（excerpt 定位，引擎 Py/JS 同构新增字段）；域外判定改全文+逐段聚合（白话引用文言段时全文统计被稀释致漏检，C-ReD 全量复测误报率不变）；构成列 HTML 版每项 nowrap 修手机端"标签 数值"拆行（visual-judge 抓出）；性能复测 7.1 万字 Py 140ms / JS 34ms 无回退，ood 正则预编译 |
 

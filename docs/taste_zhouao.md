@@ -7,7 +7,7 @@
 
 ## 0. 为什么需要这一层
 
-三个公开 profile（academic / general / official）校准的是"中文 AI 味"的通用特征。
+公开场景（academic / essay / general / news / official / review）校准的是"中文 AI 味"的通用特征。
 但**本人对文案的取舍有明确且可量化的偏好**，公开语料测不出来——比如"关怀腔"
 在通用语料里是中性甚至加分的，在本人这里是被毙的第一名。这一层把私人标注数据
 吃进规则库，用于审自己的产品文案（eggpaper / human-vs-ai 这类界面文案与梗）。
