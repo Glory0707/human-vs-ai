@@ -40,6 +40,25 @@ def percentile(xs: list[int], p: float) -> float:
     return s[min(int(len(s) * p), len(s) - 1)]
 
 
+def resolve_inputs(patterns: list[str]) -> list[Path]:
+    """展开 --input 为存在的文件列表：支持 glob 与 Windows 绝对路径；
+    目录与不存在的项跳过（目录读入会 PermissionError，v0.17.7 实测）。"""
+    paths: list[Path] = []
+    for pat in patterns:
+        p = Path(pat)
+        if p.is_dir():
+            continue
+        if p.is_absolute():
+            # Windows 绝对路径不能进 Path.glob（Non-relative patterns）
+            import glob as _glob
+            paths.extend(sorted(Path(x) for x in _glob.glob(pat)))
+        elif any(ch in pat for ch in "*?["):
+            paths.extend(sorted(Path().glob(pat)))
+        else:
+            paths.append(p)
+    return [p for p in paths if p.is_file()]
+
+
 def load_samples(paths: list[Path]) -> list[dict]:
     rows = []
     for p in paths:
@@ -129,19 +148,7 @@ def main() -> None:
                     help="把本次聚合存为新基线（只含统计，不含文本）")
     args = ap.parse_args()
 
-    paths: list[Path] = []
-    for pat in args.input:
-        p = Path(pat)
-        if p.is_absolute():
-            # Windows 绝对路径不能进 glob（Non-relative patterns）；
-            # 通配需求用 glob 模块处理
-            import glob as _glob
-            paths.extend(sorted(Path(x) for x in _glob.glob(pat)) or [p])
-        elif any(ch in pat for ch in "*?["):
-            paths.extend(sorted(Path().glob(pat)))
-        else:
-            paths.append(p)
-    paths = [p for p in paths if p.exists()]
+    paths = resolve_inputs(args.input)
     if not paths:
         sys.exit(f"没有找到输入文件：{args.input}")
 

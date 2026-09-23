@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 
 import pytest
 
-from drift_monitor import aggregate, compare, load_samples
+from drift_monitor import aggregate, compare, load_samples, resolve_inputs
 
 
 def sample(profile="general", month="2026-08", score=30, findings=None):
@@ -89,3 +89,16 @@ class TestLoad:
         bad["type"] = "other"
         p.write_text(json.dumps(bad, ensure_ascii=False) + "\n", encoding="utf-8")
         assert load_samples([p]) == []
+
+
+class TestResolveInputs:
+    def test_directory_skipped(self, tmp_path):
+        # 目录读入会 PermissionError——必须跳过（v0.17.7 实测）
+        (tmp_path / "sub").mkdir()
+        f = tmp_path / "s.jsonl"
+        f.write_text("{}\n", encoding="utf-8")
+        paths = resolve_inputs([str(tmp_path / "sub"), str(f)])
+        assert paths == [f]
+
+    def test_missing_skipped(self, tmp_path):
+        assert resolve_inputs([str(tmp_path / "nope.jsonl")]) == []

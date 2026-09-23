@@ -72,6 +72,9 @@ class TestCollect:
         assert "【手机号】" in s["text"] and "13812345678" not in s["text"]
         assert "【邮箱】" in s["text"] and "【身份证号】" in s["text"]
         assert "【卡号】" in s["text"]
+        # 超长数字串（订单号等，非 16-19 位标准卡号）同样整段打码（宁枉勿纵）
+        s2 = collect.build_sample("订单号 622202020011223345678 已提交", "news", "hit")
+        assert "【卡号】" in s2["text"] and "622202020011223345678" not in s2["text"]
         assert s["label"] == "fp" and s["profile"] == "news"
         assert len(s["text_sha256"]) == 16
 
