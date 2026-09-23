@@ -74,6 +74,15 @@
     }).join(" · ");
   }
 
+  /* 构成列 HTML 版（指数印章 sub 行专用）：每项 nowrap，窄屏换行
+     不拆"标签 数值"；纯文本版 componentsText 仍服务 Markdown 出口 */
+  function compsHtml(components) {
+    return Object.keys(components).map(f => {
+      const v = components[f];
+      return `<span class="ci">${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}</span>`;
+    }).join(`<span class="ci-sep"> · </span>`);
+  }
+
   /* 指数印章：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低）。
      够 8 句却没出分（无校准语料）的场景由各端用 scoreNoteRow 给一行原因 */
   function scoreNoteRow(note) {
@@ -92,7 +101,7 @@
     return `<div class="row score">` +
       `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
       `<span class="score-main"><span class="t">${idx} / 100</span>` +
-      `<span class="sub" title="校准语料真人分数：p50≈${score.human_p50}，p90≈${score.human_p90}">${bandText} · 构成：${componentsText(score.components)}</span></span></div>`;
+      `<span class="sub" title="校准语料真人分数：p50≈${score.human_p50}，p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
   }
 
   /* 域外文体提示：文言/诗行超出评测语料域，指数系统性虚高（与引擎 ood 同行） */
@@ -104,12 +113,14 @@
   }
 
   /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
-     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现 */
+     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现。
+     项上带 data-para/data-excerpt，交互端可监听点击在原稿中定位该段 */
   function paraHeatHtml(result) {
     const heat = ((result && result.para_heat) || []).slice(0, 3);
     if (!heat.length) return "";
     const items = heat.map(h =>
-      `<span class="ph ph-${esc(h.level)}">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+      `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
+      ` data-excerpt="${esc(h.excerpt || "")}" role="button">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
     ).join('<span class="ph-sep"> · </span>');
     return `<div class="row heat-note">段落热度（命中密度/句）：${items}</div>`;
   }
@@ -127,7 +138,8 @@
 
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
-    componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
+    componentsText: componentsText, compsHtml: compsHtml,
+    sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
     oodHtml: oodHtml, OOD_NAME: OOD_NAME, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,

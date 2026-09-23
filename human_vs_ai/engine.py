@@ -244,9 +244,9 @@ def compute_para_heat(para_texts: list[list[str]], findings: list[Finding],
             continue
         density = weighted[pi] / n
         level = "high" if density >= 1.0 else ("medium" if density >= 0.5 else "low")
-        # density 保留全精度：渲染层各自格式化（Py round 是 banker's、
-        # JS 是 half-up，0.125 这类值会漂移，一致性对拍会抓）
-        heat.append({"para": pi, "n_sents": n, "density": density, "level": level})
+        # excerpt 供交互端在原稿中定位该段（首句前 16 字，码点口径）
+        heat.append({"para": pi, "n_sents": n, "density": density, "level": level,
+                     "excerpt": para[0][:16]})
     heat.sort(key=lambda h: -h["density"])
     return heat
 # scoring 段里的元字段，不是特征
@@ -386,7 +386,14 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     doc = segment.split_document(text)
     para_texts = [[s.text for s in block.sents] for block in doc]
     result = AnalysisResult(profile=profile)
-    result.ood = ood.detect([s for para in para_texts for s in para])
+    # 域外判定：全文一遍 + 逐段一遍聚合——白话引用文言段时全文统计被
+    # 稀释（实测混排漏检），逐段能抓到；C-ReD 全量验证分段版误报率不变
+    all_para = [s for para in para_texts for s in para]
+    result.ood = ood.detect(all_para)
+    for para in para_texts:
+        for kind in ood.detect(para):
+            if kind not in result.ood:
+                result.ood.append(kind)
 
     raw_hits: dict[str, list[Finding]] = {}
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）

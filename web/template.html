@@ -296,11 +296,14 @@ body.resizing .pane { transition: none; }
 .score-main .t { font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 .score-main .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 3px; }
 .score-main .sub .mono-num { font-family: var(--mono); }
+.score-main .ci { white-space: nowrap; }
 .row.score .comp { color: var(--ink-3); }
 .stats .row.ood-note { font-size: var(--fs-s); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
 .stats .row.heat-note { font-size: var(--fs-s); color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
+.ph[data-para] { cursor: pointer; }
+.ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
 .ph-high { color: var(--vermilion); }
 .ph-medium { color: var(--accent-deep); }
 .ph-sep { color: var(--hairline); }
@@ -1070,6 +1073,19 @@ inputEl.addEventListener("focus", () => {
 reportEl.addEventListener("focus", () => {
   document.getElementById("reportPane").classList.add("active");
 }, true);
+
+/* 段落热度点击 → 原稿定位：选中该段首句（excerpt 在原稿 indexOf），
+   编辑框自动滚动过去。含行内标记的段落清洗后失配，静默不动 */
+reportEl.addEventListener("click", (e) => {
+  const item = e.target.closest(".ph[data-para]");
+  if (!item) return;
+  const excerpt = item.dataset.excerpt;
+  if (!excerpt) return;
+  const from = inputEl.value.indexOf(excerpt);
+  if (from < 0) return;
+  inputEl.focus();
+  inputEl.setSelectionRange(from, from + excerpt.length);
+});
 
 /* 匿名校准样本：脱敏（手机号/邮箱/身份证/长数字打码）后下载 .jsonl，
    与 CLI `collect` 同一份形状——自愿提交到项目渠道帮词表在真实文本上进化 */

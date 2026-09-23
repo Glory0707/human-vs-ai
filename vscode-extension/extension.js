@@ -127,6 +127,7 @@ b { font-variant-numeric: tabular-nums; }
 .mono-num { font-family: var(--mono); }
 .score-main .t { font-weight: 650; font-size: 14px; }
 .score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
+.score-main .ci { white-space: nowrap; }
 .row.score-note { color: var(--ink-3); }
 .stats .row.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }

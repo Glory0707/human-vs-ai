@@ -443,10 +443,12 @@
     for (var pi = 0; pi < doc.length; pi++) {
       var n = doc[pi].sents.length;
       if (!n || weighted[pi] === undefined) continue;
-      /* density 全精度：round 的半值行为两端不同（banker's vs half-up） */
+      /* density 全精度：round 的半值行为两端不同（banker's vs half-up）；
+         excerpt 按码点截 16 字（与 Py text[:16] 一致，防代理对拆开） */
       var density = weighted[pi] / n;
       var level = density >= 1.0 ? "high" : (density >= 0.5 ? "medium" : "low");
-      heat.push({ para: pi, n_sents: n, density: density, level: level });
+      var excerpt = Array.from(doc[pi].sents[0].text).slice(0, 16).join("");
+      heat.push({ para: pi, n_sents: n, density: density, level: level, excerpt: excerpt });
     }
     heat.sort(function (a, b) { return b.density - a.density; });
     return heat;
@@ -576,16 +578,25 @@
     findings.sort(function (a, b) {
       return (SEV[b.severity] - SEV[a.severity]) || (a.para - b.para);
     });
-    /* 域外文体：与统计层同一份句子（Py 端从 para_texts 展平） */
+    /* 域外文体：全文一遍 + 逐段一遍聚合（白话引用文言段时全文统计被
+       稀释，逐段能抓到；与 Python analyze 同构） */
     var allSents = [];
     for (var oi = 0; oi < doc.length; oi++) {
       for (var oj = 0; oj < doc[oi].sents.length; oj++) allSents.push(doc[oi].sents[oj]);
+    }
+    var oodKinds = detectOod(allSents);
+    for (var ok = 0; ok < doc.length; ok++) {
+      var paraSents = doc[ok].sents;
+      var paraKinds = detectOod(paraSents);
+      for (var ok2 = 0; ok2 < paraKinds.length; ok2++) {
+        if (oodKinds.indexOf(paraKinds[ok2]) < 0) oodKinds.push(paraKinds[ok2]);
+      }
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空 */
     var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoring || null),
-             score_note: scoreNote, ood: detectOod(allSents),
+             score_note: scoreNote, ood: oodKinds,
              para_heat: computeParaHeat(doc, findings, hints) };
   }
 

@@ -57,7 +57,19 @@ class TestDetect:
         assert detect([RECOMMEND]) == []
 
 
+MIXED_CLASSICAL_BAIHUA = (
+    "这个方法真的很好用，我用了三个月之后感觉自己的效率提升了很多。"
+    "以前我总是拖延到最后一刻才动手，现在会把任务拆成小块，"
+    "每完成一块就给自己一点奖励。朋友说我变了一个人，"
+    "其实我只是找到了适合自己的节奏。如果你也在拖延，不妨试试这个办法。"
+    "它不需要什么意志力，只需要一点小小的设计。\n\n" + YUEYANG)
+
+
 class TestEngineIntegration:
+    def test_mixed_baihua_classical_para_flagged(self):
+        # 白话引用文言段：全文统计被稀释，逐段判定聚合补上（v0.17.4）
+        r = engine.analyze(MIXED_CLASSICAL_BAIHUA, "essay")
+        assert "classical" in r.ood
     def test_result_carries_ood(self):
         r = engine.analyze(YUEYANG, "essay")
         assert "classical" in r.ood
