@@ -482,7 +482,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.17.5</span>
+    <span class="head-ver">v0.17.6</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -497,7 +497,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本（自动脱敏）">匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本">匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -1421,7 +1421,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   function oodHtml(ood) {
     if (!ood || !ood.length) return "";
     const names = ood.map(k => OOD_NAME[k] || k).join("、");
-    return `<div class="row ood-note">文体域外（${esc(names)}）：超出评测语料范围，指数与统计仅供参考</div>`;
+    return `<div class="row ood-note">文体域外（${esc(names)}）：指数仅供参考</div>`;
   }
 
   /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
@@ -1432,9 +1432,9 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     if (!heat.length) return "";
     const items = heat.map(h =>
       `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
-      ` data-excerpt="${esc(h.excerpt || "")}" role="button">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击在原稿中定位">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
     ).join('<span class="ph-sep"> · </span>');
-    return `<div class="row heat-note">段落热度（命中密度/句）：${items}</div>`;
+    return `<div class="row heat-note">段落热度：${items}</div>`;
   }
 
   function hintsHtml(hints) {
@@ -1709,7 +1709,7 @@ function renderAdvice() {
     `<span class="filters">${FILTERS.map(([key, label]) =>
       `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}${key !== "all" ? `<span class="f-n">${n(key)}</span>` : ""}</button>`).join("")}</span></div>`];
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
-  if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目。</div>');
+  if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目</div>');
   shown.forEach(a => {
     const [cls, label] = ADVICE_META[a.action] || ["keep", "?"];
     const taste = a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
@@ -1799,7 +1799,7 @@ function reportToMarkdown() {
   }
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
-  if (!r.findings.length) L.push("未发现模板化写作。");
+  if (!r.findings.length) L.push("未发现模板化写作");
   const explained = new Set();
   const { groups, docLevel, sevRank } = buildGroups(r.findings);
   groups.forEach(g => {

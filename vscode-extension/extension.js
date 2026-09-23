@@ -46,7 +46,7 @@ function renderReportHtml(fileName, profile, result) {
   F.forEach(f => bySev[f.severity].push(f));
   const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
     .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作。"}</div>`);
+  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`);
 
   const explained = new Set();
   ["high", "medium", "low"].forEach(sev => {

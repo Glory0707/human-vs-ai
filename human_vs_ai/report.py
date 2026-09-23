@@ -51,7 +51,7 @@ def _ood_line(result: AnalysisResult) -> str:
     if not result.ood:
         return ""
     names = "、".join(_OOD_NAME.get(k, k) for k in result.ood)
-    return f"※ 文体域外（{names}）：超出评测语料范围，指数与统计仅供参考"
+    return f"※ 文体域外（{names}）：指数仅供参考"
 
 
 def _heat_line(result: AnalysisResult) -> str:
@@ -59,7 +59,7 @@ def _heat_line(result: AnalysisResult) -> str:
         return ""
     shown = result.para_heat[:3]
     parts = " · ".join(f"¶{h['para'] + 1} {h['density']:.2f}" for h in shown)
-    return f"段落热度（命中密度/句）：{parts}"
+    return f"段落热度：{parts}"
 
 
 def _score_line(score: Score) -> str:
@@ -148,7 +148,7 @@ def render_terminal(result: AnalysisResult) -> str:
     out.extend(stats_lines(result))
     out.append("")
     if not result.findings:
-        out.append(C("32", "未发现模板化写作。"))
+        out.append(C("32", "未发现模板化写作"))
     else:
         explained: set[str] = set()
         groups, doc_level = _group_by_sentence(result.findings)
@@ -205,7 +205,7 @@ def render_markdown(result: AnalysisResult) -> str:
     out.append(f"## 发现（{len(result.findings)} 处）")
     out.append("")
     if not result.findings:
-        out.append("未发现模板化写作。")
+        out.append("未发现模板化写作")
     explained: set[str] = set()
     groups, doc_level = _group_by_sentence(result.findings)
     for group in groups:

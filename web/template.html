@@ -497,7 +497,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本（自动脱敏）">匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本">匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -760,7 +760,7 @@ function renderAdvice() {
     `<span class="filters">${FILTERS.map(([key, label]) =>
       `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}${key !== "all" ? `<span class="f-n">${n(key)}</span>` : ""}</button>`).join("")}</span></div>`];
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
-  if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目。</div>');
+  if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目</div>');
   shown.forEach(a => {
     const [cls, label] = ADVICE_META[a.action] || ["keep", "?"];
     const taste = a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
@@ -850,7 +850,7 @@ function reportToMarkdown() {
   }
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
-  if (!r.findings.length) L.push("未发现模板化写作。");
+  if (!r.findings.length) L.push("未发现模板化写作");
   const explained = new Set();
   const { groups, docLevel, sevRank } = buildGroups(r.findings);
   groups.forEach(g => {

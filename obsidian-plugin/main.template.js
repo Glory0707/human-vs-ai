@@ -142,7 +142,7 @@ function reportToMarkdown(profile, result) {
   }
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
-  if (!r.findings.length) L.push("未发现模板化写作。");
+  if (!r.findings.length) L.push("未发现模板化写作");
   const explained = new Set();
   const { groups, docLevel, sevRank } = buildGroups(r.findings);
   groups.forEach(g => {

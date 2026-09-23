@@ -109,7 +109,7 @@
   function oodHtml(ood) {
     if (!ood || !ood.length) return "";
     const names = ood.map(k => OOD_NAME[k] || k).join("、");
-    return `<div class="row ood-note">文体域外（${esc(names)}）：超出评测语料范围，指数与统计仅供参考</div>`;
+    return `<div class="row ood-note">文体域外（${esc(names)}）：指数仅供参考</div>`;
   }
 
   /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
@@ -120,9 +120,9 @@
     if (!heat.length) return "";
     const items = heat.map(h =>
       `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
-      ` data-excerpt="${esc(h.excerpt || "")}" role="button">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击在原稿中定位">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
     ).join('<span class="ph-sep"> · </span>');
-    return `<div class="row heat-note">段落热度（命中密度/句）：${items}</div>`;
+    return `<div class="row heat-note">段落热度：${items}</div>`;
   }
 
   function hintsHtml(hints) {

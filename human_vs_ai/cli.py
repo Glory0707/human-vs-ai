@@ -79,16 +79,16 @@ def main(argv: list[str] | None = None) -> None:
     p_check.add_argument(
         "-f", "--format", default="terminal",
         choices=["terminal", "md", "json", "sarif", "csv", "html"],
-        help="出口格式（html=可分享的静态报告页；csv/sarif 需文件输入）")
+        help="出口格式（csv/sarif 需文件输入）")
     p_check.add_argument("-o", "--output", help="写入文件（默认打印）")
     p_check.add_argument(
         "--min-severity", default="hint", choices=["high", "medium", "low", "hint"],
         help="报告的最低严重级（默认全量；仅单文件出口生效）")
     p_check.add_argument(
         "--fail-above", type=float, default=None, metavar="N",
-        help="AI 味指数超过 N 时退出码 1（CI 门禁；<8 句不出分不判定）")
+        help="AI 味指数超过 N 时退出码 1（CI 门禁）")
 
-    p_diff = sub.add_parser("diff", help="改前改后对比——验证修改有没有效")
+    p_diff = sub.add_parser("diff", help="改前改后对比")
     p_diff.add_argument("old", help="改前文件")
     p_diff.add_argument("new", help="改后文件")
     p_diff.add_argument("-p", "--profile", default="academic")
@@ -112,7 +112,7 @@ def main(argv: list[str] | None = None) -> None:
 
     p_col = sub.add_parser(
         "collect",
-        help="导出脱敏校准样本（自愿提交，帮词表在真实文本上进化）")
+        help="导出脱敏校准样本（自愿提交）")
     p_col.add_argument("file", help="txt/md/docx/odt 文件；或 - 从标准输入读")
     p_col.add_argument(
         "-p", "--profile", default="academic",
@@ -188,8 +188,8 @@ def _dispatch(args: argparse.Namespace) -> None:
             _emit(out, args.output)
         else:
             sys.stdout.write(out)
-            print(f"已导出 1 条样本（{collect.LABELS[args.label]}）。"
-                  "提交方式见 README「贡献校准样本」。", file=sys.stderr)
+            print(f"已导出 1 条样本（{collect.LABELS[args.label]}），提交方式见 README。",
+                  file=sys.stderr)
         return
 
     if args.command == "diff":
