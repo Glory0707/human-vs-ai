@@ -389,6 +389,47 @@
     };
   }
 
+  /* ---------- 域外文体（文言/诗行）：与 Python ood.py 同构，判据与阈值一字不差 ---------- */
+
+  var OOD_STRONG = "乎哉兮矣焉欤俟汝尓乃遂皆曰";
+
+  function detectOod(sents) {
+    var clean = [];
+    for (var i = 0; i < sents.length; i++) clean.push(sents[i].text.replace(PUNCT_RE, ""));
+    var cps = Array.from(clean.join(""));
+    var n = cps.length;
+    if (n < 80) return [];
+    var cnt = {};
+    for (var j = 0; j < n; j++) {
+      var ch = cps[j];
+      cnt[ch] = (cnt[ch] || 0) + 1;
+    }
+    function ratio(set) {
+      var k = 0;
+      for (var x = 0; x < set.length; x++) k += cnt[set[x]] || 0;
+      return k / n;
+    }
+    var de = ratio("的地得"), strong = ratio(OOD_STRONG);
+
+    var kinds = [];
+    if (de < 0.010 && strong >= 0.008 && (cnt["了"] || 0) / n < 0.006) kinds.push("classical");
+    var bal = 0, lens = {};
+    for (var s = 0; s < sents.length; s++) {
+      var parts = sents[s].text.split(/[，、；]/).filter(function (p) { return p.trim(); });
+      var ls = parts.map(function (p) { return cpLength(p.replace(PUNCT_RE, "")); });
+      var ok = parts.length === 2;
+      for (var li = 0; li < ls.length; li++) if (ls[li] < 5 || ls[li] > 9) ok = false;
+      if (ok) {
+        bal++;
+        for (var lj = 0; lj < ls.length; lj++) lens[ls[lj]] = true;
+      }
+    }
+    var nLens = 0;
+    for (var L in lens) if (lens.hasOwnProperty(L)) nLens++;
+    if (bal >= 4 && sents.length && bal / sents.length >= 0.60 && nLens === 1) kinds.push("verse");
+    return kinds;
+  }
+
   /* ---------- 引擎 ---------- */
 
   /* 编译结果按规则数组引用缓存（网页端每次按键都调 analyze，
@@ -513,11 +554,16 @@
     findings.sort(function (a, b) {
       return (SEV[b.severity] - SEV[a.severity]) || (a.para - b.para);
     });
+    /* 域外文体：与统计层同一份句子（Py 端从 para_texts 展平） */
+    var allSents = [];
+    for (var oi = 0; oi < doc.length; oi++) {
+      for (var oj = 0; oj < doc[oi].sents.length; oj++) allSents.push(doc[oi].sents[oj]);
+    }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空 */
     var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoring || null),
-             score_note: scoreNote };
+             score_note: scoreNote, ood: detectOod(allSents) };
   }
 
   return {

@@ -36,6 +36,12 @@ class TestNewProfiles:
         rule_ids = {r.id for r in engine.load_rules("news")}
         assert "G-TRIAD-01" not in rule_ids
 
+    def test_general_dash_excluded(self):
+        # 砍掉清单：破折号高频在问答域反向（真人 1.8% vs AI 0.7%，
+        # _qa/general-contemporary.md），不得进 general 库
+        rule_ids = {r.id for r in engine.load_rules("general")}
+        assert "D-DASH-01" not in rule_ids
+
     def test_essay_scoring_and_negation_high(self):
         r = engine.analyze(ESSAY_AI, "essay")
         assert r.score and round(r.score.auroc, 3) == 0.952

@@ -34,10 +34,29 @@ _SCORE_LABEL = {
     "conn_density": "连接词",
 }
 
+# 域外文体 → 报告用名（引擎 ood.detect 的 kinds）
+_OOD_NAME = {"classical": "文言", "verse": "等长对句诗行"}
+
+
+def _band_text(score: Score) -> str:
+    """分数读数：相对校准语料真人分布的位置，比裸 p50/p90 数字可读。"""
+    if score.index > score.human_p90:
+        return "超过 90% 校准真人"
+    if score.index > score.human_p50:
+        return "超过半数校准真人"
+    return "低于半数校准真人"
+
+
+def _ood_line(result: AnalysisResult) -> str:
+    if not result.ood:
+        return ""
+    names = "、".join(_OOD_NAME.get(k, k) for k in result.ood)
+    return f"※ 文体域外（{names}）：超出评测语料范围，指数与统计仅供参考"
+
 
 def _score_line(score: Score) -> str:
     # 整数显示：逻辑回归压到 0-100 后小数位是假精度（网页端同口径）
-    return f"AI 味指数：{round(score.index)} / 100"
+    return f"AI 味指数：{round(score.index)} / 100（{_band_text(score)}）"
 
 
 def _score_components(score: Score) -> str:
@@ -62,6 +81,7 @@ def stats_lines(result: AnalysisResult) -> list[str]:
     elif result.scoring_note:
         # 够 8 句却没分：给一行原因，免得用户在各文体间切换时纳闷分去哪了
         rows.append(f"AI 味指数：—（{result.scoring_note}）")
+    rows.append(_ood_line(result))
     rows.append(f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
     # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
@@ -232,6 +252,7 @@ def render_json(result: AnalysisResult) -> str:
             "stats": result.doc_stats.to_dict(),
             "score": result.score.to_dict() if result.score else None,
             "score_note": result.scoring_note or None,
+            "ood": result.ood or None,
             "findings": [f.to_dict() for f in result.findings],
             "hints": [f.to_dict() for f in result.hints],
             "disclaimer": _DISCLAIMER,

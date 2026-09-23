@@ -11,6 +11,16 @@
 #     从 academic 移入本库复活
 #   - 模板连接词密度在问答文体反向（真人医疗回答 0.030 > AI 0.010，
 #     "首先/其次"是百度知道的答题模板）——D-CONN 不进本库
+#
+# 当代验证（2026-09 二轮，_qa/general-contemporary.md）：
+#   - C-ReD 问答域全量（AI 2.9 万/真人 2956）：G-SAFE 37.7% vs 4.6%、
+#     G-TRIAD 33.7% vs 17.6%、G-INTERACT 16.6% vs 7.4%，方向全部正确
+#   - 2026 当季 9 模型（doubao-seed-2.x/kimi/minimax/glm/deepseek）600 字
+#     回答 69 篇：G-TRIAD 命中 83%（真人 17.6%）仍是当代最顽固指纹，
+#     全部词表方向成立，无需改词表
+#   - D-DASH 在问答域反向（真人 1.8% vs AI 0.7%）——砍掉（砍掉清单）
+#   - 当代模型对话式输出分数整体偏低（p50 6-28，真人 p50 8）：问答场景
+#     的当代 AI 天然比作文/新闻场景难判，如实标注边界
 
 meta:
   name: general
@@ -219,21 +229,10 @@ rules:
     references:
       - https://arxiv.org/pdf/2510.15061v2
 
-  - id: D-DASH-01
-    name: 破折号高频
-    tier: statistical
-    scope: doc
-    severity: low
-    doc_metric: dash_density
-    doc_compare: above
-    doc_threshold: 0.15
-    explanation: >
-      平均每句超过 0.15 个破折号——破折号让作者免于说明两个分句的
-      逻辑关系，AI 因此到处用。注意：单独几个破折号完全正常
-      （很多作者有此习惯），这条只在密度异常时提示。
-    suggestion: 破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。
-    references:
-      - https://github.com/blader/humanizer
+  # 砍掉清单（当代验证二轮新增）：
+  #   D-DASH-01（破折号高频）——问答域方向反向：真人 1.8% vs AI 0.7%。
+  #   破折号让作者免于说明分句关系是学术/AI 腔的逻辑；问答体真人反而
+  #   拿它当口语停顿。惩罚方向错误，按纪律不进本库。
 
 # 综合评分（AI 味指数）：门控前规则加权密度 + 全文统计的逻辑回归。
 # 拟合与分层验证：tools/fit_score.py；TTR 用字级 2-gram 口径（两端同分）。

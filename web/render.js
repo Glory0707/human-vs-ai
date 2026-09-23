@@ -81,15 +81,26 @@
     return `<div class="row score">AI 味指数 <span class="comp">—（${note}）</span></div>`;
   }
 
-  /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放 */
+  /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
+     分档读数直接说人话（"超过 90% 校准真人"），p50/p90 数字放悬浮提示 */
   function sealHtml(score) {
     if (!score) return "";
     const idx = score.index.toFixed(0);
     const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
+    const bandText = band === "high" ? "超过 90% 校准真人"
+      : band === "medium" ? "超过半数校准真人" : "低于半数校准真人";
     return `<div class="row score">` +
       `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
       `<span class="score-main"><span class="t">${idx} / 100</span>` +
-      `<span class="sub">真人 p50≈<span class="mono-num">${score.human_p50}</span> / p90≈<span class="mono-num">${score.human_p90}</span> · 构成：${componentsText(score.components)}</span></span></div>`;
+      `<span class="sub" title="校准语料真人分数：p50≈${score.human_p50}，p90≈${score.human_p90}">${bandText} · 构成：${componentsText(score.components)}</span></span></div>`;
+  }
+
+  /* 域外文体提示：文言/诗行超出评测语料域，指数系统性虚高（与引擎 ood 同行） */
+  var OOD_NAME = { classical: "文言", verse: "等长对句诗行" };
+  function oodHtml(ood) {
+    if (!ood || !ood.length) return "";
+    const names = ood.map(k => OOD_NAME[k] || k).join("、");
+    return `<div class="row ood-note">文体域外（${esc(names)}）：超出评测语料范围，指数与统计仅供参考</div>`;
   }
 
   function hintsHtml(hints) {
@@ -106,6 +117,7 @@
   return {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText, sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
+    oodHtml: oodHtml, OOD_NAME: OOD_NAME,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, SCORE_LABEL: SCORE_LABEL, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,

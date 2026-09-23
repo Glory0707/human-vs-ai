@@ -2,7 +2,7 @@
   "name": "human-vs-ai",
   "displayName": "human-vs-ai · 中文 AI 味分析",
   "description": "可解释的中文 AI 味分析器：逐句指出哪里像模板、为什么、怎么改。纯本地，不判 AI 概率。",
-  "version": "0.16.3",
+  "version": "0.17.0",
   "publisher": "glory0707",
   "license": "MIT",
   "icon": "icon.png",

@@ -20,7 +20,7 @@ from pathlib import Path
 
 import yaml
 
-from . import segment, stats
+from . import ood, segment, stats
 
 RULES_DIR = Path(__file__).parent / "rules"
 
@@ -152,6 +152,8 @@ class AnalysisResult:
     # 8 句以上却没出分时给一句原因（该文体未校准）；<8 句保持空——
     # 短文本本来就不展示统计，多一行解释反而吵（v0.9.1 的教训）
     scoring_note: str = ""
+    # 域外文体（"classical"/"verse"）：指数会系统性虚高，报告须随行提示
+    ood: list[str] = field(default_factory=list)
 
     @property
     def n_high(self) -> int:
@@ -352,6 +354,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     doc = segment.split_document(text)
     para_texts = [[s.text for s in block.sents] for block in doc]
     result = AnalysisResult(profile=profile)
+    result.ood = ood.detect([s for para in para_texts for s in para])
 
     raw_hits: dict[str, list[Finding]] = {}
 

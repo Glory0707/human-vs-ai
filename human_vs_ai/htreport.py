@@ -113,14 +113,16 @@ def _score_html(result: AnalysisResult) -> str:
         s = result.score
         idx = round(s.index)
         band = "high" if s.index > s.human_p90 else ("medium" if s.index > s.human_p50 else "low")
+        band_text = ("超过 90% 校准真人" if band == "high"
+                     else "超过半数校准真人" if band == "medium" else "低于半数校准真人")
         comps = " · ".join(
             f"{_SCORE_LABEL.get(f, f)} {v:+.0f}" for f, v in s.components.items())
         return (f'<div class="score-row">'
                 f'<span class="seal" style="color:{_SEV_COLOR[band]}">'
                 f'<span class="n">{idx}</span><span class="u">AI味指数</span></span>'
                 f'<span class="score-main"><span class="t">{idx} / 100</span>'
-                f'<span class="sub">风格综合分 · 真人 p50≈{s.human_p50} / p90≈{s.human_p90}'
-                f' · 构成：{comps}</span></span></div>')
+                f'<span class="sub" title="校准语料真人分数：p50≈{s.human_p50}，p90≈{s.human_p90}">'
+                f'{band_text} · 构成：{comps}</span></span></div>')
     if result.scoring_note:
         return (f'<div class="score-row"><span class="score-main">'
                 f'<span class="sub">AI 味指数 —（{_esc(result.scoring_note)}）</span>'

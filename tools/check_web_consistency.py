@@ -66,6 +66,9 @@ PROBE_TEXTS = [
     ("long_text", ("随着人工智能技术的快速发展，该方法在多个数据集上取得了优异的性能。"
                    "首先，我们回顾了相关工作；其次，我们提出了新的框架；最后，我们完成了验证。"
                    "综上所述，这一方向仍有巨大的探索空间。") * 12),
+    # 域外文体（ood.detect 双端对拍）：文言与等长对句诗行
+    ("classical_prose", "庆历四年春，滕子京谪守巴陵郡。越明年，政通人和，百废具兴。乃重修岳阳楼，增其旧制，刻唐贤今人诗赋于其上。属予作文以记之。予观夫巴陵胜状，在洞庭一湖。衔远山，吞长江，浩浩汤汤，横无际涯。朝晖夕阴，气象万千。此则岳阳楼之大观也。前人之述备矣。然则北通巫峡，南极潇湘，迁客骚人，多会于此，览物之情，得无异乎？"),
+    ("verse_poem", "国破山河在，城春草木深。感时花溅泪，恨别鸟惊心。\n烽火连三月，家书抵万金。白头搔更短，浑欲不胜簪。\n好雨知时节，当春乃发生。随风潜入夜，润物细无声。\n野径云俱黑，江船火独明。晓看红湿处，花重锦官城。"),
 ]
 
 NODE_SCRIPT = r"""
@@ -179,6 +182,7 @@ def normalize(result: dict) -> dict:
         "stats": {k: norm_num(v) for k, v in s.items() if k not in ("tokenizer", "sentence_cvs")},
         "score": norm_score,
         "score_note": result.get("score_note", ""),
+        "ood": sorted(result.get("ood") or []),
     }
 
 
@@ -225,13 +229,13 @@ def main() -> None:
                  "score": ({"index": score.index, "components": score.components,
                             "corpus": score.corpus, "human_p50": score.human_p50,
                             "human_p90": score.human_p90} if score else None),
-                 "score_note": py.scoring_note}
+                 "score_note": py.scoring_note, "ood": py.ood}
             )
             js_norm = normalize(js_results[name])
             if py_norm != js_norm:
                 failed = True
                 print(f"[FAIL] {profile}/{name}")
-                for key in ("findings", "hints", "stats", "score", "score_note"):
+                for key in ("findings", "hints", "stats", "score", "score_note", "ood"):
                     if py_norm[key] != js_norm[key]:
                         print(f"  {key}:\n    py={json.dumps(py_norm[key], ensure_ascii=True)[:400]}"
                               f"\n    js={json.dumps(js_norm[key], ensure_ascii=True)[:400]}")

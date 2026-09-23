@@ -682,21 +682,6 @@
    "taste": "",
    "doc_threshold": 0.15,
    "doc_tiers": []
-  },
-  {
-   "id": "D-DASH-01",
-   "name": "破折号高频",
-   "tier": "statistical",
-   "scope": "doc",
-   "severity": "low",
-   "patterns": [],
-   "explanation": "平均每句超过 0.15 个破折号——破折号让作者免于说明两个分句的逻辑关系，AI 因此到处用。注意：单独几个破折号完全正常（很多作者有此习惯），这条只在密度异常时提示",
-   "suggestion": "破折号换成逗号、冒号或括号——哪个准确用哪个，逼自己把分句关系想清楚。",
-   "doc_metric": "dash_density",
-   "doc_compare": "above",
-   "taste": "",
-   "doc_threshold": 0.15,
-   "doc_tiers": []
   }
  ],
  "news": [
