@@ -2,7 +2,7 @@
 
 语料（C-ReD，≥120 字）：human 1848 · claude-3.5-haiku 2716 · deepseek-r1 2898 · deepseek-v3 2954 · doubao-1.5-pro 2241 · gemini-2.5-flash 2868 · gpt-3.5-turbo 2844 · gpt-4o 2927 · qwen-2.5 2858 · qwen-3 2597。
 候选 = AI 池化 doc 覆盖 ≥5% 且 AI/真人覆盖比 ≥5 的 3-8 字极大短语；体检 = 现役 lexical pattern 的 doc 覆盖比（口径同引擎 re.search）。
-候选只是粗筛，入词表前须人工 grep 验证语境；体检退化只报告，改动走正式校准轮。
+候选只是粗筛，入词表前须人工 grep 验证语境；体检退化只报告，改动走正式校准轮。各 profile 词表的标定语料不必是本域，退化标记≠删词依据（跨语料覆盖差异会误报退化）。
 
 ## 新指纹候选
 
