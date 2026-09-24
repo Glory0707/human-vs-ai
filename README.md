@@ -37,15 +37,15 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 
 输入支持 txt / md（UTF-8、GB18030 自动识别）/ **docx / odt**（纯标准库解包，零新增依赖）。`--fail-above` 对 <8 句的未出分文件不判定（宁可不判，不假过）。
 
-**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线。规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。设计语言与 eggpaper 同源：暖墨白纸、发丝细线、深青工作色、朱砂只留给批改语义——指数以 mono 印章呈现、命中词红笔波浪线圈划、发现以眉批式批注卡列出；品牌字 Fraunces 斜体、mono 标签、segmented 滑块分段控件、顶栏流光表示分析中、印章徽记可戳（三连戳有彩蛋）、手动亮/暗切换（localStorage 记忆，默认跟系统）、复制走吸底 toast。改了规则用 `python tools/build_web.py` 重新生成。
+**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线，规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。指数以印章呈现、命中词波浪线圈划、发现以批注卡列出；手动亮/暗切换（记忆选择，默认跟系统）。改了规则用 `python tools/build_web.py` 重新生成。
 
 **VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
 **Obsidian 插件**：把 [obsidian-plugin/](obsidian-plugin/) 目录复制到 `<仓库>/.obsidian/plugins/human-vs-ai/`（文件夹名必须是 human-vs-ai），启用插件后：左侧栏印章图标或命令「分析当前文档」在侧边视图出报告（场景下拉/检测与改写建议切换/复制 Markdown），笔记修改 800ms 后自动重析；「改写建议（个人口味）」给删/改/留建议；设置页可选默认场景。视图跟随 Obsidian 亮暗主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_obsidian.py` 重新生成。
 
-**七个场景词表**：academic/general/official/personal 之外，v0.14 新增 essay（作文，C-ReD composition 域校准，留出 0.951）、news（新闻，C-ReD news 域，留出 0.935）、review（影评/短评——短文本统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
+**七个场景词表**：academic（学术）/ general（问答）/ official（公文）/ personal（口味）/ essay（作文，留出 0.951）/ news（新闻，留出 0.935）/ review（影评短评——统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
 
-**域外文体提示**：文言/诗行超出评测语料域，指数会系统性虚高——检测到时四端随行提示"文体域外，指数仅供参考"，而不是让虚高分数挂着不解释。
+**域外提示**：文本超出校准域时四端随行提示——文言/诗行为"文体域外，指数仅供参考"；official 场景的印发/批复类公文为"文种域外"且不出指数（详见已知限制）。
 
 **段落热度**：人改 AI 初稿的混写文本里全篇一个分数必然失真——报告标出"哪几段最像 AI"（每段命中密度/句，前 3 段）。
 
@@ -65,7 +65,7 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 
 ### 报告
 
-- **AI 味指数（综合评分）**：报告第一行给出 0-100 整体分——规则命中密度与全文统计的逻辑回归合成，系数公开在规则库 YAML、每个特征贡献可拆解，分档锚定校准语料的真人分位（p50/p90）。它是风格综合分，**不是 AI 概率**。分层留出验证：学术 0.974、问答 0.870 AUROC；长文（≥600 字）启用分档系数后 0.975。消融对照显示"纯扣词"在问答语料只有 0.577（≈瞎猜）——综合判断的价值正是这个差距。分层留出：学术 0.974、问答 0.870（HC3 口径，v0.17.8 起问答重拟合为知乎/gen2026 当代口径 0.935）、作文 0.951、新闻 0.935、公文 0.923。短文本（<8 句）不出分；personal/review 无评分语料不出分（宁缺毋滥），报告注明"未校准"
+- **AI 味指数（综合评分）**：报告第一行给出 0-100 整体分——规则命中密度与全文统计的逻辑回归合成，系数公开在规则库 YAML、每个特征贡献可拆解，分档锚定校准语料的真人分位（p50/p90）。它是风格综合分，**不是 AI 概率**。各场景分层留出验证见下表；长文（≥600 字）启用分档系数后 0.975；消融对照显示"纯扣词"在问答语料只有 0.577（≈瞎猜）——综合判断的价值正是这个差距。短文本（<8 句）不出分；personal/review 无评分语料不出分（宁缺毋滥），报告注明"未校准"
 - **报告结构**：指数+构成 → 统计摘要（规模/节奏/词汇）→ 逐句发现（同句多规则聚合，不重复贴原句；命中词高亮）→ 弱命中（长文只列前 12 处）→ 一行免责
 - **三种格式同一份内容**：终端（ANSI 彩色）/ Markdown / JSON（事实源永不截断）
 
@@ -110,8 +110,8 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 178 项单元+边界+评分+口味+格式+多文体+域外+漂移+私库回归（私库层缺语料自动跳过）
-python tools/check_web_consistency.py   # Python/JS 双引擎一致性 308 项 × 7 场景（需 node）
+python -m pytest tests/ -q              # 181 项单元+边界+评分+口味+格式+多文体+域外+模糊回归（私库层缺语料自动跳过）
+python tools/check_web_consistency.py   # Python/JS 双引擎一致性 322 项 × 7 场景（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 32 项
 node obsidian-plugin/smoke-test.js      # Obsidian 插件冒烟 19 项

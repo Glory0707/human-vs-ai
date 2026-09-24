@@ -232,7 +232,7 @@ scoring 对象拿不到 profile 名，放数据里两端才可能同构）；`hu
 崩塌证明可分性来自**渠道指纹**（湖南批复 p50=0 vs 湖北 91）而非作者信号——
 只看 CV 就落地文种系数，会上线一个换个省就反向的分数。两文种现由
 `official.yaml` scoring 段 `genre_scoring` 声明 `suppress: true`：指数不出
-（AI 味指数：—（该文种未校准评分）），规则发现与统计保留。测量工具
+（AI 味指数：—（该文种未校准）），规则发现与统计保留。测量工具
 `tools/genre_check.py`（冻结/分层/LOCO 三数齐报），拟合工具 `tools/fit_genre.py`
 备文种系数重启之用。
 
