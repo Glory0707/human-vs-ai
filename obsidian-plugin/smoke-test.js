@@ -75,7 +75,7 @@ check("genre ood flagged", yinfaResult.ood.indexOf("issuance-notice") >= 0,
 const yinfaHtml = mod.renderReportHtml("official", yinfaResult);
 check("genre line in report html", yinfaHtml.includes("文种域外") && yinfaHtml.includes("印发类"));
 const yinfaMd = mod.reportToMarkdown("official", yinfaResult);
-check("genre line in markdown", yinfaMd.includes("- ※ 文种域外（印发类）：系数按事务公文校准，指数仅供参考"));
+check("genre line in markdown", yinfaMd.includes("- ※ 文种域外（印发类）：系数按事务公文校准，本篇仅供参考"));
 check("genre suppresses score", yinfaResult.score === null && yinfaResult.score_note === "该文种未校准评分");
 check("markdown shows no index for suppressed", yinfaMd.includes("AI 味指数：—（该文种未校准评分）"));
 
@@ -89,12 +89,16 @@ const adviceMd = mod.adviceToMarkdown(advice);
 check("advice markdown ok", adviceMd.includes("共"));
 
 // 5. 预览页（视觉审查用）：亮暗两份
+// 抑制态案例（虚线印章"—"）：与正常报告并排做视觉审查
+const suppressedHtml = mod.renderReportHtml("official", yinfaResult);
 const preview = `<!DOCTYPE html><html><head><meta charset="utf-8">
 <link rel="stylesheet" href="../obsidian-plugin/styles.css">
 <style>body{margin:0;display:grid} .wrap{padding:16px} .wrap.dark{background:#1e1e1e}</style>
 </head><body>
 <div class="wrap"><div class="hva-root">${html}</div></div>
+<div class="wrap"><div class="hva-root">${suppressedHtml}</div></div>
 <div class="wrap dark"><div class="theme-dark hva-root">${html}</div></div>
+<div class="wrap dark"><div class="theme-dark hva-root">${suppressedHtml}</div></div>
 </body></html>`;
 fs.writeFileSync(path.join(ROOT, "_qa", "obsidian-preview.html"), preview);
 

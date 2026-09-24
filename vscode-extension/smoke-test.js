@@ -157,9 +157,14 @@ check("locate duplicates advance", located.length === 2 && located[1].start > lo
 const previewText = fs.readFileSync(path.join(ROOT, "tests/data/ai_academic.txt"), "utf-8");
 const previewResult = HvA.analyze(previewText, RULES.academic, SCORING.academic || null);
 const previewHtml = renderReportHtml("ai_academic.txt", "academic", previewResult);
+// 附一个文种抑制案例：scoreNoteRow 的虚线印章（"—"）要靠这个状态做视觉审查
+const yinfaResult = HvA.analyze(YINFA_TEXT, RULES.official, SCORING.official || null);
 const out = path.join(ROOT, "_qa", "vscode-preview.html");
 fs.mkdirSync(path.dirname(out), { recursive: true });
-fs.writeFileSync(out, previewHtml, "utf-8");
+fs.writeFileSync(out, previewHtml
+  + '<hr style="margin:24px 0;border:none;border-top:1px dashed #999">'
+  + '<h3 style="font-family:sans-serif">附：文种抑制态（official + 印发类）</h3>'
+  + renderReportHtml("yinfa.txt", "official", yinfaResult), "utf-8");
 console.log(`预览已写 ${out}`);
 
 process.exit(failed ? 1 : 0);

@@ -113,8 +113,8 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 python -m pytest tests/ -q              # 178 项单元+边界+评分+口味+格式+多文体+域外+漂移+私库回归（私库层缺语料自动跳过）
 python tools/check_web_consistency.py   # Python/JS 双引擎一致性 308 项 × 7 场景（需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
-node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 26 项
-node obsidian-plugin/smoke-test.js      # Obsidian 插件冒烟 14 项
+node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 32 项
+node obsidian-plugin/smoke-test.js      # Obsidian 插件冒烟 19 项
 python tools/build_web.py               # 重新生成网页单文件
 python tools/build_vscode.py            # 重新注入扩展规则与引擎
 python tools/evaluate_cred.py           # C-ReD 学术语料评测（语料下载见 docs/rules.md）

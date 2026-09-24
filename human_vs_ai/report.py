@@ -45,7 +45,7 @@ _OOD_NAME = {
 }
 _OOD_KIND = {"classical": "文体", "verse": "文体",
              "issuance-notice": "文种", "approval-reply": "文种"}
-_OOD_WHY = {"文体": "指数仅供参考", "文种": "系数按事务公文校准，指数仅供参考"}
+_OOD_WHY = {"文体": "指数仅供参考", "文种": "系数按事务公文校准，本篇仅供参考"}
 
 
 def _band_text(score: Score) -> str:

@@ -289,6 +289,7 @@ body.resizing .pane { transition: none; }
 }
 .seal .n { font-size: 25px; font-weight: 700; letter-spacing: .02em; }
 .seal .u { font-size: 8.5px; letter-spacing: .3em; margin-top: 4px; font-weight: 600; }
+.seal.none { border-style: dashed; color: var(--ink-3); }
 .seal.high { color: var(--vermilion); }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
@@ -298,9 +299,9 @@ body.resizing .pane { transition: none; }
 .score-main .sub .mono-num { font-family: var(--mono); }
 .score-main .ci { white-space: nowrap; }
 .row.score .comp { color: var(--ink-3); }
-.stats .row.ood-note { font-size: var(--fs-s); color: var(--vermilion); margin-top: 8px; }
+.stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
-.stats .row.heat-note { font-size: var(--fs-s); color: var(--ink-3); margin-top: 6px; }
+.stats .row.heat-note { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
 .ph[data-para] { cursor: pointer; }
 .ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -391,6 +392,12 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 }
 .empty-block .stamp:hover { opacity: 1; }
 .empty { color: var(--ink-3); padding: 24px 0; }
+.empty-block .e-sub { font-size: var(--fs-md); color: var(--ink-3); }
+/* 折叠的弱命中展开时轻浮入场（summary 展开是瞬时动作，补一点反馈） */
+.hints[open] .h { animation: popIn var(--t-fast) var(--ease-out) backwards; }
+/* 发现卡原句 hover 可点定位（与段落热度同一交互） */
+.found[data-excerpt] blockquote { cursor: pointer; }
+.found[data-excerpt] blockquote:hover { border-left-color: var(--accent-line); }
 
 /* —— 改写建议 */
 .advice { padding: 10px 2px; border-bottom: 1px solid var(--hairline-soft); }
@@ -482,7 +489,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.20.0</span>
+    <span class="head-ver">v0.21.0</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1440,7 +1447,10 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
      够 8 句却没出分（无校准语料）的场景由各端用 scoreNoteRow 给一行原因 */
   function scoreNoteRow(note) {
     if (!note) return "";
-    return `<div class="row score">AI 味指数 <span class="comp">—（${note}）</span></div>`;
+    /* 虚线印章"—"：与指数印章同一形状语言，说明"这个位置本该有一个数"。
+       被抑制（文种域外）与未校准（profile 无 scoring 段）两种情形共用 */
+    return `<div class="row score"><span class="seal none" aria-hidden="true"><span class="n">—</span></span>` +
+      `<span class="score-main"><span class="t">AI 味指数未出</span><span class="sub">${esc(note)}</span></span></div>`;
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
@@ -1466,7 +1476,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     "approval-reply": "批复类",
   };
   var OOD_KIND = { classical: "文体", verse: "文体", "issuance-notice": "文种", "approval-reply": "文种" };
-  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，指数仅供参考" };
+  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，本篇仅供参考" };
   function oodLines(ood) {
     if (!ood || !ood.length) return [];
     const groups = {};
@@ -1734,9 +1744,9 @@ function renderReport(result) {
     const why = g.items.find(i => !explained.has(i.rule_id));
     if (why) explained.add(why.rule_id);
     g.items.forEach(i => explained.add(i.rule_id));
-    parts.push(`<div class="found sev-${top.severity}">
+    parts.push(`<div class="found sev-${top.severity}"${g.sentence ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
       <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
+      ${g.sentence ? `<blockquote title="点击在原稿中定位">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
       ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
     </div>`);
@@ -2084,8 +2094,10 @@ reportEl.addEventListener("focus", () => {
 
 /* 段落热度点击 → 原稿定位：选中该段首句（excerpt 在原稿 indexOf），
    编辑框自动滚动过去。含行内标记的段落清洗后失配，静默不动 */
+/* 段落热度 / 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
+   含行内标记的段落清洗后失配，静默不动 */
 reportEl.addEventListener("click", (e) => {
-  const item = e.target.closest(".ph[data-para]");
+  const item = e.target.closest("[data-excerpt]");
   if (!item) return;
   const excerpt = item.dataset.excerpt;
   if (!excerpt) return;

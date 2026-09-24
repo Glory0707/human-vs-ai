@@ -87,7 +87,10 @@
      够 8 句却没出分（无校准语料）的场景由各端用 scoreNoteRow 给一行原因 */
   function scoreNoteRow(note) {
     if (!note) return "";
-    return `<div class="row score">AI 味指数 <span class="comp">—（${note}）</span></div>`;
+    /* 虚线印章"—"：与指数印章同一形状语言，说明"这个位置本该有一个数"。
+       被抑制（文种域外）与未校准（profile 无 scoring 段）两种情形共用 */
+    return `<div class="row score"><span class="seal none" aria-hidden="true"><span class="n">—</span></span>` +
+      `<span class="score-main"><span class="t">AI 味指数未出</span><span class="sub">${esc(note)}</span></span></div>`;
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
@@ -113,7 +116,7 @@
     "approval-reply": "批复类",
   };
   var OOD_KIND = { classical: "文体", verse: "文体", "issuance-notice": "文种", "approval-reply": "文种" };
-  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，指数仅供参考" };
+  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，本篇仅供参考" };
   function oodLines(ood) {
     if (!ood || !ood.length) return [];
     const groups = {};

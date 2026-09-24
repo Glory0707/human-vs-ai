@@ -289,6 +289,7 @@ body.resizing .pane { transition: none; }
 }
 .seal .n { font-size: 25px; font-weight: 700; letter-spacing: .02em; }
 .seal .u { font-size: 8.5px; letter-spacing: .3em; margin-top: 4px; font-weight: 600; }
+.seal.none { border-style: dashed; color: var(--ink-3); }
 .seal.high { color: var(--vermilion); }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
@@ -298,9 +299,9 @@ body.resizing .pane { transition: none; }
 .score-main .sub .mono-num { font-family: var(--mono); }
 .score-main .ci { white-space: nowrap; }
 .row.score .comp { color: var(--ink-3); }
-.stats .row.ood-note { font-size: var(--fs-s); color: var(--vermilion); margin-top: 8px; }
+.stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
-.stats .row.heat-note { font-size: var(--fs-s); color: var(--ink-3); margin-top: 6px; }
+.stats .row.heat-note { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
 .ph[data-para] { cursor: pointer; }
 .ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -391,6 +392,12 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 }
 .empty-block .stamp:hover { opacity: 1; }
 .empty { color: var(--ink-3); padding: 24px 0; }
+.empty-block .e-sub { font-size: var(--fs-md); color: var(--ink-3); }
+/* 折叠的弱命中展开时轻浮入场（summary 展开是瞬时动作，补一点反馈） */
+.hints[open] .h { animation: popIn var(--t-fast) var(--ease-out) backwards; }
+/* 发现卡原句 hover 可点定位（与段落热度同一交互） */
+.found[data-excerpt] blockquote { cursor: pointer; }
+.found[data-excerpt] blockquote:hover { border-left-color: var(--accent-line); }
 
 /* —— 改写建议 */
 .advice { padding: 10px 2px; border-bottom: 1px solid var(--hairline-soft); }
@@ -726,9 +733,9 @@ function renderReport(result) {
     const why = g.items.find(i => !explained.has(i.rule_id));
     if (why) explained.add(why.rule_id);
     g.items.forEach(i => explained.add(i.rule_id));
-    parts.push(`<div class="found sev-${top.severity}">
+    parts.push(`<div class="found sev-${top.severity}"${g.sentence ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
       <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
+      ${g.sentence ? `<blockquote title="点击在原稿中定位">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
       ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
     </div>`);
@@ -1076,8 +1083,10 @@ reportEl.addEventListener("focus", () => {
 
 /* 段落热度点击 → 原稿定位：选中该段首句（excerpt 在原稿 indexOf），
    编辑框自动滚动过去。含行内标记的段落清洗后失配，静默不动 */
+/* 段落热度 / 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
+   含行内标记的段落清洗后失配，静默不动 */
 reportEl.addEventListener("click", (e) => {
-  const item = e.target.closest(".ph[data-para]");
+  const item = e.target.closest("[data-excerpt]");
   if (!item) return;
   const excerpt = item.dataset.excerpt;
   if (!excerpt) return;
