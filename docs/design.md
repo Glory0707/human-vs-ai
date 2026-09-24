@@ -76,7 +76,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 ## 6. 验证基线（当前值，复现命令见 README「开发」）
 
 - **单元测试**：181 项（切分/统计/引擎/边界/评分/口味与改写/格式/多文体 profile/域外与漂移/模糊回归/私库——私库层缺语料自动跳过）
-- **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.046 vs AI 0.170–0.307，AUROC **0.804**；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
+- **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.051 vs AI 0.254–0.407，AUROC **0.888**（v0.25.0 era 指纹入表前 0.804）；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
 - **HC3-Chinese 校准**：词表 AUROC 0.476（学术词表在问答文体失效——profile 分治的实证）；CV 0.763；字级 2-gram TTR 0.684
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
 - **公文**：87 篇口径真人误报率 16/87 = 18.4%（验收 <20% PASS，余量 1.6pp）；官方词表当代验证组合覆盖 9/9 模型、真人 0 误伤
@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.25.0 | era 首轮真指纹入表轮：L-AIM-01 研究陈述八股（medium，4 pattern 族全 corpus 验证——研究旨在 52% vs 2.4%、结果陈述族 15.7% vs 1.3%、理论/实验依据 7.5% vs 0.1%）+ essay E-FORM/E-SUB 各扩 2 变体（信息爆炸/快节奏族、找到属于自己的/在人生的道路上）；C-ReD paper 词表 AUROC **0.804→0.888**（L-AIM doc 命中 +0.56 现役最强），HC3 问答零误伤，引擎级 essay E-SUB 10x；边缘候选（具有重要意义 5x 贴线）如实不入；漂移对拍确认入表前后现役规则零漂移 |
 | v0.24.0 | era 重挖 + PPL 重标收尾轮（P3 双项定案）：①`tools/era_remine.py`——C-ReD 五域挖 AI 过采样短语（3-8 字极大短语，重叠折叠保留最长，覆盖差 >2x 各自保留）+ 现役词表逐 pattern 体检（doc 覆盖比口径同引擎 re.search，双侧 <5 篇"样本不足不判"），报告 `_qa/era-remine-*.md` 只报告不动词表；首轮 paper 域候选含"本研究旨在探讨"45x/"结果显示"63x 级真指纹，体检 12 条退化待人工 grep 复核。②句级困惑度 1.7B 重标（Qwen3-1.7B-Base）：区分度 0.633→0.657，规模 ×2.8 仅 +0.024 对规模响应平缓，放大不现实——**弱信号定案默认关闭**，"待更大模型重标"关闭；`_qa/ppl-calibration.md` 改双模型对比 |
 | v0.23.1 | PyPI 发布就绪轮（无引擎变化）：license 迁移 SPDX `License-Expression`（setuptools>=77，消构建弃用警告）+ 补 `project.urls`（Homepage/Source/Issues 进 PyPI 侧边栏）；新增 `tools/pkg_check.py` 发布自查——构建 → wheel/sdist 内容审计（7 规则 YAML、入口脚本、无杂物）→ twine check → 临时 venv 装 wheel 冒烟（profiles/check/stats/explain/ppl 缺依赖指引）→ 同 venv 改装 sdist 验证源码分发重建路径，全绿 |
 | v0.23.0 | 句级困惑度轮（P3）：human_vs_ai/ppl.py teacher-forced 句级 NLL（滑窗长句、nll_to_stats 纯函数口径），CLI `ppl` 子命令懒加载可选依赖（torch/transformers 进 [ppl] extra），tools/ppl_calibration.py 语料标定——gen-oos AI vs 豆瓣/果壳真人，doc 特征最强区分度 0.633（Base 底座）/ 0.620（Instruct），方向正确（AI median 177 vs 真人 213）但强度不足，结论=可选弱信号默认关闭；D:\chat 本地 GGUF（spark2_5 自定义架构 / qwen35 9B 超 17GB 内存）进不了 transformers 路径，模块按 --model 任意 HF 路径设计即插即用；标定权重 Qwen3-0.6B-Base（hf-mirror，_qa/models/ 不入库） |
