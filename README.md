@@ -105,9 +105,9 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 - 统计指标需要**足够文本**：句长 CV 至少 3 句才有意义，一段话的分析只看词表命中
 - 阈值按**摘要与问答语料**校准；长度分档已上线（CV 三档阈值、评分 ≥600 字长档系数）；general/official 评分已完成当代语料重拟合（v0.17.8），评分类语料仍会随模型换代持续积累
 - general 评分通过样本外体检（换模型+换渠道，0.923）；official 评分**绑定事务文种**——"印发《规划》全文附录""批复"类省级门户文种不出指数（v0.20.0 判定线定案：印发同文种 AUROC 0.464 无信号；批复文种内校准被渠道指纹污染，渠道留一仅 0.448），报告保留规则发现与文种域外提示行（判据与判定线见 docs/rules.md §8）
-- 词表规则面向**当代模型文风**，会随模型版本漂移（delve 在 GPT-5 后骤降、破折号在 GPT-5.1 被官方压制）；漂移监测已上线（`tools/drift_monitor.py`），季度重挖在排队
+- 词表规则面向**当代模型文风**，会随模型版本漂移（delve 在 GPT-5 后骤降、破折号在 GPT-5.1 被官方压制）；漂移监测已上线（`tools/drift_monitor.py`），季度重挖用 `tools/era_remine.py`（C-ReD 各模型子集挖新指纹 + 现役词表体检，报告见 `_qa/era-remine-*.md`）
 - 词汇丰富度（TTR）用**字级 2-gram 口径**（与网页/插件端逐位一致）；不做词级切分
-- 句级困惑度是**可选弱信号**：0.6B 级模型在样本外问答语料 doc 级区分度仅 0.633（方向正确、强度不足，`_qa/ppl-calibration.md`），故默认关闭、不进评分，仅 `ppl` 子命令显式调用
+- 句级困惑度是**可选弱信号**：doc 级区分度 0.6B 模型 0.633、1.7B 模型 0.657——规模 ×2.8 仅 +0.024，对规模响应平缓，放大不现实（`_qa/ppl-calibration.md`）；故默认关闭、不进评分，仅 `ppl` 子命令显式调用
 - 本工具**不能**用于证明或豁免任何"AI 代写"指控——它没有这个能力，也不该有
 
 ## 开发
@@ -130,6 +130,7 @@ python tools/oos_check.py               # 泛化体检：冻结系数跑样本�
 python tools/genre_check.py             # 文种切片判定：冻结 AUROC + 分层 CV + 渠道 LOCO
 python tools/scrape_genre_corpus.py     # 抓省门户印发/批复真人语料（文种校准用，不入库）
 python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
+python tools/era_remine.py             # C-ReD 词频重挖：新指纹候选 + 现役词表体检（报告 _qa/era-remine-*.md）
 python tools/ppl_calibration.py        # 句级困惑度标定（需 torch/transformers + 本地 HF 权重，见 _qa/ppl-calibration.md）
 python tools/pkg_check.py              # PyPI 发布自查：构建+产物内容审计+twine+干净 venv 安装冒烟
 ```

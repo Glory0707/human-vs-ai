@@ -13,6 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent / "tools"))
 import pytest
 
 from drift_monitor import aggregate, compare, load_samples, resolve_inputs
+from era_remine import collapse, doc_grams, status
 
 
 def sample(profile="general", month="2026-08", score=30, findings=None):
@@ -102,3 +103,34 @@ class TestResolveInputs:
 
     def test_missing_skipped(self, tmp_path):
         assert resolve_inputs([str(tmp_path / "nope.jsonl")]) == []
+
+
+class TestEraRemine:
+    """era 重挖纯函数：n-gram 提取、重叠折叠、体检状态分档。"""
+
+    def test_doc_grams_bounds_and_punct(self):
+        gs = doc_grams("综上所述，研究表明AI很行")
+        assert "综上所述" in gs and "研究表明" in gs
+        assert not any("，" in g or len(g) < 3 or len(g) > 8 for g in gs)
+        assert doc_grams(" ab ") == set()  # 空白两侧拼不出全字母数字串
+
+    def test_collapse_same_signal_keeps_longest(self):
+        cands = [{"g": "果显示", "frac_ai": .40, "frac_hu": .03, "ratio": 13},
+                 {"g": "结果显示", "frac_ai": .39, "frac_hu": .03, "ratio": 13},
+                 {"g": "本研究旨在探讨", "frac_ai": .27, "frac_hu": .01, "ratio": 27},
+                 {"g": "本研究旨在探", "frac_ai": .29, "frac_hu": .01, "ratio": 29}]
+        kept = [d["g"] for d in collapse(cands)]
+        assert kept == ["本研究旨在探讨", "结果显示"]  # 长度优先，同信号折叠
+
+    def test_collapse_keeps_distinct_coverage(self):
+        cands = [{"g": "具有重要的临床", "frac_ai": .07, "frac_hu": .01, "ratio": 7},
+                 {"g": "具有重要", "frac_ai": .37, "frac_hu": .02, "ratio": 18}]
+        kept = [d["g"] for d in collapse(cands)]
+        assert kept == ["具有重要的临床", "具有重要"]  # 覆盖差 >2x 各自保留
+
+    def test_status_support_floor(self):
+        assert status(0.0, 2) == "样本不足（不判）"
+        assert status(6.0, 50) == "正常"
+        assert status(3.0, 50) == "边缘（观察）"
+        assert status(1.5, 50) == "退化"
+        assert status(0.3, 50) == "反转"

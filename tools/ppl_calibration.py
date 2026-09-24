@@ -76,8 +76,8 @@ def main() -> None:
     hu_f = [f for t in hu if (f := doc_features(t, scorer))]
     print(f"AI {len(ai_f)}/{len(ai)} · 真人 {len(hu_f)}/{len(hu)} 出特征")
 
-    L = ["# 句级困惑度标定（P3 句级困惑度，Qwen3-0.6B 冻结零训练）", "",
-         f"模型：{args.model}（HF 格式，bf16；PPL 口径见 human_vs_ai/ppl.py）。",
+    L = ["# 句级困惑度标定（P3 句级困惑度，冻结零训练）", "",
+         f"模型：{args.model}（HF 格式；PPL 口径见 human_vs_ai/ppl.py）。",
          f"语料：AI gen-oos 四模型 vs 真人豆瓣/果壳（样本外问答集，`--sample {args.sample}`）。",
          "方向 = AI 更顺滑（PPL 更低），AUROC < 0.5 时区分度取 1-AUROC。", "",
          "| doc 级特征 | AUROC | 区分度（AI 顺滑方向） |", "|---|---|---|"]
