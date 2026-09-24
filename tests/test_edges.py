@@ -1,7 +1,7 @@
 """边界情况：不崩溃、合理降级。"""
 import math
 
-from human_vs_ai import engine
+from human_vs_ai import engine, htreport, report, rewrite
 
 
 class TestEdges:
@@ -50,3 +50,54 @@ class TestEdges:
         text = "综上所述，该方法具有重要意义。\n" * 2000
         r = engine.analyze(text, "academic")
         assert len(r.findings) > 100
+
+class TestFuzzRegression:
+    """病态输入回归网（v0.21.3 测试员轮）：全出口跑通不抛错。
+    样例各代表一类事故面：未闭合引号/围栏、清洗后为空的段落、
+    孤立代理、控制字符、大量单字重复、两千段。
+    """
+
+    SAMPLES = [
+        "",
+        "。",
+        "。。。",
+        "……",
+        '他说"你好。然后再也没有下文',
+        '"unclosed ascii quote. more text. and more.',
+        "It's fine. It's all fine.",
+        "https://example.com",
+        "第一段。\n\nhttps://example.com\n\n第二段。",
+        "*\n*\n*",
+        "|",
+        "![[]",
+        "```fence\ncode\n| a | b |\n",
+        "| a | b |\n|---|---|\n|| |",
+        "\u0000\u00001 控制字符。第二句。",
+        "a\udc00孤立低代理。第二句。第三句。",
+        "\u2028",
+        "😀" * 200,
+        "𠮷" * 1000 + "。",
+        "**" * 20000,
+        "[" + "a" * 3000,
+        "结论：" + "综上" * 5000 + "。",
+        "\n".join(f"第{i}句。" for i in range(2000)),
+    ]
+
+    def test_all_exits_survive(self):
+        for text in self.SAMPLES:
+            for profile in ("general", "official"):
+                r = engine.analyze(text, profile)
+                report.render_terminal(r)
+                report.render_markdown(r)
+                report.render_json(r)
+            htreport.render_html(engine.analyze(text, "general"))
+
+    def test_rewrite_survives(self):
+        for text in self.SAMPLES:
+            rr = rewrite.rewrite_text(text, "personal")
+            rewrite.render_advice(rr)
+
+    def test_n_chars_never_negative(self):
+        for text in self.SAMPLES:
+            r = engine.analyze(text, "general")
+            assert r.doc_stats.n_chars >= 0

@@ -532,6 +532,7 @@ let currentMode = "analyze";
 let debounceTimer = null;
 let lastResult = null;   // 检测模式最近一次结果（复制按钮的数据源）
 let lastAdvice = null;   // 改写模式最近一次结果
+let lastAnalyzedText = ""; // 与 lastResult 配套的原文——导出样本时不拿新输入配旧分析
 let adviceFilter = "all";
 try { const f = localStorage.getItem("hva:filter"); if (["all", "删", "改", "保留"].includes(f)) adviceFilter = f; } catch (e) {}
 let analyzeGen = 0;   // 大文本 rAF 任务的代数——换档/换模式后旧任务作废
@@ -764,6 +765,7 @@ function analyzeNow() {
   if (!text.trim()) {
     // 空文本不给"未发现"的假全清判定，回到初始提示
     lastResult = lastAdvice = null;
+    lastAnalyzedText = "";
     updateCopyBtn();
     updateCharCount(null);
     reportEl.classList.add("swap");
@@ -789,6 +791,7 @@ function analyzeNow() {
 }
 
 function doAnalyze(text) {
+  lastAnalyzedText = text;
   const rules = RULES_BY_PROFILE[currentProfile];
   if (currentMode === "rewrite") {
     lastAdvice = HvARewrite.rewriteText(text, rules);
@@ -937,6 +940,10 @@ inputPane.addEventListener("drop", async (e) => {
     toast("仅支持 txt / md");
     return;
   }
+  if (file.size > 5 * 1024 * 1024) {
+    toast("文件超过 5 MB");
+    return;
+  }
   inputEl.value = await file.text();
   inputEl.dispatchEvent(new Event("input", { bubbles: true }));
 });
@@ -1012,7 +1019,7 @@ async function sha256hex(s) {
   return fnv(0x1b873593) + fnv(0xcc9e2d51);
 }
 document.getElementById("sampleBtn").onclick = async () => {
-  const text = inputEl.value;
+  const text = lastAnalyzedText;
   if (!text.trim() || currentMode !== "analyze") return;
   let clean = text;
   SENSITIVE.forEach(([rx, ph]) => { clean = clean.replace(rx, ph); });
