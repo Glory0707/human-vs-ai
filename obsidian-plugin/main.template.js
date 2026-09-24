@@ -137,8 +137,10 @@ function reportToMarkdown(profile, result) {
     L.push(`- AI 味指数：${r.score.index.toFixed(0)} / 100（风格分，不是 AI 概率）`);
     const comps = componentsText(r.score.components);
     if (comps) L.push(`- 构成：${comps}`);
-  } else if (r.scoring_note) {
-    L.push(`- AI 味指数：—（${r.scoring_note}）`);
+  } else if (r.score_note) {
+    // 引擎字段是 score_note（旧代码误写 scoring_note，未校准/文种抑制的
+    // 说明行在 Markdown 导出里从不出现——v0.20.0 冒烟抓出）
+    L.push(`- AI 味指数：—（${r.score_note}）`);
   }
   // 域外提示行进 Markdown 导出——"指数仅供参考"的 caveat 复制出去不能丢
   //（v0.19.0 顺带补齐：文言/诗行时代 Markdown 导出就没带这行）

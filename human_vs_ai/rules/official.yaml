@@ -201,3 +201,15 @@ scoring:
   # 批复 0.614，真人 p50 分别 76 / 63。开关放数据里，JS 端才可能同构。
   # 标定见 _qa/generalization-check.md、docs/rules.md §8
   genre_ood: true
+  # 文种接管出分（v0.20.0）：两文种均出分抑制（score=None + 说明行）。
+  # 测量（tools/genre_check.py，AI 84 篇 × 四省真人 75 篇，判定线 0.873
+  # = 0.923 − 0.05，预声明于 design.md §4）：冻结系数同文种 AUROC 印发
+  # 0.462（无信号）、批复 0.791（弱）；文种内二次校准分层 CV 批复 0.895
+  # 看似可行，但渠道留一 LOCO 崩至 0.448——模型背下的是渠道风格而非作者
+  # 信号，校准路线否决。抑制生效时不展示指数，仅保留规则发现与文种
+  # 域外提示；文种系数仍可凭未来跨省配对语料按双道判定线重新申报
+  genre_scoring:
+    issuance-notice:
+      suppress: true
+    approval-reply:
+      suppress: true

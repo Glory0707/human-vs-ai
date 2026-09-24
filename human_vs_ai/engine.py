@@ -251,7 +251,8 @@ def compute_para_heat(para_texts: list[list[str]], findings: list[Finding],
     heat.sort(key=lambda h: -h["density"])
     return heat
 # scoring 段里的元字段，不是特征
-_SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90", "genre_ood")
+_SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90",
+                 "genre_ood", "genre_scoring")
 
 
 def load_scoring(profile: str) -> dict | None:
@@ -398,12 +399,24 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
 
     # 文种域外：只对声明了 genre_ood 的 profile 判。开关放 scoring 段（数据侧）
     # 而不是按 profile 名硬编码——JS 端拿不到 profile 名、只拿得到 scoring 对象，
-    # 放数据里两端才可能同构（判据的标定见 _qa/generalization-check.md）
+    # 放数据里两端才可能同构（判据的标定见 _qa/generalization-check.md）。
+    # genre_scoring 按命中文种接管出分：suppress=true 抑制出分（score=None），
+    # 否则整段系数替换（文种内二次校准，v0.20.0；两分支共用一套数据形状）
     scoring = load_scoring(profile)
+    score_scoring = scoring
     if scoring and scoring.get("genre_ood"):
         for kind in ood.detect_genre(all_para):
             if kind not in result.ood:
                 result.ood.append(kind)
+        gcfg = scoring.get("genre_scoring") or {}
+        gkind = next((k for k in result.ood if k in gcfg), None)
+        if gkind is not None:
+            cfg = gcfg[gkind]
+            if cfg.get("suppress"):
+                score_scoring = None
+                result.scoring_note = "该文种未校准评分"
+            else:
+                score_scoring = dict(cfg)
 
     raw_hits: dict[str, list[Finding]] = {}
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
@@ -468,13 +481,14 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     result.findings.sort(
         key=lambda f: (-SEVERITY_ORDER.get(f.severity, 0), f.para)
     )
-    scoring = load_scoring(profile)
     result.score = compute_score(
         result.doc_stats,
         result.findings,
         result.hints,
-        scoring,
+        score_scoring,
     )
+    # 文种抑制已提前给过 scoring_note（"该文种未校准评分"）——profile 级
+    # scoring 存在时通用分支不触发，不会覆盖
     if result.score is None and scoring is None and result.doc_stats.n_sentences >= 8:
         result.scoring_note = "该文体未校准评分"
     result.para_heat = compute_para_heat(para_texts, result.findings, result.hints)

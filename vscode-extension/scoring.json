@@ -68,7 +68,15 @@
   "auroc_holdout": 0.923,
   "human_p50": 4,
   "human_p90": 57,
-  "genre_ood": true
+  "genre_ood": true,
+  "genre_scoring": {
+   "issuance-notice": {
+    "suppress": true
+   },
+   "approval-reply": {
+    "suppress": true
+   }
+  }
  },
  "personal": null,
  "review": null

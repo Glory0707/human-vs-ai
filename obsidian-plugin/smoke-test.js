@@ -76,6 +76,8 @@ const yinfaHtml = mod.renderReportHtml("official", yinfaResult);
 check("genre line in report html", yinfaHtml.includes("文种域外") && yinfaHtml.includes("印发类"));
 const yinfaMd = mod.reportToMarkdown("official", yinfaResult);
 check("genre line in markdown", yinfaMd.includes("- ※ 文种域外（印发类）：系数按事务公文校准，指数仅供参考"));
+check("genre suppresses score", yinfaResult.score === null && yinfaResult.score_note === "该文种未校准评分");
+check("markdown shows no index for suppressed", yinfaMd.includes("AI 味指数：—（该文种未校准评分）"));
 
 // 4. 改写建议（personal）
 const HvARewrite = require(path.join(ROOT, "web", "rewrite.js"));

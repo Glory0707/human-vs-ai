@@ -331,8 +331,10 @@
 
   /* 严重级 → 加权密度系数（与 Python _SCORE_WEIGHT / fit_score.py 同步） */
   var SCORE_WEIGHT = { high: 3.0, medium: 2.0, low: 1.0 };
-  /* scoring 段里的元字段，不是特征（genre_ood 是文种域外提示的开关） */
-  var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1, genre_ood: 1 };
+  /* scoring 段里的元字段，不是特征（genre_ood=文种提示开关，
+     genre_scoring=按文种接管出分的配置块） */
+  var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1,
+                       genre_ood: 1, genre_scoring: 1 };
 
   /* 按正文字数选系数组（与 Python _pick_scoring 同构）：最后一个满足
      min_chars ≤ n_chars 的层生效；元字段始终取全局 */
@@ -617,10 +619,24 @@
         if (oodKinds.indexOf(genreKinds[gk]) < 0) oodKinds.push(genreKinds[gk]);
       }
     }
-    /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空 */
-    var scoreNote = (!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "";
+    /* 文种接管出分：与 Python analyze 同构——suppress 置空（score=null），
+       否则文种系数整段替换（genre_scoring，v0.20.0） */
+    var scoreScoring = scoring || null;
+    var genreNote = "";
+    if (scoring && scoring.genre_ood && scoring.genre_scoring) {
+      for (var gi = 0; gi < oodKinds.length; gi++) {
+        var gcfg = scoring.genre_scoring[oodKinds[gi]];
+        if (!gcfg) continue;
+        if (gcfg.suppress) { scoreScoring = null; genreNote = "该文种未校准评分"; }
+        else scoreScoring = gcfg;
+        break;
+      }
+    }
+    /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空；
+       文种抑制的说明优先于通用分支 */
+    var scoreNote = genreNote || ((!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "");
     return { findings: findings, hints: hints, stats: stats,
-             score: computeScore(stats, weightedHits, scoring || null),
+             score: computeScore(stats, weightedHits, scoreScoring),
              score_note: scoreNote, ood: oodKinds,
              para_heat: computeParaHeat(doc, findings, hints) };
   }

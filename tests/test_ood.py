@@ -224,6 +224,19 @@ class TestGenreEngine:
         assert "issuance-notice" not in engine.analyze(YINFA, "general").ood
         assert "approval-reply" not in engine.analyze(PIFU, "essay").ood
 
+    def test_genre_suppresses_score(self):
+        # v0.20.0 判定线定案：两文种分数均不可信（印发冻结 0.462 无信号；
+        # 批复分层 CV 0.895 但渠道 LOCO 0.448 是渠道指纹）→ 出分抑制
+        r = engine.analyze(YINFA, "official")
+        assert r.score is None and r.scoring_note == "该文种未校准评分"
+        r2 = engine.analyze(PIFU, "official")
+        assert r2.score is None and r2.scoring_note == "该文种未校准评分"
+
+    def test_suppressed_doc_keeps_findings(self):
+        # 抑制只摘指数：规则发现/统计仍在（逐句证据照常给，只是不给综合分）
+        r = engine.analyze(YINFA, "official")
+        assert r.doc_stats.n_chars > 0
+
     def test_flag_is_meta_not_coefficient(self):
         # genre_ood 是元字段不是特征系数：开关有无不得改变分数
         # （防线在 compute_score 的 _SCORING_META 跳过，不在 _pick_scoring 过滤）
@@ -244,6 +257,7 @@ class TestGenreEngine:
         from human_vs_ai import report
         out = report.render_terminal(engine.analyze(PIFU, "official"))
         assert "文种域外" in out and "批复类" in out and "事务公文" in out
+        assert "该文种未校准评分" in out
         md = report.render_markdown(engine.analyze(YINFA, "official"))
         assert "文种域外" in md and "印发类" in md
 
@@ -257,8 +271,10 @@ class TestGenreEngine:
         import json as _json
         data = _json.loads(report.render_json(engine.analyze(YINFA, "official")))
         assert "issuance-notice" in (data["ood"] or [])
+        assert data["score"] is None and data["score_note"] == "该文种未校准评分"
         data2 = _json.loads(report.render_json(engine.analyze(SHIWU, "official")))
         assert data2["ood"] is None
+        assert data2["score"] is not None
 
     def test_clean_doc_score_untouched(self):
         # 提示只进 ood 字段：同一篇事务文，开不开提示，findings/分数路径不变

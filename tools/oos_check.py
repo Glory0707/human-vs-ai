@@ -82,42 +82,13 @@ def pct(xs: list[float], p: float) -> int:
     return round(xs[min(int(len(xs) * p), len(xs) - 1)])
 
 
-def human_genre(title: str) -> str:
-    if "批复" in title:
-        return "批复"
-    if re.search(r"印发|《.*规划》|《.*方案》", title):
-        return "印发"
-    return "事务"
-
-
 def genre_slices(report: list[str]) -> None:
-    """同文种对照：AI 侧 gov-genre 样本按任务文种分拆，与真人同文种切片对跑。"""
-    tasks = load_jsonl(GEN / "gov-genre.jsonl")
-    ai = {"印发": [], "批复": []}
-    for r in tasks:
-        s = score(r["text"], "official")
-        if s is None:
-            continue
-        ai["批复" if "批复" in r["prompt"] else "印发"].append(s)
-    d = []
-    for f in sorted(GOV_HU.glob("*.json")):
-        d += json.loads(f.read_text(encoding="utf-8"))["items"]
-    hu: dict[str, list[float]] = {"印发": [], "批复": [], "事务": []}
-    for it in d:
-        s = score(it["text"], "official")
-        if s is not None:
-            hu[human_genre(it["title"])].append(s)
-    report += ["### 同文种对照（文种偏差定位）", "",
-               "| 文种 | AI n / 中位 | 真人 n / 中位 | 同文种 AUROC |", "|---|---|---|---|"]
-    for g in ("印发", "批复"):
-        if not ai[g] or not hu.get(g):
-            report.append(f"| {g} | {len(ai[g])} / — | {len(hu.get(g, []))} / — | 样本不足 |")
-            continue
-        auc = auroc(ai[g], hu[g])
-        report.append(f"| {g} | {len(ai[g])} / {statistics.median(ai[g]):.0f} "
-                      f"| {len(hu[g])} / {statistics.median(hu[g]):.0f} | **{auc:.3f}** |")
-    if hu.get("事务"):
-        report.append(f"| 事务 | （拟合集文种） | {len(hu['事务'])} / {statistics.median(hu['事务']):.0f} | — |")
+    """同文种对照：v0.20.0 起文种切片测量移交 tools/genre_check.py
+    （判据切片 + 分层 CV + 渠道 LOCO + 判定线三分支），此处只留指引——
+    文种文档出分被 genre_scoring 抑制后，score 口径切不出同文种对照。"""
+    report += ["### 同文种对照", "",
+               "v0.20.0 起移交 `tools/genre_check.py`（产出 `_qa/genre-check.md`）：",
+               "判据切片、分层 5 折 + 渠道留一双道验证、判定线三分支都在那里。", ""]
     report.append("")
 
 
