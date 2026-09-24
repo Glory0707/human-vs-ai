@@ -104,12 +104,30 @@
       `<span class="sub" title="校准语料真人分数：p50≈${score.human_p50}，p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
   }
 
-  /* 域外文体提示：文言/诗行超出评测语料域，指数系统性虚高（与引擎 ood 同行） */
-  var OOD_NAME = { classical: "文言", verse: "等长对句诗行" };
+  /* 域外提示：与 Python report._ood_lines 同构。按"文体/文种"两族分行——
+     文言/诗行是形状超出语料域，印发/批复是文种超出系数校准域，提示语不同 */
+  var OOD_NAME = {
+    classical: "文言",
+    verse: "等长对句诗行",
+    "issuance-notice": "印发类",
+    "approval-reply": "批复类",
+  };
+  var OOD_KIND = { classical: "文体", verse: "文体", "issuance-notice": "文种", "approval-reply": "文种" };
+  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，指数仅供参考" };
+  function oodLines(ood) {
+    if (!ood || !ood.length) return [];
+    const groups = {};
+    ood.forEach(k => {
+      const kind = OOD_KIND[k] || "文体";
+      (groups[kind] = groups[kind] || []).push(OOD_NAME[k] || k);
+    });
+    return ["文体", "文种"]
+      .filter(kind => groups[kind])
+      .map(kind => `${kind}域外（${groups[kind].join("、")}）：${OOD_WHY[kind]}`);
+  }
   function oodHtml(ood) {
-    if (!ood || !ood.length) return "";
-    const names = ood.map(k => OOD_NAME[k] || k).join("、");
-    return `<div class="row ood-note">文体域外（${esc(names)}）：指数仅供参考</div>`;
+    /* ※ 前缀由 CSS .ood-note::before 补，HTML 里写死会显示两个 */
+    return oodLines(ood).map(t => `<div class="row ood-note">${esc(t)}</div>`).join("");
   }
 
   /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
@@ -140,7 +158,7 @@
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText,
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, paraHeatHtml: paraHeatHtml,
+    oodHtml: oodHtml, oodLines: oodLines, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
     SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,

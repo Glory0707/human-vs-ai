@@ -34,8 +34,18 @@ _SCORE_LABEL = {
     "conn_density": "连接词",
 }
 
-# 域外文体 → 报告用名（引擎 ood.detect 的 kinds）
-_OOD_NAME = {"classical": "文言", "verse": "等长对句诗行"}
+# 域外 kinds → 报告用名（引擎 ood 的 kinds）。按"文体/文种"两族分行给提示：
+# 文言/诗行是"形状"超出语料域，印发/批复是"文种"超出系数校准域（系数按
+# 事务公文拟合）——合成一行说不清为什么仅供参考
+_OOD_NAME = {
+    "classical": "文言",
+    "verse": "等长对句诗行",
+    "issuance-notice": "印发类",
+    "approval-reply": "批复类",
+}
+_OOD_KIND = {"classical": "文体", "verse": "文体",
+             "issuance-notice": "文种", "approval-reply": "文种"}
+_OOD_WHY = {"文体": "指数仅供参考", "文种": "系数按事务公文校准，指数仅供参考"}
 
 
 def _band_text(score: Score) -> str:
@@ -47,11 +57,12 @@ def _band_text(score: Score) -> str:
     return "低于半数校准真人"
 
 
-def _ood_line(result: AnalysisResult) -> str:
-    if not result.ood:
-        return ""
-    names = "、".join(_OOD_NAME.get(k, k) for k in result.ood)
-    return f"※ 文体域外（{names}）：指数仅供参考"
+def _ood_lines(result: AnalysisResult) -> list[str]:
+    groups: dict[str, list[str]] = {}
+    for kind in result.ood:
+        groups.setdefault(_OOD_KIND.get(kind, "文体"), []).append(_OOD_NAME.get(kind, kind))
+    return [f"※ {k}域外（{'、'.join(groups[k])}）：{_OOD_WHY[k]}"
+            for k in ("文体", "文种") if k in groups]
 
 
 def _heat_line(result: AnalysisResult) -> str:
@@ -89,7 +100,7 @@ def stats_lines(result: AnalysisResult) -> list[str]:
     elif result.scoring_note:
         # 够 8 句却没分：给一行原因，免得用户在各文体间切换时纳闷分去哪了
         rows.append(f"AI 味指数：—（{result.scoring_note}）")
-    rows.append(_ood_line(result))
+    rows.extend(_ood_lines(result))
     rows.append(_heat_line(result))
     rows.append(f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：

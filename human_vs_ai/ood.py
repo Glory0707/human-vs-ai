@@ -1,9 +1,10 @@
-"""域外文体探测：文言/诗行文本超出评测语料域，指数会系统性虚高。
+"""域外探测：文本超出评分语料域时，指数会系统性失真。
 
-动机（v0.17.0 实测）：C-ReD 作文域真人最高分是一篇仿古长诗（98 分），
-高考文言满分作文同样高分——评分系数拟合在现代白话上，文言与诗行
-没有"AI 味"可言却天然命中统计特征（句长整齐、TTR 高）。检测到域外
-文体时报告显式提示，指数仅供参考，而不是让虚高分数挂着不解释。
+两族判据，性质不同所以分两个函数：
+
+**文体域外**（detect）：文言/诗行没有"AI 味"可言却天然命中统计特征
+（句长整齐、TTR 高），指数会系统性虚高。动机（v0.17.0 实测）：C-ReD
+作文域真人最高分是一篇仿古长诗（98 分），高考文言满分作文同样高分。
 
 判据（在 C-ReD 全量 10.4 万篇上校准：正样本 5/5 命中，误报 0.005%）：
 - classical（文言/半文言）：低"的地得"密度 × 高文言虚词密度 × 零"了"字。
@@ -12,6 +13,13 @@
 - verse（等长对句诗行）：高占比"恰好两分句、各 5-9 字"的句子，且对句
   长度只有一种（五言或七言）。单一长度排除四字成语排比（白话快节奏
   影评实测误报），5-9 字窗排除长短错落的散文。
+
+**文种域外**（detect_genre，只对声明了 genre_ood 的 profile 生效）：
+official 评分系数绑定**事务文种**（通知/通报/意见/方案正文），省级门户的
+"印发类"（通知 + 规划/方案全文附录）与"批复"超出校准文种域。动机
+（v0.18.1 泛化体检）：湖北/四川真人公文里印发类 p50=76、批复 p90=98，
+同文种对照 AUROC 印发 0.294（反转）、批复 0.614——系数在这个文种上
+不携带作者信息。见 _qa/generalization-check.md 与 docs/rules.md §8。
 """
 from __future__ import annotations
 
@@ -26,7 +34,7 @@ _DE = "的地得"
 _LE = "了"
 # 对句内部分隔；预编译——detect 对每句调用，长文上缓存查找开销可观
 _INNER_RE = re.compile("[，、；]")
-_N_MIN = 80        # 更短的正文字数信号不稳，不判
+_N_MIN = 80        # 更短的正文字数信号不稳，不判（两族判据共用：短片段不判文种）
 _DE_MAX = 0.010    # classical：的地得密度上限
 _STRONG_MIN = 0.008  # classical：文言虚词密度下限
 _LE_MAX = 0.006    # classical：了字密度上限
@@ -65,4 +73,34 @@ def detect(sentences: list[str]) -> list[str]:
             lens.update(ls)
     if bal >= _BAL_SENTS_MIN and bal / len(sentences) >= _BAL_MIN and len(lens) == 1:
         kinds.append("verse")
+    return kinds
+
+
+# 文种判据：只用公文正体的结构短语，不用内容词——文种是文档属性，
+# 与"像不像 AI"无关，所以判据必须与分数、与作者无关。
+# 标定（标注来自标题/生成 prompt，与判据独立；语料同 v0.18.1 泛化体检）：
+#   "印发给你们，请"：真人印发 18/18、AI 印发 14/14；真人批复 0/20、
+#     真人事务 0/8、AI 普通公文 2/27（核为真·印发文）；拟合集 16/87
+#   "批复如下"：真人批复 20/20、AI 批复 11/11；其余各组 0（含拟合集 87 篇）
+_RE_YINFA = re.compile(r"印发给你们，请")
+_RE_PIFU = re.compile(r"批复如下")
+
+
+def detect_genre(sentences: list[str]) -> list[str]:
+    """判定公文文种是否超出评分系数的校准域，返回 kinds。
+
+    与 detect 分开的原因：文体判据（文言/诗行）判的是"文本形状"，各
+    profile 通用；文种判据判的是"这篇属于哪类公文"，只对 official 的
+    系数有意义——由调用方按 profile 决定是否调用（engine 看 scoring.genre_ood）。
+
+    入参与 detect 同口径：统计层展平后的句子文本，两端都从这里取数。
+    """
+    text = "".join(sentences)
+    if len(PUNCT.sub("", text)) < _N_MIN:
+        return []
+    kinds: list[str] = []
+    if _RE_YINFA.search(text):
+        kinds.append("issuance-notice")
+    if _RE_PIFU.search(text):
+        kinds.append("approval-reply")
     return kinds

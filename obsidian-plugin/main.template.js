@@ -32,7 +32,7 @@ const VERSION = "__VERSION__";
 const PROFILES = Object.keys(RULES);
 
 /* 渲染共享层（web/render.js）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, oodHtml, paraHeatHtml, hintsHtml,
+const { esc, fmt, hiSentence, sealHtml, oodHtml, oodLines, paraHeatHtml, hintsHtml,
         componentsText, SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 
@@ -140,6 +140,9 @@ function reportToMarkdown(profile, result) {
   } else if (r.scoring_note) {
     L.push(`- AI 味指数：—（${r.scoring_note}）`);
   }
+  // 域外提示行进 Markdown 导出——"指数仅供参考"的 caveat 复制出去不能丢
+  //（v0.19.0 顺带补齐：文言/诗行时代 Markdown 导出就没带这行）
+  oodLines(r.ood).forEach(t => L.push(`- ※ ${t}`));
   statsRows(r.stats).forEach(row => L.push(`- ${row}`));
   L.push("", `## 发现（${r.findings.length} 处）`, "");
   if (!r.findings.length) L.push("未发现模板化写作");

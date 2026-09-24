@@ -331,8 +331,8 @@
 
   /* 严重级 → 加权密度系数（与 Python _SCORE_WEIGHT / fit_score.py 同步） */
   var SCORE_WEIGHT = { high: 3.0, medium: 2.0, low: 1.0 };
-  /* scoring 段里的元字段，不是特征 */
-  var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1 };
+  /* scoring 段里的元字段，不是特征（genre_ood 是文种域外提示的开关） */
+  var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1, genre_ood: 1 };
 
   /* 按正文字数选系数组（与 Python _pick_scoring 同构）：最后一个满足
      min_chars ≤ n_chars 的层生效；元字段始终取全局 */
@@ -427,6 +427,23 @@
     var nLens = 0;
     for (var L in lens) if (lens.hasOwnProperty(L)) nLens++;
     if (bal >= 4 && sents.length && bal / sents.length >= 0.60 && nLens === 1) kinds.push("verse");
+    return kinds;
+  }
+
+  /* ---------- 文种域外（印发/批复类）：与 Python ood.detect_genre 同构，判据一字不差 ---------- */
+
+  /* 只用公文正体的结构短语，不用内容词——文种是文档属性，与"像不像 AI"无关。
+     标定（真人/AI 各文种 + 拟合集 87 篇，全部零误报）：见 docs/rules.md §8 */
+  var GENRE_YINFA_RE = /印发给你们，请/;
+  var GENRE_PIFU_RE = /批复如下/;
+
+  function detectGenre(sents) {
+    var joined = "";
+    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
+    if (cpLength(joined.replace(PUNCT_RE, "")) < 80) return [];
+    var kinds = [];
+    if (GENRE_YINFA_RE.test(joined)) kinds.push("issuance-notice");
+    if (GENRE_PIFU_RE.test(joined)) kinds.push("approval-reply");
     return kinds;
   }
 
@@ -590,6 +607,14 @@
       var paraKinds = detectOod(paraSents);
       for (var ok2 = 0; ok2 < paraKinds.length; ok2++) {
         if (oodKinds.indexOf(paraKinds[ok2]) < 0) oodKinds.push(paraKinds[ok2]);
+      }
+    }
+    /* 文种域外：只对声明了 scoring.genre_ood 的 profile 判（开关在数据里，
+       与 Python analyze 同构——文种判据只对 official 的系数有意义） */
+    if (scoring && scoring.genre_ood) {
+      var genreKinds = detectGenre(allSents);
+      for (var gk = 0; gk < genreKinds.length; gk++) {
+        if (oodKinds.indexOf(genreKinds[gk]) < 0) oodKinds.push(genreKinds[gk]);
       }
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空 */

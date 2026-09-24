@@ -2,10 +2,13 @@
 
 判据在 C-ReD 全量 10.4 万篇上校准：正样本 5/5 命中，误报 0.005%；
 这里钉住代表性正负样本与关键阈值边界，防止后人"顺手调参"漂移。
+文种域外（detect_genre，v0.19.0）判据在真人/AI 公文语料上标定：
+印发 100%/批复 100% 召回、其他文种含拟合集 87 篇零误报——
+入库样本一律用合成样例（真实公文不进仓库）。
 运行：python -m pytest tests/test_ood.py -q
 """
 from human_vs_ai import engine, segment
-from human_vs_ai.ood import detect
+from human_vs_ai.ood import detect, detect_genre
 
 
 def _sents(text):
@@ -154,3 +157,111 @@ class TestParaHeat:
         r = engine.analyze(MIXED, "general")
         assert all(h["para"] >= 0 for h in r.para_heat)
 
+
+
+# ============ 文种域外（detect_genre，v0.19.0）============
+# 合成公文样例（真实公文不入库）：印发类 = 通知 + 被印发件全文；
+# 批复类 = "现批复如下"三段式；事务类 = 系数校准域内的普通通知。
+YINFA = (
+    "各街道办事处，区政府各部门、各直属单位：\n"
+    "《某区口袋公园建设三年行动计划（2026—2028年）》已经区政府同意，"
+    "现印发给你们，请结合实际认真组织实施。\n"
+    "某区口袋公园建设三年行动计划（2026—2028年）\n"
+    "为完善城市绿色空间布局，结合我区实际，制定本行动计划。\n"
+    "一、总体目标。到二〇二八年，全区建成口袋公园六十处，"
+    "人均公园绿地面积明显提升，群众身边的绿色空间显著增加。\n"
+    "二、重点任务。（一）科学选址。优先利用边角地、桥下空间，见缝插绿。"
+    "（二）精致设计。突出地域文化特色，一园一主题，避免千园一面。\n"
+    "三、保障措施。区绿化部门统筹推进，各街道落实属地责任，"
+    "每月报送建设进展，年底统一组织考核验收。\n"
+)
+PIFU = (
+    "某市人民政府：\n"
+    "你市《关于报请审批某市历史文化名城保护规划的请示》收悉。经研究，现批复如下：\n"
+    "一、原则同意《某市历史文化名城保护规划（2026—2035年）》。\n"
+    "二、你市要加强对历史文化名城的保护与管理，不得擅自调整规划确定的"
+    "保护内容，重大调整须按程序报批。\n"
+    "三、省住房和城乡建设厅要加强对规划实施工作的指导、监督和检查。\n"
+)
+SHIWU = (
+    "各街道办事处，区政府各部门：\n"
+    "为深入推进我区生活垃圾分类工作，现将有关事项通知如下：\n"
+    "一、总体要求。坚持源头减量与末端处理并重，形成全民参与的良好氛围。\n"
+    "二、重点任务。（一）完善投放设施。年内完成全部小区投放点升级改造。"
+    "（二）健全督导队伍。每三百户配备一名桶边督导员。\n"
+    "三、工作要求。各单位要高度重视，明确责任分工，确保各项任务落到实处。\n"
+)
+
+
+class TestGenreDetect:
+    def test_yinfa_flagged(self):
+        assert "issuance-notice" in detect_genre(_sents(YINFA))
+
+    def test_pifu_flagged(self):
+        assert "approval-reply" in detect_genre(_sents(PIFU))
+
+    def test_shiwu_clean(self):
+        # 系数校准域内的事务通知：一个 kind 都不许给
+        assert detect_genre(_sents(SHIWU)) == []
+
+    def test_short_fragment_skipped(self):
+        # 短片段不判文种：与 detect 的 _N_MIN 同门槛（提示挂在指数上，碎片没指数）
+        assert detect_genre(["现批复如下。"]) == []
+
+    def test_empty(self):
+        assert detect_genre([]) == []
+
+
+class TestGenreEngine:
+    def test_official_flags_genre(self):
+        r = engine.analyze(YINFA, "official")
+        assert "issuance-notice" in r.ood
+        r2 = engine.analyze(PIFU, "official")
+        assert "approval-reply" in r2.ood
+
+    def test_other_profile_gated_off(self):
+        # 文种判据只对声明 genre_ood 的 profile 生效（开关在 scoring 段）
+        assert "issuance-notice" not in engine.analyze(YINFA, "general").ood
+        assert "approval-reply" not in engine.analyze(PIFU, "essay").ood
+
+    def test_flag_is_meta_not_coefficient(self):
+        # genre_ood 是元字段不是特征系数：开关有无不得改变分数
+        # （防线在 compute_score 的 _SCORING_META 跳过，不在 _pick_scoring 过滤）
+        from human_vs_ai.stats import DocStats
+        from human_vs_ai.engine import compute_score
+        scoring = engine.load_scoring("official")
+        assert scoring.get("genre_ood") is True
+        s = DocStats(n_sentences=20, n_chars=3000, sentence_cv=0.6,
+                     ttr=0.85, ngram_repeat=0.12, conn_density=0.02)
+        with_flag = compute_score(s, [], [], scoring)
+        without = compute_score(
+            s, [], [], {k: v for k, v in scoring.items() if k != "genre_ood"})
+        assert with_flag.index == without.index
+        # 未声明开关的 profile 照常无此键
+        assert not (engine.load_scoring("general") or {}).get("genre_ood")
+
+    def test_report_line_official(self):
+        from human_vs_ai import report
+        out = report.render_terminal(engine.analyze(PIFU, "official"))
+        assert "文种域外" in out and "批复类" in out and "事务公文" in out
+        md = report.render_markdown(engine.analyze(YINFA, "official"))
+        assert "文种域外" in md and "印发类" in md
+
+    def test_report_no_line_for_shiwu(self):
+        from human_vs_ai import report
+        out = report.render_terminal(engine.analyze(SHIWU, "official"))
+        assert "域外" not in out
+
+    def test_json_export_contains_genre(self):
+        from human_vs_ai import report
+        import json as _json
+        data = _json.loads(report.render_json(engine.analyze(YINFA, "official")))
+        assert "issuance-notice" in (data["ood"] or [])
+        data2 = _json.loads(report.render_json(engine.analyze(SHIWU, "official")))
+        assert data2["ood"] is None
+
+    def test_clean_doc_score_untouched(self):
+        # 提示只进 ood 字段：同一篇事务文，开不开提示，findings/分数路径不变
+        r = engine.analyze(SHIWU, "official")
+        assert r.ood == []
+        assert r.score is not None

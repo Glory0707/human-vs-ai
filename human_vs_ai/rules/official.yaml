@@ -196,3 +196,8 @@ scoring:
   auroc_holdout: 0.923
   human_p50: 4
   human_p90: 57
+  # 文种域外提示（v0.19.0）：系数绑定事务文种，印发类（通知+规划/方案全文
+  # 附录）与批复类超出校准文种域——样本外同文种 AUROC 印发 0.294（反转）、
+  # 批复 0.614，真人 p50 分别 76 / 63。开关放数据里，JS 端才可能同构。
+  # 标定见 _qa/generalization-check.md、docs/rules.md §8
+  genre_ood: true

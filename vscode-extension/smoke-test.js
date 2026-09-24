@@ -96,6 +96,20 @@ check("no score band when uncalibrated", !/class="s-(high|medium|low)"/.test(off
 const officialShort = HvA.analyze("首先进行研究。其次进行分析。", RULES.official, null);
 check("no score note on short text", officialShort.score_note === "" && !renderReportHtml("x.txt", "official", officialShort).includes("AI 味指数"));
 
+// 8.6 文种域外提示（v0.19.0）：official（scoring.genre_ood 开）判印发/批复类；
+//     scoring=null（未校准档形态）不判——开关在数据里，两端同构
+const YINFA_TEXT = "各街道办事处，区政府各部门、各直属单位：《某区口袋公园建设三年行动计划（2026—2028年）》已经区政府同意，现印发给你们，请结合实际认真组织实施。为完善城市绿色空间布局，结合我区实际，制定本行动计划。一、总体目标。到二〇二八年，全区建成口袋公园六十处，人均公园绿地面积明显提升。二、重点任务。优先利用边角地、桥下空间，见缝插绿，突出地域文化特色，一园一主题。三、保障措施。区绿化部门统筹推进，各街道落实属地责任，每月报送建设进展。";
+const PIFU_TEXT = "某市人民政府：你市《关于报请审批某市历史文化名城保护规划的请示》收悉。经研究，现批复如下：一、原则同意《某市历史文化名城保护规划（2026—2035年）》。二、你市要加强对历史文化名城的保护与管理，不得擅自调整规划确定的保护内容。三、省住房和城乡建设厅要加强对规划实施工作的指导、监督和检查。";
+const yinfaOfficial = HvA.analyze(YINFA_TEXT, RULES.official, SCORING.official || null);
+check("genre ood yinfa flagged", yinfaOfficial.ood.indexOf("issuance-notice") >= 0,
+  JSON.stringify(yinfaOfficial.ood));
+const pifuOfficial = HvA.analyze(PIFU_TEXT, RULES.official, SCORING.official || null);
+check("genre ood pifu flagged", pifuOfficial.ood.indexOf("approval-reply") >= 0,
+  JSON.stringify(pifuOfficial.ood));
+check("genre gated on null scoring", HvA.analyze(YINFA_TEXT, RULES.official, null).ood.indexOf("issuance-notice") < 0);
+const yinfaHtml = renderReportHtml("yinfa.txt", "official", yinfaOfficial);
+check("genre line in report html", yinfaHtml.includes("文种域外") && yinfaHtml.includes("印发类") && yinfaHtml.includes("事务公文"));
+
 // 9. activate 命令注册：vscode 模块桩加载扩展并触发 activate——
 //    回归 v0.9.0 起的隐患（activate 内引用了未 require 的 vscode，激活即崩）
 const Module = require("module");

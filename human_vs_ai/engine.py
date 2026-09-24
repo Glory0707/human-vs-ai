@@ -152,7 +152,8 @@ class AnalysisResult:
     # 8 句以上却没出分时给一句原因（该文体未校准）；<8 句保持空——
     # 短文本本来就不展示统计，多一行解释反而吵（v0.9.1 的教训）
     scoring_note: str = ""
-    # 域外文体（"classical"/"verse"）：指数会系统性虚高，报告须随行提示
+    # 域外文体（"classical"/"verse"）与文种（"issuance-notice"/"approval-reply"）：
+    # 两类都会让指数失真，报告须随行提示
     ood: list[str] = field(default_factory=list)
     # 段落热度：每段门控前加权密度（与全文 hit_density 同口径），混写文本定位用
     para_heat: list[dict] = field(default_factory=list)
@@ -250,7 +251,7 @@ def compute_para_heat(para_texts: list[list[str]], findings: list[Finding],
     heat.sort(key=lambda h: -h["density"])
     return heat
 # scoring 段里的元字段，不是特征
-_SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90")
+_SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90", "genre_ood")
 
 
 def load_scoring(profile: str) -> dict | None:
@@ -392,6 +393,15 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     result.ood = ood.detect(all_para)
     for para in para_texts:
         for kind in ood.detect(para):
+            if kind not in result.ood:
+                result.ood.append(kind)
+
+    # 文种域外：只对声明了 genre_ood 的 profile 判。开关放 scoring 段（数据侧）
+    # 而不是按 profile 名硬编码——JS 端拿不到 profile 名、只拿得到 scoring 对象，
+    # 放数据里两端才可能同构（判据的标定见 _qa/generalization-check.md）
+    scoring = load_scoring(profile)
+    if scoring and scoring.get("genre_ood"):
+        for kind in ood.detect_genre(all_para):
             if kind not in result.ood:
                 result.ood.append(kind)
 

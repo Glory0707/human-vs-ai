@@ -67,7 +67,8 @@
   "auroc": 0.957,
   "auroc_holdout": 0.923,
   "human_p50": 4,
-  "human_p90": 57
+  "human_p90": 57,
+  "genre_ood": true
  },
  "personal": null,
  "review": null

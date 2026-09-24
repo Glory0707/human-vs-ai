@@ -67,6 +67,16 @@ const md = mod.reportToMarkdown("academic", result);
 check("markdown has stats", md.includes("## 全文统计"));
 check("markdown has disclaimer", md.includes("不是 AI 判定"));
 
+// 3.5 文种域外提示（v0.19.0）：HTML 视图与 Markdown 导出都带提示行
+const YINFA_TEXT = "各街道办事处，区政府各部门、各直属单位：《某区口袋公园建设三年行动计划（2026—2028年）》已经区政府同意，现印发给你们，请结合实际认真组织实施。为完善城市绿色空间布局，结合我区实际，制定本行动计划。一、总体目标。到二〇二八年，全区建成口袋公园六十处，人均公园绿地面积明显提升。二、重点任务。优先利用边角地、桥下空间，见缝插绿，突出地域文化特色，一园一主题。三、保障措施。区绿化部门统筹推进，各街道落实属地责任，每月报送建设进展。";
+const yinfaResult = HvA.analyze(YINFA_TEXT, EXT_RULES.official, EXT_SCORING.official || null);
+check("genre ood flagged", yinfaResult.ood.indexOf("issuance-notice") >= 0,
+  JSON.stringify(yinfaResult.ood));
+const yinfaHtml = mod.renderReportHtml("official", yinfaResult);
+check("genre line in report html", yinfaHtml.includes("文种域外") && yinfaHtml.includes("印发类"));
+const yinfaMd = mod.reportToMarkdown("official", yinfaResult);
+check("genre line in markdown", yinfaMd.includes("- ※ 文种域外（印发类）：系数按事务公文校准，指数仅供参考"));
+
 // 4. 改写建议（personal）
 const HvARewrite = require(path.join(ROOT, "web", "rewrite.js"));
 const personalRules = require(path.join(ROOT, "vscode-extension", "rules.json")).personal;
