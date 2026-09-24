@@ -22,6 +22,9 @@ classifiers = [
 ]
 dependencies = ["PyYAML>=6.0"]
 
+[project.optional-dependencies]
+ppl = ["torch>=2.0", "transformers>=4.40"]
+
 [project.scripts]
 human-vs-ai = "human_vs_ai.cli:main"
 

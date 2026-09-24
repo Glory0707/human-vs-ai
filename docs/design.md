@@ -42,7 +42,7 @@
 ## 4. 排队事项（按需启动）
 
 - **P2**：~~general 当代长文评分~~（v0.17.8 落地，v0.18.1 样本外体检 PASS 0.923）· ~~official 评分拟合~~（v0.17.8 落地；v0.18.1 体检定位**文种边界**：系数绑定事务公文，印发全文附录/批复类真人侧误报大面积偏高）· ~~official 文种域外提示~~（v0.19.0 落地：`ood.detect_genre` 结构短语判据 + `genre_ood` 数据侧开关，判据标定见 docs/rules.md §8）· ~~文种内二次校准~~（v0.20.0 定案：**两文种均出分抑制**——冻结系数同文种 AUROC 印发 0.464（无信号）、批复 0.791；批复的文种内校准分层 CV 0.895 看似可行，但渠道留一 LOCO 0.448——模型背下的是渠道风格而非作者信号，校准路线否决；机制 `scoring.genre_scoring` 已落地（suppress/系数两用数据形状），未来拿到跨省配对语料可按双道判定线重新申报）· 剩余：真人侧语料持续积累（collect 入口），general/official 系数随漂移信号迭代
-- **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移；漂移监测机制 v0.17 已上线 `tools/drift_monitor.py`）· 句级困惑度（Qwen 本地小模型，可选插件不进默认依赖）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）
+- **P3**：规则 era 自动化挖掘（从 C-ReD 各模型子集季度重挖词频漂移；漂移监测机制 v0.17 已上线 `tools/drift_monitor.py`）· ~~句级困惑度~~（v0.23.0 落地为可选依赖：`human_vs_ai/ppl.py` + CLI `ppl`；0.6B 级模型标定 doc 区分度仅 0.633——方向正确强度不足，D:\chat 的 GGUF 为自定义架构进不了 transformers，默认关闭待更大模型）· 观点反复解释检测（需语义相似度，n-gram 只能部分覆盖）
 
 ## 5. 架构（已验证）
 
@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.23.0 | 句级困惑度轮（P3）：human_vs_ai/ppl.py teacher-forced 句级 NLL（滑窗长句、nll_to_stats 纯函数口径），CLI `ppl` 子命令懒加载可选依赖（torch/transformers 进 [ppl] extra），tools/ppl_calibration.py 语料标定——gen-oos AI vs 豆瓣/果壳真人，doc 特征最强区分度 0.633（Base 底座）/ 0.620（Instruct），方向正确（AI median 177 vs 真人 213）但强度不足，结论=可选弱信号默认关闭；D:\chat 本地 GGUF（spark2_5 自定义架构 / qwen35 9B 超 17GB 内存）进不了 transformers 路径，模块按 --model 任意 HF 路径设计即插即用；标定权重 Qwen3-0.6B-Base（hf-mirror，_qa/models/ 不入库） |
 | v0.22.0 | 事务文种样本外夯实轮：scrape_genre_corpus 扩云南 zcwj 静态档案源（--limit 上限；正文含印发/批复标题跳过——抑制出分进不了切片）+ 事务文种入库，官方样本外切片 n=11 → 35（五省渠道），AUROC 0.873 贴线 → **0.888 PASS**（掉幅 0.035）；general 0.923 不变 |
 | v0.21.3 | 测试员轮：74 组病态输入对 Py 全出口与 JS 引擎双端模糊，零崩溃（段落热度除零守卫已存在）；性能复测 JS 87k 字 54ms。修两个真问题——匿名样本导出在防抖窗口内拿新输入配旧分析（lastAnalyzedText 配套原文）、拖入 >5MB 文件无守卫；24 样例模糊回归网进 test_edges。随后 2x DPR 端到端走查 18 项用户流程 + visual-judge 超高清验收 9/9 pass，零产品 bug |
 | v0.21.2 | 目录与文案收敛：删无引用的 _qa/eval-{cred,hc3}.json 并入 ignore；文案续收（空态标题/字数提示/拖拽 toast/悬浮/未出分说明/域外行/Obsidian 设置说明，引擎双端与断言同步） |

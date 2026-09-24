@@ -24,6 +24,9 @@ _qa/walk_*.txt
 # 本地产物：截图 / 一致性检查与冒烟测试的中间产物（每次运行重新生成）
 _qa/*.png
 _qa/eval-*.json
+
+# 本地模型权重（体积；句级困惑度标定用，下载方式见 tools/ppl_calibration.py）
+_qa/models/
 _qa/shots/
 .playwright-mcp/
 _qa/_web_*.js

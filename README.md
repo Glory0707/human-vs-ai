@@ -33,6 +33,7 @@ human-vs-ai rewrite 文案.txt         # 按个人口味给逐句改写建议（
 human-vs-ai profiles                 # academic（学术）· essay（作文）· general（问答/自媒体）· news（新闻）
                                      # · official（公文）· personal（个人口味）· review（短评）
 human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/漏报/准确，自愿提交）
+human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip install 'human-vs-ai[ppl]' + HF 模型权重）
 ```
 
 输入支持 txt / md（UTF-8、GB18030 自动识别）/ **docx / odt**（纯标准库解包，零新增依赖）。`--fail-above` 对 <8 句的未出分文件不判定（宁可不判，不假过）。
@@ -106,6 +107,7 @@ human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/�
 - general 评分通过样本外体检（换模型+换渠道，0.923）；official 评分**绑定事务文种**——"印发《规划》全文附录""批复"类省级门户文种不出指数（v0.20.0 判定线定案：印发同文种 AUROC 0.464 无信号；批复文种内校准被渠道指纹污染，渠道留一仅 0.448），报告保留规则发现与文种域外提示行（判据与判定线见 docs/rules.md §8）
 - 词表规则面向**当代模型文风**，会随模型版本漂移（delve 在 GPT-5 后骤降、破折号在 GPT-5.1 被官方压制）；漂移监测已上线（`tools/drift_monitor.py`），季度重挖在排队
 - 词汇丰富度（TTR）用**字级 2-gram 口径**（与网页/插件端逐位一致）；不做词级切分
+- 句级困惑度是**可选弱信号**：0.6B 级模型在样本外问答语料 doc 级区分度仅 0.633（方向正确、强度不足，`_qa/ppl-calibration.md`），故默认关闭、不进评分，仅 `ppl` 子命令显式调用
 - 本工具**不能**用于证明或豁免任何"AI 代写"指控——它没有这个能力，也不该有
 
 ## 开发
@@ -128,6 +130,7 @@ python tools/oos_check.py               # 泛化体检：冻结系数跑样本�
 python tools/genre_check.py             # 文种切片判定：冻结 AUROC + 分层 CV + 渠道 LOCO
 python tools/scrape_genre_corpus.py     # 抓省门户印发/批复真人语料（文种校准用，不入库）
 python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
+python tools/ppl_calibration.py        # 句级困惑度标定（需 torch/transformers + 本地 HF 权重，见 _qa/ppl-calibration.md）
 ```
 
 推送后确认 CI 绿（`gh run list --limit 1`）——CI 含构建产物新鲜度守护，

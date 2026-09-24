@@ -8,6 +8,7 @@
   stats     只看统计特征（调阈值/做研究用）
   explain   打印一条规则的完整说明（报告里看到 ID 想深究时用）
   profiles  列出可用场景
+  ppl       句级困惑度（可选依赖：torch/transformers + HF 因果语言模型）
 """
 from __future__ import annotations
 
@@ -18,7 +19,7 @@ from pathlib import Path
 
 import yaml
 
-from . import __version__, batch, collect, diff, engine, htreport, readers, report, rewrite, sarif
+from . import __version__, batch, collect, diff, engine, htreport, ppl, readers, report, rewrite, sarif, segment
 
 
 def _read_file(path: str) -> str:
@@ -122,6 +123,16 @@ def main(argv: list[str] | None = None) -> None:
         help="miss=漏报 / fp=误报 / hit=判定准确")
     p_col.add_argument("-o", "--output", help="写入 JSONL 文件（默认打印）")
 
+    p_ppl = sub.add_parser(
+        "ppl",
+        help="句级困惑度（可选依赖：torch/transformers + HF 因果语言模型）")
+    p_ppl.add_argument("file", help="txt/md/docx/odt 文件；或 - 从标准输入读")
+    p_ppl.add_argument(
+        "--model", default="Qwen/Qwen3-0.6B",
+        help="HF 因果语言模型路径或 id（默认 Qwen3-0.6B，0.6B 级够出方向性信号）")
+    p_ppl.add_argument("--device", default=None, help="cuda / cpu（默认自动）")
+    p_ppl.add_argument("-o", "--output", help="写入文件（默认打印）")
+
     p_explain = sub.add_parser("explain", help="打印一条规则的完整说明")
     p_explain.add_argument("rule_id")
     p_explain.add_argument("-p", "--profile", default="academic")
@@ -190,6 +201,17 @@ def _dispatch(args: argparse.Namespace) -> None:
             sys.stdout.write(out)
             print(f"已导出 1 条样本（{collect.LABELS[args.label]}），提交方式见 README。",
                   file=sys.stderr)
+        return
+
+    if args.command == "ppl":
+        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        sentences = [s.text for blk in segment.split_document(text) for s in blk.sents]
+        try:
+            scorer = ppl.SentenceScorer(args.model, args.device)
+        except ImportError as e:
+            sys.exit(f"错误：{e}")
+        stats = scorer.score_sentences(sentences)
+        _emit(ppl.render(sentences, stats, args.model), args.output)
         return
 
     if args.command == "diff":
