@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.22.0 | 事务文种样本外夯实轮：scrape_genre_corpus 扩云南 zcwj 静态档案源（--limit 上限；正文含印发/批复标题跳过——抑制出分进不了切片）+ 事务文种入库，官方样本外切片 n=11 → 35（五省渠道），AUROC 0.873 贴线 → **0.888 PASS**（掉幅 0.035）；general 0.923 不变 |
 | v0.21.3 | 测试员轮：74 组病态输入对 Py 全出口与 JS 引擎双端模糊，零崩溃（段落热度除零守卫已存在）；性能复测 JS 87k 字 54ms。修两个真问题——匿名样本导出在防抖窗口内拿新输入配旧分析（lastAnalyzedText 配套原文）、拖入 >5MB 文件无守卫；24 样例模糊回归网进 test_edges。随后 2x DPR 端到端走查 18 项用户流程 + visual-judge 超高清验收 9/9 pass，零产品 bug |
 | v0.21.2 | 目录与文案收敛：删无引用的 _qa/eval-{cred,hc3}.json 并入 ignore；文案续收（空态标题/字数提示/拖拽 toast/悬浮/未出分说明/域外行/Obsidian 设置说明，引擎双端与断言同步） |
 | v0.21.1 | 冗余清理（12 份 CLI 出口快照逐字节不变）：report 私有名转公开，免责/特征标签常量与读取异常处理去重；buildGroups/statsRows/reportToMarkdown/adviceToMarkdown 收编进共享层 render.js，web 复制 Markdown 补齐缺失的域外行；卡号脱敏正则与 CLI 对齐 |

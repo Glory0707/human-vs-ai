@@ -37,15 +37,17 @@ _TAG = re.compile(r"<[^>]+>")
 # 标题 → 文种：批复优先（批复也会带"规划"字样）；印发含所印规划/方案/措施
 RE_PIFU = re.compile(r"批复")
 RE_YINFA = re.compile(r"印发|《[^》]*规划[^》]*》|《[^》]*方案[^》]*》|若干措施|若干政策|政策措施")
+RE_SHIWU = re.compile(r"通知|通报|意见|方案|措施|决定|公告")
 # 页面模板残片：正文行里出现这些关键词的块丢掉
 _JUNK = ("版权所有", "网站标识码", "联系方式", "相关链接", "浏览次数", "扫一扫",
          "主办单位", "备案", "索引号", "成文日期", "发布时间", "责任编辑", "相关解读",
          "打印本页", "关闭本页", "分享到", "字号：", "【打印】", "返回顶部", "无障碍",
          "长者模式", "手机版", "订 阅", "客户端", "微 信", "微博", "网站地图",
          "使用帮助", "意见征集", "调查征集")
-_MIN_CHARS = {"批复": 350, "印发": 1200}  # 批复天然短（~450-2700），印发必须带全文附录
+_MIN_CHARS = {"批复": 350, "印发": 1200, "事务": 300}  # 批复天然短（~450-2700），印发必须带全文附录
 CHANNELS = {"hunan": "www.hunan.gov.cn swszf",
-            "anhui": "www.ah.gov.cn 省政府文件"}
+            "anhui": "www.ah.gov.cn 省政府文件",
+            "yunnan": "www.yn.gov.cn zcwj"}
 
 
 def fetch(url: str) -> str:
@@ -82,6 +84,8 @@ def genre_of(title: str) -> str | None:
         return "批复"
     if RE_YINFA.search(title):
         return "印发"
+    if RE_SHIWU.search(title):
+        return "事务"
     return None
 
 
@@ -128,6 +132,42 @@ ANHUI_SEEDS = [
 ]
 
 
+def collect_yunnan(pages: int) -> list[dict]:
+    """云南省政府文件 zcwj/zxwj 静态档案页（index_N.html，N 越大越旧）。
+
+    只收事务文种：印发/批复会被 v0.20.0 的 genre_scoring 抑制出分，
+    抓了也进不了 official 样本外切片，白耗请求。
+    """
+    base = "https://www.yn.gov.cn/zwgk/zcwj/zxwj/"
+    seen: set[str] = set()
+    out: list[dict] = []
+    link_re = re.compile(
+        r"""href=["'](\./\d{6}/t\d+_\d+\.html)["'][^>]*>\s*([^<]{10,90})""")
+    for n in range(905, 905 - pages, -1):
+        url = f"{base}index_{n}.html"
+        try:
+            page = fetch(url)
+        except Exception as e:  # noqa: BLE001
+            print(f"  [列表失败] yunnan p{n}: {str(e)[:60]}")
+            break
+        added = 0
+        for href, title in link_re.findall(page):
+            title = title.strip()
+            if RE_PIFU.search(title) or RE_YINFA.search(title) or "人事" in title:
+                continue  # 印发/批复（抑制出分）与人事任免不要
+            if href in seen:
+                continue
+            seen.add(href)
+            out.append({"prov": "yunnan", "url": base + href[2:],
+                        "title": title, "genre": "事务"})
+            added += 1
+        print(f"  [列表] yunnan p{n}: +{added}（累计 {len(out)}）")
+        if added == 0:
+            break
+        time.sleep(_DELAY)
+    return out
+
+
 def collect_anhui() -> list[dict]:
     out = []
     for title, url in ANHUI_SEEDS:
@@ -139,8 +179,8 @@ def collect_anhui() -> list[dict]:
 
 def scrape(jobs: list[dict]) -> None:
     """抓详情、清洗、按 url 去重合并进 gov-{prov}.json（每省读一次写一次）。"""
-    got: dict[str, int] = {"hunan": 0, "anhui": 0}
-    for prov in ("hunan", "anhui"):
+    got: dict[str, int] = {"hunan": 0, "anhui": 0, "yunnan": 0}
+    for prov in ("hunan", "anhui", "yunnan"):
         rows = [j for j in jobs if j["prov"] == prov]
         if not rows:
             continue
@@ -177,9 +217,10 @@ def scrape(jobs: list[dict]) -> None:
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--pages", type=int, default=5, help="湖南档案页翻页数")
+    ap.add_argument("--limit", type=int, default=80, help="单次抓取详情页上限")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    jobs = collect_hunan(args.pages) + collect_anhui()
+    jobs = (collect_hunan(args.pages) + collect_anhui() + collect_yunnan(args.pages))[: args.limit]
     print(f"待抓 {len(jobs)} 篇（hunan {sum(1 for j in jobs if j['prov'] == 'hunan')}"
           f" / anhui {sum(1 for j in jobs if j['prov'] == 'anhui')}）")
     scrape(jobs)
