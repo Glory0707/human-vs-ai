@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.23.1 | PyPI 发布就绪轮（无引擎变化）：license 迁移 SPDX `License-Expression`（setuptools>=77，消构建弃用警告）+ 补 `project.urls`（Homepage/Source/Issues 进 PyPI 侧边栏）；新增 `tools/pkg_check.py` 发布自查——构建 → wheel/sdist 内容审计（7 规则 YAML、入口脚本、无杂物）→ twine check → 临时 venv 装 wheel 冒烟（profiles/check/stats/explain/ppl 缺依赖指引）→ 同 venv 改装 sdist 验证源码分发重建路径，全绿 |
 | v0.23.0 | 句级困惑度轮（P3）：human_vs_ai/ppl.py teacher-forced 句级 NLL（滑窗长句、nll_to_stats 纯函数口径），CLI `ppl` 子命令懒加载可选依赖（torch/transformers 进 [ppl] extra），tools/ppl_calibration.py 语料标定——gen-oos AI vs 豆瓣/果壳真人，doc 特征最强区分度 0.633（Base 底座）/ 0.620（Instruct），方向正确（AI median 177 vs 真人 213）但强度不足，结论=可选弱信号默认关闭；D:\chat 本地 GGUF（spark2_5 自定义架构 / qwen35 9B 超 17GB 内存）进不了 transformers 路径，模块按 --model 任意 HF 路径设计即插即用；标定权重 Qwen3-0.6B-Base（hf-mirror，_qa/models/ 不入库） |
 | v0.22.0 | 事务文种样本外夯实轮：scrape_genre_corpus 扩云南 zcwj 静态档案源（--limit 上限；正文含印发/批复标题跳过——抑制出分进不了切片）+ 事务文种入库，官方样本外切片 n=11 → 35（五省渠道），AUROC 0.873 贴线 → **0.888 PASS**（掉幅 0.035）；general 0.923 不变 |
 | v0.21.3 | 测试员轮：74 组病态输入对 Py 全出口与 JS 引擎双端模糊，零崩溃（段落热度除零守卫已存在）；性能复测 JS 87k 字 54ms。修两个真问题——匿名样本导出在防抖窗口内拿新输入配旧分析（lastAnalyzedText 配套原文）、拖入 >5MB 文件无守卫；24 样例模糊回归网进 test_edges。随后 2x DPR 端到端走查 18 项用户流程 + visual-judge 超高清验收 9/9 pass，零产品 bug |

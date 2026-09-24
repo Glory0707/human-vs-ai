@@ -131,6 +131,7 @@ python tools/genre_check.py             # 文种切片判定：冻结 AUROC + �
 python tools/scrape_genre_corpus.py     # 抓省门户印发/批复真人语料（文种校准用，不入库）
 python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
 python tools/ppl_calibration.py        # 句级困惑度标定（需 torch/transformers + 本地 HF 权重，见 _qa/ppl-calibration.md）
+python tools/pkg_check.py              # PyPI 发布自查：构建+产物内容审计+twine+干净 venv 安装冒烟
 ```
 
 推送后确认 CI 绿（`gh run list --limit 1`）——CI 含构建产物新鲜度守护，
