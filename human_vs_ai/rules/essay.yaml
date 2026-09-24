@@ -157,15 +157,15 @@ rules:
 # 综合评分：C-ReD composition 域全量拟合（类平衡，真人 1070 vs 7 模型 7544
 # 过 8 句门槛样本），tools/fit_domain.py 产出。
 scoring:
-  corpus: "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09"
-  intercept: -42.9291
-  hit_density: 9.1763
-  sentence_cv: -16.4304
-  ttr: 52.7223
-  ngram_repeat: 4.1655
-  auroc: 0.952
-  auroc_holdout: 0.951
-  human_p50: 6
+  corpus: "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09 era 重拟合"
+  intercept: -44.1715
+  hit_density: 9.6652
+  sentence_cv: -16.2585
+  ttr: 53.8539
+  ngram_repeat: 3.8401
+  auroc: 0.954
+  auroc_holdout: 0.953
+  human_p50: 5
   human_p90: 55
 
 # 砍掉清单（本域实测反向或不达标，防复活）：

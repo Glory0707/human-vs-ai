@@ -81,7 +81,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
 - **公文**：87 篇口径真人误报率 16/87 = 18.4%（验收 <20% PASS，余量 1.6pp）；官方词表当代验证组合覆盖 9/9 模型、真人 0 误伤
 - **fixture 冒烟**：AI 样本 20 处命中（高 4）vs 人类样本 0 高 0 中（tests/data/）
-- **多文体扩展（v0.14）**：essay 评分留出 **0.951**、news **0.935**（C-ReD 全量类平衡）；review 短评词表层不出分——详见 rules.md §9
+- **多文体扩展（v0.14）**：essay/news 评分建立（C-ReD 全量类平衡）；v0.26.0 era 指纹入表重拟合后 **essay 全量 0.954/留出 0.953、news 0.951/0.948**；review 短评词表层不出分——详见 rules.md §9
 - **当代验证（v0.17）**：essay 全量重跑 AUROC **0.942** / news **0.933**（按模型分解：qwen-2.5/claude/gpt-4o 召回 95%+，gpt-3.5 旧代仅 53%）；general 词表双代际验证（C-ReD QA 全量 + gen2026 当季 9 模型 69 篇：三连排比 83% 命中仍是当代最顽固指纹）；official 词表初步验证（9 模型 AI 公文组合覆盖 100% / 真人 0 误伤）；**域外探测**判据 C-ReD 全量 10.4 万篇校准（正样本 5/5、误报 0.005%）；**对抗自评测**（LLM 洗稿削词表 89% 后仍 93.3% 超阈值——统计底盘扛住定向规避）——详见 rules.md §9 与 _qa/*.md
 - **引擎性能**：7.1 万字 Py 140ms / JS 34ms（min-of-N，2026-09 复测，含 ood/para_heat）
 - **双引擎一致性**：**322 项**逐字段 diff 全绿 × 7 profile（含 ood/para_heat 对拍与 gov_yinfa/gov_pifu 文种门控）；对抗探针含 emoji 码点/孤立低代理/行分隔符全集/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水
@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.26.0 | era 指纹入表第二波（news+essay 重拟合）轮：news 新增 N-BUZZ-01 反响膨胀套话（doc 命中 AI 15.7% vs 真人 0.1%）、N-HEARSAY 扩分析人士/数据显示/接受采访三族（1.7% vs 12.8%）；**N-RECENT 移除"日前"**——era 全量复测真人 8.5% vs AI 2.6% 真反转（THUCNews 正体消息语，2026 模型不用），v0.14 的 250 篇抽样口径错判，入砍掉清单；news 评分重拟合 0.938/0.935→**0.951/0.948**，essay 补重拟合 0.952/0.951→**0.954/0.953**（v0.25.0 入表后的既定流程补课） |
 | v0.25.0 | era 首轮真指纹入表轮：L-AIM-01 研究陈述八股（medium，4 pattern 族全 corpus 验证——研究旨在 52% vs 2.4%、结果陈述族 15.7% vs 1.3%、理论/实验依据 7.5% vs 0.1%）+ essay E-FORM/E-SUB 各扩 2 变体（信息爆炸/快节奏族、找到属于自己的/在人生的道路上）；C-ReD paper 词表 AUROC **0.804→0.888**（L-AIM doc 命中 +0.56 现役最强），HC3 问答零误伤，引擎级 essay E-SUB 10x；边缘候选（具有重要意义 5x 贴线）如实不入；漂移对拍确认入表前后现役规则零漂移 |
 | v0.24.0 | era 重挖 + PPL 重标收尾轮（P3 双项定案）：①`tools/era_remine.py`——C-ReD 五域挖 AI 过采样短语（3-8 字极大短语，重叠折叠保留最长，覆盖差 >2x 各自保留）+ 现役词表逐 pattern 体检（doc 覆盖比口径同引擎 re.search，双侧 <5 篇"样本不足不判"），报告 `_qa/era-remine-*.md` 只报告不动词表；首轮 paper 域候选含"本研究旨在探讨"45x/"结果显示"63x 级真指纹，体检 12 条退化待人工 grep 复核。②句级困惑度 1.7B 重标（Qwen3-1.7B-Base）：区分度 0.633→0.657，规模 ×2.8 仅 +0.024 对规模响应平缓，放大不现实——**弱信号定案默认关闭**，"待更大模型重标"关闭；`_qa/ppl-calibration.md` 改双模型对比 |
 | v0.23.1 | PyPI 发布就绪轮（无引擎变化）：license 迁移 SPDX `License-Expression`（setuptools>=77，消构建弃用警告）+ 补 `project.urls`（Homepage/Source/Issues 进 PyPI 侧边栏）；新增 `tools/pkg_check.py` 发布自查——构建 → wheel/sdist 内容审计（7 规则 YAML、入口脚本、无杂物）→ twine check → 临时 venv 装 wheel 冒烟（profiles/check/stats/explain/ppl 缺依赖指引）→ 同 venv 改装 sdist 验证源码分发重建路径，全绿 |

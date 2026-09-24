@@ -22,15 +22,15 @@
   ]
  },
  "essay": {
-  "corpus": "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09",
-  "intercept": -42.9291,
-  "hit_density": 9.1763,
-  "sentence_cv": -16.4304,
-  "ttr": 52.7223,
-  "ngram_repeat": 4.1655,
-  "auroc": 0.952,
-  "auroc_holdout": 0.951,
-  "human_p50": 6,
+  "corpus": "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09 era 重拟合",
+  "intercept": -44.1715,
+  "hit_density": 9.6652,
+  "sentence_cv": -16.2585,
+  "ttr": 53.8539,
+  "ngram_repeat": 3.8401,
+  "auroc": 0.954,
+  "auroc_holdout": 0.953,
+  "human_p50": 5,
   "human_p90": 55
  },
  "general": {
@@ -46,16 +46,16 @@
   "human_p90": 77
  },
  "news": {
-  "corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09",
-  "intercept": -60.4796,
-  "hit_density": 5.9358,
-  "sentence_cv": -5.344,
-  "ttr": 65.9004,
-  "ngram_repeat": -2.4644,
-  "auroc": 0.938,
-  "auroc_holdout": 0.935,
-  "human_p50": 7,
-  "human_p90": 61
+  "corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09 era 重拟合",
+  "intercept": -62.6212,
+  "hit_density": 7.0997,
+  "sentence_cv": -5.1318,
+  "ttr": 67.7646,
+  "ngram_repeat": -3.1777,
+  "auroc": 0.951,
+  "auroc_holdout": 0.948,
+  "human_p50": 6,
+  "human_p90": 55
  },
  "official": {
   "corpus": "真人事务公文 71 篇（gov.cn/部委/省门户）vs gen2026 当季 9 模型公文 70 篇，类平衡，2026-09",

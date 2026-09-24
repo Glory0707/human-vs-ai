@@ -27,7 +27,8 @@ class TestNewProfiles:
     def test_news_scoring_and_lexicon(self):
         r = engine.analyze(NEWS_AI, "news")
         assert r.score, "news 出分（过 8 句门槛）"
-        assert r.score.human_p50 == 7 and r.score.human_p90 == 61
+        # v0.26.0 era 重拟合后的真人分位锚点
+        assert r.score.human_p50 == 6 and r.score.human_p90 == 55
         ids = {f.rule_id for f in r.findings}
         assert "N-RECENT-01" in ids
 
@@ -44,7 +45,7 @@ class TestNewProfiles:
 
     def test_essay_scoring_and_negation_high(self):
         r = engine.analyze(ESSAY_AI, "essay")
-        assert r.score and round(r.score.auroc, 3) == 0.952
+        assert r.score and round(r.score.auroc, 3) == 0.954
         ids = {f.rule_id for f in r.findings}
         assert "E-NEGA-01" in ids and "E-SUB-01" in ids
         # 否定式拔高在本库为 high（作文域最强单项）
