@@ -33,42 +33,11 @@ const PROFILES = Object.keys(RULES);
 
 /* 渲染共享层（web/render.js）：转义/高亮/评分行/常量 */
 const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, oodLines, paraHeatHtml, hintsHtml,
-        componentsText, SEV_NAME, PROFILE_META,
+        buildGroups, statsRows, reportToMarkdown, adviceToMarkdown,
+        SEV_NAME, PROFILE_META,
         HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 
 /* ================= 报告组装（结构与 CLI/网页/VS Code 同一份内容） ================= */
-
-function statsRows(s) {
-  const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
-  if (s.n_sentences < 8) return rows;
-  rows.push(`节奏：句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
-  rows.push(`词汇：TTR ${fmt(s.ttr)} · 连接词密度 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 ${fmt(s.ngram_repeat)}`);
-  return rows;
-}
-
-function buildGroups(F) {
-  const groups = [];
-  const byKey = new Map();
-  const docLevel = [];
-  F.forEach(f => {
-    if (f.para < 0) { docLevel.push(f); return; }
-    const key = f.para + "\u0000" + f.sentence;
-    if (!byKey.has(key)) {
-      const g = { para: f.para, sentence: f.sentence, items: [] };
-      byKey.set(key, g);
-      groups.push(g);
-    }
-    byKey.get(key).items.push(f);
-  });
-  const sevRank = { high: 0, medium: 1, low: 2 };
-  groups.sort((a, b) => {
-    const ra = Math.min(...a.items.map(i => sevRank[i.severity]));
-    const rb = Math.min(...b.items.map(i => sevRank[i.severity]));
-    return (ra - rb) || (a.para - b.para);
-  });
-  docLevel.sort((a, b) => sevRank[a.severity] - sevRank[b.severity]);
-  return { groups, docLevel, sevRank };
-}
 
 function renderReportHtml(profile, result) {
   const parts = [];
@@ -128,83 +97,6 @@ function renderAdviceHtml(result) {
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   return parts.join("");
 }
-
-/* 报告 Markdown 导出（与 CLI/网页同口径） */
-function reportToMarkdown(profile, result) {
-  const r = result;
-  const L = [`# human-vs-ai 分析报告（${profile}）`, "", "## 全文统计", ""];
-  if (r.score) {
-    L.push(`- AI 味指数：${r.score.index.toFixed(0)} / 100（风格分，不是 AI 概率）`);
-    const comps = componentsText(r.score.components);
-    if (comps) L.push(`- 构成：${comps}`);
-  } else if (r.score_note) {
-    // 引擎字段是 score_note（旧代码误写 scoring_note，未校准/文种抑制的
-    // 说明行在 Markdown 导出里从不出现——v0.20.0 冒烟抓出）
-    L.push(`- AI 味指数：—（${r.score_note}）`);
-  }
-  // 域外提示行进 Markdown 导出——"指数仅供参考"的 caveat 复制出去不能丢
-  //（v0.19.0 顺带补齐：文言/诗行时代 Markdown 导出就没带这行）
-  oodLines(r.ood).forEach(t => L.push(`- ※ ${t}`));
-  statsRows(r.stats).forEach(row => L.push(`- ${row}`));
-  L.push("", `## 发现（${r.findings.length} 处）`, "");
-  if (!r.findings.length) L.push("未发现模板化写作");
-  const explained = new Set();
-  const { groups, docLevel, sevRank } = buildGroups(r.findings);
-  groups.forEach(g => {
-    const top = g.items.reduce((acc, i) =>
-      (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
-    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
-    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
-    const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
-    L.push(`### [${SEV_NAME[top.severity]}] ${ids} ${names} · ¶${g.para + 1}`, "");
-    if (g.sentence) L.push(`> ${g.sentence}`, "");
-    if (matchArr.length) L.push(`**命中**：${matchArr.join("、")}`, "");
-    const why = g.items.find(i => !explained.has(i.rule_id));
-    g.items.forEach(i => explained.add(i.rule_id));
-    if (why) {
-      L.push(why.explanation.trim());
-      if (why.suggestion) L.push("", `**建议**：${why.suggestion.trim()}`);
-      L.push("");
-    }
-  });
-  docLevel.forEach(f => {
-    const why = !explained.has(f.rule_id);
-    explained.add(f.rule_id);
-    L.push(`### [${SEV_NAME[f.severity]}] ${f.rule_id} ${f.rule_name}（全文）`, "");
-    if (f.matches.length) L.push(`**命中**：${[...new Set(f.matches)].join("、")}`, "");
-    if (why) {
-      L.push(f.explanation.trim());
-      if (f.suggestion) L.push("", `**建议**：${f.suggestion.trim()}`);
-      L.push("");
-    }
-  });
-  if (r.hints.length) {
-    L.push(`## 弱命中（共 ${r.hints.length} 处）`, "");
-    r.hints.slice(0, HINTS_MAX).forEach(h => L.push(`- ${h.rule_id} ${h.rule_name}（¶${h.para + 1}）`));
-    if (r.hints.length > HINTS_MAX) L.push(`- …等 ${r.hints.length} 处`);
-    L.push("");
-  }
-  L.push("---", "", DISCLAIMER);
-  return L.join("\n");
-}
-
-function adviceToMarkdown(result) {
-  const A = result.advices;
-  const n = k => A.filter(a => a.action === k).length;
-  const L = ["# human-vs-ai 改写建议（我的口味）", "",
-    `共 ${A.length} 条 · 删 ${n("删")} · 改 ${n("改")} · 保留 ${n("保留")}`, ""];
-  A.forEach(a => {
-    L.push(`[${a.action}]${a.taste.length ? " " + a.taste.join("/") : ""} ${a.text}`);
-    if (a.reason) L.push(`  ${a.reason}`);
-    if (a.candidate) L.push(`  → ${a.candidate}`);
-    else if (a.direction) L.push(`  → ${a.direction}`);
-    L.push("");
-  });
-  L.push("---", "", ADVICE_FOOTER);
-  return L.join("\n");
-}
-
-/* ================= Obsidian 宿主（由 makePlugin 注入 obsidian 模块） ================= */
 
 function makePlugin(obsidian) {
   const { Plugin, ItemView, MarkdownView, Notice } = obsidian;

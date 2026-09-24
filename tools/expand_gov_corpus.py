@@ -93,7 +93,7 @@ def collect_links(src: dict, max_pages: int) -> list[tuple[str, str]]:
             if base and href.startswith("./"):
                 href = base + href[2:]
             elif href.startswith("../../") and base:
-                href = base.rsplit("/", 2)[0] + "/" + href.split("/")[-1] if False else href  # 农业农村部相对层级在详情页处理
+                pass  # 农业农村部相对层级在详情页处理
             if base and href.startswith("../"):
                 # ../../govpublic/x/t.htm → 站点根相对（剥掉全部 ../）
                 href = re.sub(r"^(?:\.\./)+", "", href)

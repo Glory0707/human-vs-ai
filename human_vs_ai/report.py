@@ -16,17 +16,18 @@ from collections import OrderedDict
 from .engine import AnalysisResult, Score, Finding
 from . import __version__
 
-_SEV_LABEL = {"high": "高", "medium": "中", "low": "低", "hint": "弱"}
+# 严重级/特征/免责等报告用词：terminal/md/json 与 htreport 共用，改名须同步
+SEV_LABEL = {"high": "高", "medium": "中", "low": "低", "hint": "弱"}
 _SEV_RANK = {"high": 0, "medium": 1, "low": 2, "hint": 3}
 
-_DISCLAIMER = "风格提示，不是 AI 判定。"
+DISCLAIMER = "风格提示，不是 AI 判定。"
 
 # 弱命中列表的展示上限：hundreds-of-hints 的长文里它只是参考信息，
 # 全量列出会淹没正文发现（JSON 出口不带截断——事实源永远完整）
-_HINTS_MAX = 12
+HINTS_MAX = 12
 
 # 评分特征 → 报告用短标签（components 键序即 scoring YAML 特征序）
-_SCORE_LABEL = {
+SCORE_LABEL = {
     "hit_density": "规则",
     "sentence_cv": "节奏",
     "ttr": "词汇",
@@ -81,7 +82,7 @@ def _score_line(score: Score) -> str:
 def _score_components(score: Score) -> str:
     parts = []
     for feat, v in score.components.items():
-        label = _SCORE_LABEL.get(feat, feat)
+        label = SCORE_LABEL.get(feat, feat)
         parts.append(f"{label} {v:+.0f}")
     return "构成：" + " · ".join(parts) if parts else ""
 
@@ -114,7 +115,7 @@ def stats_lines(result: AnalysisResult) -> list[str]:
     return rows
 
 
-def _group_by_sentence(findings: list[Finding]):
+def group_by_sentence(findings: list[Finding]):
     """(段号, 原句) 相同的句子级发现聚成一组，保持报告顺序；doc 级单独返回。"""
     groups: OrderedDict = OrderedDict()
     doc_level: list[Finding] = []
@@ -126,13 +127,13 @@ def _group_by_sentence(findings: list[Finding]):
     return list(groups.values()), doc_level
 
 
-def _taste_suffix(group: list[Finding]) -> str:
+def taste_suffix(group: list[Finding]) -> str:
     """口味条目编号（personal profile 专有）——指向 docs/taste_zhouao.md。"""
     tags = list(dict.fromkeys(f.taste for f in group if f.taste))
     return f" · {'/'.join(tags)}" if tags else ""
 
 
-def _group_top(group: list[Finding]) -> str:
+def group_top(group: list[Finding]) -> str:
     return min((f.severity for f in group), key=lambda s: _SEV_RANK[s])
 
 
@@ -141,7 +142,7 @@ def _group_title(group: list[Finding]) -> str:
     ids = " + ".join(dict.fromkeys(f.rule_id for f in group))
     names = " + ".join(dict.fromkeys(f.rule_name for f in group))
     loc = f"¶{group[0].para + 1}"
-    return f"[{_SEV_LABEL[_group_top(group)]}] {ids} {names}{_taste_suffix(group)} · {loc}"
+    return f"[{SEV_LABEL[group_top(group)]}] {ids} {names}{taste_suffix(group)} · {loc}"
 
 
 def render_terminal(result: AnalysisResult) -> str:
@@ -162,13 +163,13 @@ def render_terminal(result: AnalysisResult) -> str:
         out.append(C("32", "未发现模板化写作"))
     else:
         explained: set[str] = set()
-        groups, doc_level = _group_by_sentence(result.findings)
+        groups, doc_level = group_by_sentence(result.findings)
         n_hi, n_md, n_lo = result.n_high, result.n_medium, result.n_low
         out.append(C("1", f"发现 {len(result.findings)} 处（高 {n_hi} · 中 {n_md} · 低 {n_lo}）"))
         out.append("")
         for group in groups:
             title = _group_title(group)
-            top = _group_top(group)
+            top = group_top(group)
             out.append(C(sev_color[top], title))
             sent = group[0].sentence
             show = sent if len(sent) <= 60 else sent[:57] + "…"
@@ -186,21 +187,21 @@ def render_terminal(result: AnalysisResult) -> str:
             out.append("")
         for f in doc_level:
             tag = f" · {f.taste}" if f.taste else ""
-            out.append(C(sev_color[f.severity], f"[{_SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag} · 全文"))
+            out.append(C(sev_color[f.severity], f"[{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag} · 全文"))
             out.append(C("90", f"  命中：{f.matches[0]}"))
             out.append(f"  {f.explanation}")
             if f.suggestion:
                 out.append(C("32", f"  → {f.suggestion}"))
             out.append("")
     if result.hints:
-        shown = result.hints[:_HINTS_MAX]
+        shown = result.hints[:HINTS_MAX]
         cap = f"（列前 {len(shown)} 处）" if len(shown) < len(result.hints) else ""
         out.append(C("90", f"另有 {len(result.hints)} 处弱命中{cap}："))
         for f in shown:
             out.append(C("90", f"  · {f.rule_id} {f.rule_name} ¶{f.para + 1}"))
         out.append("")
     out.append(C("90", "─" * 46))
-    out.append(C("90", _DISCLAIMER))
+    out.append(C("90", DISCLAIMER))
     return "\n".join(out)
 
 
@@ -218,7 +219,7 @@ def render_markdown(result: AnalysisResult) -> str:
     if not result.findings:
         out.append("未发现模板化写作")
     explained: set[str] = set()
-    groups, doc_level = _group_by_sentence(result.findings)
+    groups, doc_level = group_by_sentence(result.findings)
     for group in groups:
         out.append(f"### {_group_title(group)}")
         out.append("")
@@ -238,7 +239,7 @@ def render_markdown(result: AnalysisResult) -> str:
             out.append("")
     for f in doc_level:
         tag = f" · {f.taste}" if f.taste else ""
-        out.append(f"### [{_SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag}（全文）")
+        out.append(f"### [{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag}（全文）")
         out.append("")
         out.append(f"**命中**：{f.matches[0]}")
         out.append("")
@@ -250,7 +251,7 @@ def render_markdown(result: AnalysisResult) -> str:
     if result.hints:
         out.append("## 弱命中")
         out.append("")
-        shown = result.hints[:_HINTS_MAX]
+        shown = result.hints[:HINTS_MAX]
         if len(shown) < len(result.hints):
             out.append(f"共 {len(result.hints)} 处，列前 {len(shown)} 处：")
             out.append("")
@@ -259,7 +260,7 @@ def render_markdown(result: AnalysisResult) -> str:
         out.append("")
     out.append("---")
     out.append("")
-    out.append(_DISCLAIMER)
+    out.append(DISCLAIMER)
     return "\n".join(out)
 
 
@@ -276,7 +277,7 @@ def render_json(result: AnalysisResult) -> str:
             "para_heat": result.para_heat or None,
             "findings": [f.to_dict() for f in result.findings],
             "hints": [f.to_dict() for f in result.hints],
-            "disclaimer": _DISCLAIMER,
+            "disclaimer": DISCLAIMER,
         },
         ensure_ascii=False,
         indent=2,

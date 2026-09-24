@@ -8,12 +8,10 @@ from __future__ import annotations
 import html as _html
 from . import __version__
 from .engine import AnalysisResult
-from .report import _DISCLAIMER, _group_by_sentence, _group_top, _taste_suffix, stats_lines
+from .report import (DISCLAIMER, SCORE_LABEL, SEV_LABEL, group_by_sentence,
+                     group_top, stats_lines, taste_suffix)
 
 _SEV_COLOR = {"high": "#B3351F", "medium": "#9C7414", "low": "#2E7D6E"}
-_SEV_LABEL = {"high": "高", "medium": "中", "low": "低"}
-_SCORE_LABEL = {"hit_density": "规则", "sentence_cv": "节奏", "ttr": "词汇",
-                "ngram_repeat": "重复", "conn_density": "连接词"}
 
 _CSS = """
 /* 与网页版同一套设计语言（对照 eggpaper token）：暖墨白纸、发丝线、
@@ -116,7 +114,7 @@ def _score_html(result: AnalysisResult) -> str:
         band_text = ("超过 90% 校准真人" if band == "high"
                      else "超过半数校准真人" if band == "medium" else "低于半数校准真人")
         comps = " · ".join(
-            f"{_SCORE_LABEL.get(f, f)} {v:+.0f}" for f, v in s.components.items())
+            f"{SCORE_LABEL.get(f, f)} {v:+.0f}" for f, v in s.components.items())
         return (f'<div class="score-row">'
                 f'<span class="seal" style="color:{_SEV_COLOR[band]}">'
                 f'<span class="n">{idx}</span><span class="u">AI味指数</span></span>'
@@ -135,7 +133,7 @@ def _finding_card(sev: str, title: str, loc: str, sentence: str,
     color = _SEV_COLOR[sev]
     parts = [f'<div class="found" style="border-left-color:{color};--dot:{color}">']
     parts.append(f'<div class="head"><span class="mg-dot"></span><span class="mg-kind">' 
-                 f'{_SEV_LABEL[sev]}</span>{title}<span class="loc">{loc}</span></div>')
+                 f'{SEV_LABEL[sev]}</span>{title}<span class="loc">{loc}</span></div>')
     if sentence:
         parts.append(f"<blockquote>{_hi_sentence(sentence, matches)}</blockquote>")
     if matches:
@@ -161,12 +159,12 @@ def render_html(result: AnalysisResult) -> str:
     n = len(result.findings)
     out.append(f'<div class="summary">{"发现 " + str(n) + " 处" if n else "未发现模板化写作"}</div>')
     explained: set[str] = set()
-    groups, doc_level = _group_by_sentence(result.findings)
+    groups, doc_level = group_by_sentence(result.findings)
     for group in groups:
-        top = _group_top(group)
+        top = group_top(group)
         ids = " + ".join(dict.fromkeys(f.rule_id for f in group))
         names = " + ".join(dict.fromkeys(f.rule_name for f in group))
-        taste = _taste_suffix(group)
+        taste = taste_suffix(group)
         body_parts = []
         for f in group:
             if f.rule_id in explained:
@@ -190,12 +188,12 @@ def render_html(result: AnalysisResult) -> str:
 
     if result.hints:
         shown = result.hints[:12]
-        out.append(f'<div class="hints"><div>另有 {len(result.hints)} 处弱命中'
-                   f'{"（列前 %d 处）" % len(shown) if len(shown) < len(result.hints) else ""}</div>')
+        cap = f"（列前 {len(shown)} 处）" if len(shown) < len(result.hints) else ""
+        out.append(f'<div class="hints"><div>另有 {len(result.hints)} 处弱命中{cap}</div>')
         for f in shown:
             out.append(f"<div>· {_esc(f.rule_id)} {_esc(f.rule_name)}"
                        f"（¶{f.para + 1}）</div>")
         out.append("</div>")
-    out.append(f'<div class="disclaimer">{_DISCLAIMER}</div>')
+    out.append(f'<div class="disclaimer">{DISCLAIMER}</div>')
     out.append("</body>\n</html>")
     return "\n".join(out)

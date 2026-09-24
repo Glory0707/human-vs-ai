@@ -214,14 +214,7 @@ def _dispatch(args: argparse.Namespace) -> None:
 
 
 def _analyze_file(path: Path, profile: str):
-    try:
-        text = readers.read_text(str(path))
-    except FileNotFoundError:
-        sys.exit(f"错误：文件不存在 {path}")
-    except ValueError as e:
-        sys.exit(f"错误：{e}")
-    except OSError as e:
-        sys.exit(f"错误：无法读取 {path}（{e.strerror}）")
+    text = _read_file(str(path))
     return text, engine.analyze(text, profile)
 
 

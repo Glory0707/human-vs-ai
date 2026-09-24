@@ -9,12 +9,12 @@ from __future__ import annotations
 import csv
 import glob as _glob
 import io as _io
+import json
 from pathlib import Path
 
 from . import __version__, engine
 from .readers import SCAN_EXTS
-
-_DISCLAIMER = "风格提示，不是 AI 判定。"
+from .report import DISCLAIMER
 
 
 def resolve_paths(target: str) -> list[Path] | None:
@@ -70,7 +70,7 @@ def render_terminal(rows: list[dict], profile: str) -> str:
         lines.append(
             f"{idx:>{w_i}}  {r['findings']:>{w_f}}  {r['n_sentences']:>{w_s}}  {r['file']}")
     lines.append("─" * 46)
-    lines.append(_DISCLAIMER)
+    lines.append(DISCLAIMER)
     return "\n".join(lines)
 
 
@@ -82,7 +82,7 @@ def render_md(rows: list[dict], profile: str) -> str:
         idx = "—" if r["index"] is None else str(r["index"])
         out.append(f"| {idx} | {r['findings']} | {r['high']}/{r['medium']}/{r['low']} "
                    f"| {r['n_sentences']} | {r['file']} |")
-    out.extend(["", _DISCLAIMER])
+    out.extend(["", DISCLAIMER])
     return "\n".join(out)
 
 
@@ -99,10 +99,9 @@ def render_csv(rows: list[dict], profile: str) -> str:
 
 
 def render_json(rows: list[dict], profile: str) -> str:
-    import json
     return json.dumps(
         {"tool": "human-vs-ai", "version": __version__, "profile": profile,
-         "files": rows, "disclaimer": _DISCLAIMER},
+         "files": rows, "disclaimer": DISCLAIMER},
         ensure_ascii=False, indent=2)
 
 

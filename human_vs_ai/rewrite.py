@@ -54,7 +54,11 @@ _EMPTY_HEAD = re.compile(
     r"^(无论|不管).{0,8}(如何|怎样|与否)$"
     r"|^.{0,6}的日子里$"
 )
-
+_PLAIN = re.compile(r"[。！？～\s]")
+# 多句段落：截半句类候选会毁掉其余句子，必须降级为方向提示
+_MULTI_SENT = re.compile(r"[。！？；…!?;]")
+# 行首列表符：按行判定前剥掉，避免锚定模式漏匹配
+_LEAD_MARKER = re.compile(r"^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*")
 
 
 @dataclass
@@ -241,12 +245,6 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
         reason=top.explanation.strip().split("。")[0] + "。",
         candidate=cand, direction=direction,
     )
-
-
-_LEAD_MARKER = re.compile(r"^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*")
-_PLAIN = re.compile(r"[。！？～\s]")
-# 多句段落：截半句类候选会毁掉其余句子，必须降级为方向提示
-_MULTI_SENT = re.compile(r"[。！？；…!?;]")
 
 
 def rewrite_text(text: str, profile: str = "personal") -> RewriteResult:

@@ -14,8 +14,7 @@ from dataclasses import dataclass
 
 from . import __version__, engine
 from .engine import AnalysisResult
-
-_DISCLAIMER = "风格提示，不是 AI 判定。"
+from .report import DISCLAIMER, SCORE_LABEL
 
 # 出现次数变化 → 状态（排序即展示序：消了的排最前）
 _STATUS_ORDER = {"resolved": 0, "less": 1, "introduced": 2, "more": 3}
@@ -120,9 +119,7 @@ def render_terminal(d: DiffResult) -> str:
     if comp:
         parts = []
         for feat, v in comp.items():
-            label = {"hit_density": "规则", "sentence_cv": "节奏", "ttr": "词汇",
-                     "ngram_repeat": "重复", "conn_density": "连接词"}.get(feat, feat)
-            parts.append(f"{label} {v['delta']:+.0f}")
+            parts.append(f"{SCORE_LABEL.get(feat, feat)} {v['delta']:+.0f}")
         out.append("构成变化：" + " · ".join(parts))
     out.append(f"发现 {len(d.old.findings)} 处 → {len(d.new.findings)} 处")
     out.append("")
@@ -137,7 +134,7 @@ def render_terminal(d: DiffResult) -> str:
                      f"{delta.before}→{delta.after}"))
     out.append("")
     out.append(C(DIM, "─" * 46))
-    out.append(C(DIM, _DISCLAIMER))
+    out.append(C(DIM, DISCLAIMER))
     return "\n".join(out)
 
 
@@ -150,9 +147,7 @@ def render_md(d: DiffResult) -> str:
         out.append(f"AI 味指数：{_idx_str(ib)} → {_idx_str(ia)}（样本不足或未校准，不出分）")
     comp = d.component_deltas
     if comp:
-        label = {"hit_density": "规则", "sentence_cv": "节奏", "ttr": "词汇",
-                 "ngram_repeat": "重复", "conn_density": "连接词"}
-        parts = [f"{label.get(f, f)} {v['delta']:+.0f}" for f, v in comp.items()]
+        parts = [f"{SCORE_LABEL.get(f, f)} {v['delta']:+.0f}" for f, v in comp.items()]
         out.append(f"构成变化：{' · '.join(parts)}")
     out.extend([f"发现：{len(d.old.findings)} 处 → {len(d.new.findings)} 处", ""])
     if d.deltas:
@@ -162,7 +157,7 @@ def render_md(d: DiffResult) -> str:
                        f"{delta.rule_name} | {delta.before}→{delta.after} |")
     else:
         out.append("两类命中没有变化。")
-    out.extend(["", "---", "", _DISCLAIMER])
+    out.extend(["", "---", "", DISCLAIMER])
     return "\n".join(out)
 
 
@@ -179,7 +174,7 @@ def render_json(d: DiffResult) -> str:
                 {"rule_id": x.rule_id, "rule_name": x.rule_name,
                  "before": x.before, "after": x.after, "status": x.status}
                 for x in d.deltas],
-            "disclaimer": _DISCLAIMER,
+            "disclaimer": DISCLAIMER,
         },
         ensure_ascii=False, indent=2)
 
