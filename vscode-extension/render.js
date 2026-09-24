@@ -116,7 +116,7 @@
     "approval-reply": "批复类",
   };
   var OOD_KIND = { classical: "文体", verse: "文体", "issuance-notice": "文种", "approval-reply": "文种" };
-  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，本篇仅供参考" };
+  var OOD_WHY = { "文体": "指数仅供参考", "文种": "本篇仅供参考" };
   function oodLines(ood) {
     if (!ood || !ood.length) return [];
     const groups = {};
@@ -141,7 +141,7 @@
     if (!heat.length) return "";
     const items = heat.map(h =>
       `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
-      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击在原稿中定位">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击定位原稿">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
     ).join('<span class="ph-sep"> · </span>');
     return `<div class="row heat-note">段落热度：${items}</div>`;
   }

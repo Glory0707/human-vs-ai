@@ -504,7 +504,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本">匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -549,7 +549,7 @@ const EMPTY_HTML = `<div class="empty-block">
     <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
     <path class="glyph" d="M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </svg>
-  <div class="e-title">粘贴正文，报告随写随出</div>
+  <div class="e-title">报告随写随出</div>
   <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button><button class="stamp" id="mottoStamp">推断不是判定</button></div>
 </div>`;
 
@@ -701,7 +701,7 @@ function renderReport(result) {
     g.items.forEach(i => explained.add(i.rule_id));
     parts.push(`<div class="found sev-${top.severity}"${g.sentence ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
       <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote title="点击在原稿中定位">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
+      ${g.sentence ? `<blockquote title="点击定位原稿">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
       ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
     </div>`);
@@ -934,7 +934,7 @@ inputPane.addEventListener("drop", async (e) => {
   const file = Array.from(e.dataTransfer?.files || [])[0];
   if (!file) return;
   if (!/\.(md|markdown|txt)$/i.test(file.name)) {
-    toast("直接拖入仅支持 txt / md（docx 请用命令行）");
+    toast("仅支持 txt / md");
     return;
   }
   inputEl.value = await file.text();
@@ -962,7 +962,7 @@ function persistUi() {
 function updateCharCount(stats) {
   if (!stats) { charCountEl.textContent = ""; return; }
   charCountEl.textContent = stats.n_chars > 0
-    ? `${stats.n_chars} 字 · ${stats.n_sentences} 句` + (stats.n_sentences < 8 ? " · 不足 8 句不出分" : "")
+    ? `${stats.n_chars} 字 · ${stats.n_sentences} 句` + (stats.n_sentences < 8 ? " · 不足 8 句" : "")
     : "";
 }
 
@@ -996,7 +996,7 @@ const SENSITIVE = [
   [/(?<!\d)\d{17}[\dXx](?!\d)/g, "【身份证号】"],
   [/(?<!\d)1[3-9]\d{9}(?!\d)/g, "【手机号】"],
   [/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9._-]{1,63})+/g, "【邮箱】"],
-  [/(?<!\d)\d{16,}(?!\d)/g, "【卡号】"],  # 与 CLI collect 同口径：16 位起整段打码，宁枉勿纵
+  [/(?<!\d)\d{16,}(?!\d)/g, "【卡号】"],  // 与 CLI collect 同口径：16 位起整段打码，宁枉勿纵
 ];
 async function sha256hex(s) {
   if (crypto.subtle) {

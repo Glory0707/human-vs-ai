@@ -627,14 +627,14 @@
       for (var gi = 0; gi < oodKinds.length; gi++) {
         var gcfg = scoring.genre_scoring[oodKinds[gi]];
         if (!gcfg) continue;
-        if (gcfg.suppress) { scoreScoring = null; genreNote = "该文种未校准评分"; }
+        if (gcfg.suppress) { scoreScoring = null; genreNote = "该文种未校准"; }
         else scoreScoring = gcfg;
         break;
       }
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空；
        文种抑制的说明优先于通用分支 */
-    var scoreNote = genreNote || ((!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "");
+    var scoreNote = genreNote || ((!scoring && stats.n_sentences >= 8) ? "该文体未校准" : "");
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoreScoring),
              score_note: scoreNote, ood: oodKinds,

@@ -23,6 +23,7 @@ _qa/walk_*.txt
 
 # 本地产物：截图 / 一致性检查与冒烟测试的中间产物（每次运行重新生成）
 _qa/*.png
+_qa/eval-*.json
 .playwright-mcp/
 _qa/_web_*.js
 _qa/_web_*.json

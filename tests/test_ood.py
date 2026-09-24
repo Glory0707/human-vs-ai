@@ -113,7 +113,7 @@ class TestEngineIntegration:
     def test_ood_hint_does_not_affect_score(self):
         # 域外提示不参与评分：同一文本有/无 ood 字段，分数只由特征决定
         r = engine.analyze(YUEYANG, "essay")
-        assert r.score is not None or r.scoring_note == "该文体未校准评分"
+        assert r.score is not None or r.scoring_note == "该文体未校准"
 
 
 MIXED = ("在这个日新月异的时代，技术赋能千行百业。综上所述，底层逻辑不言而喻。"
@@ -228,9 +228,9 @@ class TestGenreEngine:
         # v0.20.0 判定线定案：两文种分数均不可信（印发冻结 0.462 无信号；
         # 批复分层 CV 0.895 但渠道 LOCO 0.448 是渠道指纹）→ 出分抑制
         r = engine.analyze(YINFA, "official")
-        assert r.score is None and r.scoring_note == "该文种未校准评分"
+        assert r.score is None and r.scoring_note == "该文种未校准"
         r2 = engine.analyze(PIFU, "official")
-        assert r2.score is None and r2.scoring_note == "该文种未校准评分"
+        assert r2.score is None and r2.scoring_note == "该文种未校准"
 
     def test_suppressed_doc_keeps_findings(self):
         # 抑制只摘指数：规则发现/统计仍在（逐句证据照常给，只是不给综合分）
@@ -256,8 +256,8 @@ class TestGenreEngine:
     def test_report_line_official(self):
         from human_vs_ai import report
         out = report.render_terminal(engine.analyze(PIFU, "official"))
-        assert "文种域外" in out and "批复类" in out and "事务公文" in out
-        assert "该文种未校准评分" in out
+        assert "文种域外" in out and "批复类" in out and "本篇仅供参考" in out
+        assert "该文种未校准" in out
         md = report.render_markdown(engine.analyze(YINFA, "official"))
         assert "文种域外" in md and "印发类" in md
 
@@ -271,7 +271,7 @@ class TestGenreEngine:
         import json as _json
         data = _json.loads(report.render_json(engine.analyze(YINFA, "official")))
         assert "issuance-notice" in (data["ood"] or [])
-        assert data["score"] is None and data["score_note"] == "该文种未校准评分"
+        assert data["score"] is None and data["score_note"] == "该文种未校准"
         data2 = _json.loads(report.render_json(engine.analyze(SHIWU, "official")))
         assert data2["ood"] is None
         assert data2["score"] is not None

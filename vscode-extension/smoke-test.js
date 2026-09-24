@@ -92,7 +92,7 @@ check("score components shown", aiHtml.includes("构成"));
 const officialResult = HvA.analyze("首先进行研究。其次进行分析。此外完成验证。与此同时记录数据。最后归纳结论。另外补充实验。总之效果良好。结果表明方法可行。", RULES.official, null);
 const officialNoScoreHtml = renderReportHtml("x.txt", "official", officialResult);
 // 未校准档：无分档色分数，但给一行"为什么没分"；短文本连说明行也不出
-check("no score band when uncalibrated", !/class="s-(high|medium|low)"/.test(officialNoScoreHtml) && officialNoScoreHtml.includes("该文体未校准评分"));
+check("no score band when uncalibrated", !/class="s-(high|medium|low)"/.test(officialNoScoreHtml) && officialNoScoreHtml.includes("该文体未校准"));
 const officialShort = HvA.analyze("首先进行研究。其次进行分析。", RULES.official, null);
 check("no score note on short text", officialShort.score_note === "" && !renderReportHtml("x.txt", "official", officialShort).includes("AI 味指数"));
 
@@ -108,10 +108,10 @@ check("genre ood pifu flagged", pifuOfficial.ood.indexOf("approval-reply") >= 0,
   JSON.stringify(pifuOfficial.ood));
 check("genre gated on null scoring", HvA.analyze(YINFA_TEXT, RULES.official, null).ood.indexOf("issuance-notice") < 0);
 const yinfaHtml = renderReportHtml("yinfa.txt", "official", yinfaOfficial);
-check("genre line in report html", yinfaHtml.includes("文种域外") && yinfaHtml.includes("印发类") && yinfaHtml.includes("事务公文"));
-check("genre suppresses score", yinfaOfficial.score === null && yinfaOfficial.score_note === "该文种未校准评分",
+check("genre line in report html", yinfaHtml.includes("文种域外") && yinfaHtml.includes("印发类") && yinfaHtml.includes("本篇仅供参考"));
+check("genre suppresses score", yinfaOfficial.score === null && yinfaOfficial.score_note === "该文种未校准",
   JSON.stringify({ s: yinfaOfficial.score, n: yinfaOfficial.score_note }));
-check("suppressed doc report shows no index", !yinfaHtml.includes("AI味指数</span>") || yinfaHtml.includes("该文种未校准评分"));
+check("suppressed doc report shows no index", !yinfaHtml.includes("AI味指数</span>") || yinfaHtml.includes("该文种未校准"));
 
 // 9. activate 命令注册：vscode 模块桩加载扩展并触发 activate——
 //    回归 v0.9.0 起的隐患（activate 内引用了未 require 的 vscode，激活即崩）

@@ -489,7 +489,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.21.1</span>
+    <span class="head-ver">v0.21.2</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -504,7 +504,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled title="导出匿名样本">匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -1139,14 +1139,14 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       for (var gi = 0; gi < oodKinds.length; gi++) {
         var gcfg = scoring.genre_scoring[oodKinds[gi]];
         if (!gcfg) continue;
-        if (gcfg.suppress) { scoreScoring = null; genreNote = "该文种未校准评分"; }
+        if (gcfg.suppress) { scoreScoring = null; genreNote = "该文种未校准"; }
         else scoreScoring = gcfg;
         break;
       }
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空；
        文种抑制的说明优先于通用分支 */
-    var scoreNote = genreNote || ((!scoring && stats.n_sentences >= 8) ? "该文体未校准评分" : "");
+    var scoreNote = genreNote || ((!scoring && stats.n_sentences >= 8) ? "该文体未校准" : "");
     return { findings: findings, hints: hints, stats: stats,
              score: computeScore(stats, weightedHits, scoreScoring),
              score_note: scoreNote, ood: oodKinds,
@@ -1476,7 +1476,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     "approval-reply": "批复类",
   };
   var OOD_KIND = { classical: "文体", verse: "文体", "issuance-notice": "文种", "approval-reply": "文种" };
-  var OOD_WHY = { "文体": "指数仅供参考", "文种": "系数按事务公文校准，本篇仅供参考" };
+  var OOD_WHY = { "文体": "指数仅供参考", "文种": "本篇仅供参考" };
   function oodLines(ood) {
     if (!ood || !ood.length) return [];
     const groups = {};
@@ -1501,7 +1501,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     if (!heat.length) return "";
     const items = heat.map(h =>
       `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
-      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击在原稿中定位">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
+      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击定位原稿">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
     ).join('<span class="ph-sep"> · </span>');
     return `<div class="row heat-note">段落热度：${items}</div>`;
   }
@@ -1680,7 +1680,7 @@ const EMPTY_HTML = `<div class="empty-block">
     <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
     <path class="glyph" d="M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </svg>
-  <div class="e-title">粘贴正文，报告随写随出</div>
+  <div class="e-title">报告随写随出</div>
   <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button><button class="stamp" id="mottoStamp">推断不是判定</button></div>
 </div>`;
 
@@ -1832,7 +1832,7 @@ function renderReport(result) {
     g.items.forEach(i => explained.add(i.rule_id));
     parts.push(`<div class="found sev-${top.severity}"${g.sentence ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
       <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote title="点击在原稿中定位">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
+      ${g.sentence ? `<blockquote title="点击定位原稿">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
       ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
       ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
     </div>`);
@@ -2065,7 +2065,7 @@ inputPane.addEventListener("drop", async (e) => {
   const file = Array.from(e.dataTransfer?.files || [])[0];
   if (!file) return;
   if (!/\.(md|markdown|txt)$/i.test(file.name)) {
-    toast("直接拖入仅支持 txt / md（docx 请用命令行）");
+    toast("仅支持 txt / md");
     return;
   }
   inputEl.value = await file.text();
@@ -2093,7 +2093,7 @@ function persistUi() {
 function updateCharCount(stats) {
   if (!stats) { charCountEl.textContent = ""; return; }
   charCountEl.textContent = stats.n_chars > 0
-    ? `${stats.n_chars} 字 · ${stats.n_sentences} 句` + (stats.n_sentences < 8 ? " · 不足 8 句不出分" : "")
+    ? `${stats.n_chars} 字 · ${stats.n_sentences} 句` + (stats.n_sentences < 8 ? " · 不足 8 句" : "")
     : "";
 }
 
@@ -2127,7 +2127,7 @@ const SENSITIVE = [
   [/(?<!\d)\d{17}[\dXx](?!\d)/g, "【身份证号】"],
   [/(?<!\d)1[3-9]\d{9}(?!\d)/g, "【手机号】"],
   [/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9._-]{1,63})+/g, "【邮箱】"],
-  [/(?<!\d)\d{16,}(?!\d)/g, "【卡号】"],  # 与 CLI collect 同口径：16 位起整段打码，宁枉勿纵
+  [/(?<!\d)\d{16,}(?!\d)/g, "【卡号】"],  // 与 CLI collect 同口径：16 位起整段打码，宁枉勿纵
 ];
 async function sha256hex(s) {
   if (crypto.subtle) {

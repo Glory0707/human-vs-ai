@@ -1,7 +1,7 @@
 {
   "id": "human-vs-ai",
   "name": "Human vs AI 中文 AI 味分析",
-  "version": "0.21.1",
+  "version": "0.21.2",
   "minAppVersion": "1.4.0",
   "description": "可解释的中文 AI 味分析——指出笔记里哪里像模板、为什么、怎么改。风格提示，不是 AI 判定。纯本地运行。",
   "author": "Glory0707",

@@ -55,7 +55,7 @@ class TestNewProfiles:
         long_review = REVIEW_TEXT + "总体而言完成度不错。" * 7
         r = engine.analyze(long_review, "review")
         assert r.score is None
-        assert r.scoring_note == "该文体未校准评分"
+        assert r.scoring_note == "该文体未校准"
         ids = {f.rule_id for f in r.findings}
         assert "R-ANALYT-01" in ids
 

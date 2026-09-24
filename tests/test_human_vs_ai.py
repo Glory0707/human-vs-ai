@@ -428,7 +428,7 @@ class TestScore:
     def test_score_note_in_renders_and_json(self):
         import json as _json
         r = engine.analyze(AI_TEXT, "personal")
-        assert "该文体未校准评分" in report.render_terminal(r)
+        assert "该文体未校准" in report.render_terminal(r)
         payload = _json.loads(report.render_json(r))
         assert payload["score"] is None
         assert "未校准" in payload["score_note"]

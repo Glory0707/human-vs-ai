@@ -249,7 +249,6 @@ function makePlugin(obsidian) {
       containerEl.createEl("h2", { text: "human-vs-ai 设置" });
       new obsidian.Setting(containerEl)
         .setName("默认场景")
-        .setDesc("打开分析视图时使用的场景")
         .addDropdown(dd => {
           PROFILES.forEach(p => dd.addOption(p, (PROFILE_META[p] || [p])[0]));
           dd.setValue(this.plugin.settings.profile)

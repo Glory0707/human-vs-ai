@@ -414,7 +414,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
             cfg = gcfg[gkind]
             if cfg.get("suppress"):
                 score_scoring = None
-                result.scoring_note = "该文种未校准评分"
+                result.scoring_note = "该文种未校准"
             else:
                 score_scoring = dict(cfg)
 
@@ -487,9 +487,9 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
         result.hints,
         score_scoring,
     )
-    # 文种抑制已提前给过 scoring_note（"该文种未校准评分"）——profile 级
+    # 文种抑制已提前给过 scoring_note（"该文种未校准"）——profile 级
     # scoring 存在时通用分支不触发，不会覆盖
     if result.score is None and scoring is None and result.doc_stats.n_sentences >= 8:
-        result.scoring_note = "该文体未校准评分"
+        result.scoring_note = "该文体未校准"
     result.para_heat = compute_para_heat(para_texts, result.findings, result.hints)
     return result
