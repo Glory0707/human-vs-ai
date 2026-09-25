@@ -187,4 +187,5 @@ references:
 4. 技术可行真(284 特征研究证明纯可解释特征即可分类;283 万字语料统计的开源先例;零 GPU)
 5. 差异化真(检测与降AI同属一条供应链,唯"解释"无人做;司法判例与维基官方立场双重背书"不给分数给解释"的正当性)
 
-下一步:建仓(Glory0707/aiwei)→ M1 规则库 YAML 35 条 + Python 引擎 + CLI → HC3-Chinese 区分度评测 → README 对照案例发布。
+落地注记（2026-09-26）:本调研已落地为 **human-vs-ai**（立项时暂名 aiwei），M1–M5 全部完成——
+七场景规则库 + 综合评分 + 四端（CLI/网页/VS Code/Obsidian），实测区分度见 [README](../README.md) 与 [rules.md](rules.md)。

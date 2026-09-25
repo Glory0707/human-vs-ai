@@ -39,7 +39,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: 双引擎一致性（322 项 × 7 场景）
+      - name: 双引擎一致性（427 项 × 7 场景）
         run: python tools/check_web_consistency.py
 
       - name: 扩展冒烟测试
