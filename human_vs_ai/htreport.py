@@ -8,7 +8,7 @@ from __future__ import annotations
 import html as _html
 from . import __version__
 from .engine import AnalysisResult
-from .report import (DISCLAIMER, SCORE_LABEL, SEV_LABEL, group_by_sentence,
+from .report import (DISCLAIMER, HINTS_MAX, SCORE_LABEL, SEV_LABEL, group_by_sentence,
                      group_top, stats_lines, taste_suffix)
 
 _SEV_COLOR = {"high": "#B3351F", "medium": "#9C7414", "low": "#2E7D6E"}
@@ -187,7 +187,7 @@ def render_html(result: AnalysisResult) -> str:
             "", list(f.matches), body))
 
     if result.hints:
-        shown = result.hints[:12]
+        shown = result.hints[:HINTS_MAX]
         cap = f"（列前 {len(shown)} 处）" if len(shown) < len(result.hints) else ""
         out.append(f'<div class="hints"><div>另有 {len(result.hints)} 处弱命中{cap}</div>')
         for f in shown:

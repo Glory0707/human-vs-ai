@@ -1,8 +1,9 @@
-/* human-vs-ai 报告渲染共享层——网页版（template.html）与 VS Code 扩展
- * （extension.js）共用的叶子函数。只放两端逐字一致的东西：转义、
- * 命中高亮、指数印章、弱命中块、共用常量；报告的组装结构（聚合、排序、
- * 布局）由各端自定。构建：build_web.py 注入网页，build_vscode.py 复制
- * 给扩展——与 engine.js 同一纪律，不许两端各自演化。
+/* human-vs-ai 报告渲染共享层——网页版（template.html）、VS Code 扩展
+ * （extension.js）与 Obsidian 插件（main.template.js）共用：转义、命中高亮、
+ * 指数印章、弱命中块、发现卡/建议行组装、Markdown 导出与共用常量。
+ * 构建：build_web.py 注入网页，build_vscode.py / build_obsidian.py 复制给
+ * 插件端——同一份 UI 事实，不许各端独立演化；纯宿主差异（统计块排布、
+ * 过滤器、编辑器交互）留在各端。
  */
 (function (root, factory) {
   if (typeof module === "object" && module.exports) {
@@ -157,9 +158,72 @@
       `</details>`;
   }
 
-  /* ---------- 报告组装与 Markdown 导出（web 与 Obsidian 共用；VS Code 的
-     HTML 视图按严重级分组不走这里）。与 CLI render_markdown 同一份内容，
-     改动任一拷贝前先看另外两处——一致性探针与冒烟测试都在盯着 ---------- */
+  /* ---------- 发现卡与建议行组装（web / VS Code / Obsidian 三端共用） ----------
+     同句聚组成一张卡、doc 级独立成卡、同规则的解释全文只讲一次。
+     opts.locate = true 时卡片带 data-excerpt、引句带 title——网页端
+     点击定位原稿的交互，编辑器端没有。 */
+
+  function findingsHtml(result, opts) {
+    const F = result.findings;
+    const bySev = { high: [], medium: [], low: [] };
+    F.forEach(f => bySev[f.severity].push(f));
+    const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
+      .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
+    const parts = [`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`];
+    const locate = opts && opts.locate;
+    const explained = new Set();
+    const { groups, docLevel, sevRank } = buildGroups(F);
+    groups.forEach(g => {
+      const top = g.items.reduce((acc, i) =>
+        (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
+      // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
+      const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
+      const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
+      const taste = [...new Set(g.items.map(i => i.taste).filter(Boolean))].join("/");
+      const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
+      const why = g.items.find(i => !explained.has(i.rule_id));
+      g.items.forEach(i => explained.add(i.rule_id));
+      parts.push(`<div class="found sev-${top.severity}"${g.sentence && locate ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
+        <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+        ${g.sentence ? `<blockquote${locate ? ` title="点击定位原稿"` : ""}>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
+        ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
+        ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
+      </div>`);
+    });
+    docLevel.forEach(f => {
+      const taste = f.taste ? `<span class="taste">${esc(f.taste)}</span>` : "";
+      const why = !explained.has(f.rule_id);
+      explained.add(f.rule_id);
+      const matchArr = [...new Set(f.matches)];
+      parts.push(`<div class="found sev-${f.severity}">
+        <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span>${taste}<span class="loc">全文</span></div>
+        ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
+        ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
+      </div>`);
+    });
+    return parts.join("");
+  }
+
+  var ADVICE_META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
+
+  /* 逐条建议行（三端同款）：标签 + 原文 + 口味编号，理由/候选/方向缩进随行 */
+  function adviceRowsHtml(A) {
+    return A.map(a => {
+      const [cls, label] = ADVICE_META[a.action] || ["keep", "?"];
+      const taste = a.taste && a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
+      return `<div class="advice ${cls}">
+        <div class="line"><span class="tag">${label}</span>${esc(a.text)}${taste}</div>
+        ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
+        ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : ""}
+        ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
+      </div>`;
+    }).join("");
+  }
+
+  /* ---------- 报告组装与 Markdown 导出（web 与 Obsidian 共用；VS Code
+     不走 reportToMarkdown，它的视图面板直接用 findingsHtml）。
+     与 CLI render_markdown 同一份内容，改动任一拷贝前先看另外两处——
+     一致性探针与冒烟测试都在盯着 ---------- */
 
   /* 同句多规则聚组（与 CLI _group_by_sentence 同口径），返回视图模型供
      屏幕渲染与 Markdown 导出共用——一份事实，两种出口 */
@@ -288,6 +352,7 @@
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
     oodHtml: oodHtml, oodLines: oodLines, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
+    findingsHtml: findingsHtml, adviceRowsHtml: adviceRowsHtml,
     buildGroups: buildGroups, statsRows: statsRows,
     reportToMarkdown: reportToMarkdown, adviceToMarkdown: adviceToMarkdown,
     SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,

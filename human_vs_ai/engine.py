@@ -250,13 +250,21 @@ def compute_para_heat(para_texts: list[list[str]], findings: list[Finding],
                      "excerpt": para[0][:16]})
     heat.sort(key=lambda h: -h["density"])
     return heat
+
+
 # scoring 段里的元字段，不是特征
 _SCORING_META = ("corpus", "auroc", "auroc_holdout", "human_p50", "human_p90",
                  "genre_ood", "genre_scoring")
 
 
+@lru_cache(maxsize=None)
 def load_scoring(profile: str) -> dict | None:
-    """读 profile YAML 的 scoring 段；没有（未校准）返回 None——宁缺毋滥。"""
+    """读 profile YAML 的 scoring 段；没有（未校准）返回 None——宁缺毋滥。
+
+    与 load_rules 同缓存策略：批量扫描不再每篇重读 YAML；代价是同进程
+    改 YAML 不生效（校准流程本来就是"改完重跑"）。返回值是共享对象，
+    调用方只读——analyze 的文种替换走 dict(cfg) 拷贝。
+    """
     path = RULES_DIR / f"{profile}.yaml"
     if not path.exists():
         return None

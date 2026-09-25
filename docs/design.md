@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.28.1 | 冗余清理轮（零功能变化，四端输出逐字节不变）：三端重复的发现卡/建议行组装收编进 render.js 共享层（findingsHtml/adviceRowsHtml，web/VS Code/Obsidian 各 ~40 行拷贝归一）；load_scoring 加 lru_cache（批量扫描不再每篇重读 YAML，200 篇 0.8ms/篇）；DocStats.sentence_cvs 死字段移除（算而无人读，JSON 本就不含）；htreport 弱命中上限复用 report.HINTS_MAX（原写死 12）；过时/叠放注释清理（render.js 三端口径叙述、template.html 同义双注释）；ruff F 级与 tools 死脚本扫描零命中（脚本↔_qa 产物对应全保留） |
 | v0.28.0 | 四端打磨扩展轮（高分辨率视觉审查驱动）：**改写建议闭环补完**——清理稿（apply_edits/applyRewrite 双端同构，advice.line 行号对位，删档删行/改档换候选/其余原样，CRLF 保真）；CLI `rewrite --apply`、网页「清理稿」视图（复制清理稿/返回建议双态按钮）、VS Code 与 Obsidian 面板底部清理稿折叠块、Markdown 导出随「清理稿（草稿）」段；一致性探针 +105 项 apply 对拍；VS Code 报告改同句聚组（buildGroups，与网页/Obsidian/CLI 对齐）；交互打磨=换档滚动复位+toast 滑入；README 补 v0.26.0 漏更的 essay/news 留出数字；8.6 万字 2.5s 全流程 + 竞态零 JS 错误复测；11 张 DPR2 截图审查（亮/暗/移动/四端）零排版缺陷 |
 | v0.27.0 | general 砍词尝试证伪轮（否定结果入档）：era 问答域 14 条"退化"触发逐 pattern 四语料测量（gen2026/zhihu/CReD QA 双侧），砍人侧反超与双零 pattern + 同协议重拟合后拟合语料 0.950/0.937 看似可行，**OOS 0.923→0.846 跌破 0.873 线，证伪撤销**——小样本重拟合的系数配比过拟合知乎人设化分布，raw 粘贴文本的判别力寄生在旧系数×旧 pattern 组合上；词表与系数维持 v0.18 定案，OOS 0.923 复测确认；证据与重开条件 `_qa/general-pattern-baselines.md`、rules.md §9 |
 | v0.26.0 | era 指纹入表第二波（news+essay 重拟合）轮：news 新增 N-BUZZ-01 反响膨胀套话（doc 命中 AI 15.7% vs 真人 0.1%）、N-HEARSAY 扩分析人士/数据显示/接受采访三族（1.7% vs 12.8%）；**N-RECENT 移除"日前"**——era 全量复测真人 8.5% vs AI 2.6% 真反转（THUCNews 正体消息语，2026 模型不用），v0.14 的 250 篇抽样口径错判，入砍掉清单；news 评分重拟合 0.938/0.935→**0.951/0.948**，essay 补重拟合 0.952/0.951→**0.954/0.953**（v0.25.0 入表后的既定流程补课） |

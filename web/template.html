@@ -536,11 +536,11 @@ __RENDER__
 const RULES_BY_PROFILE = __RULES_JSON__;
 const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
-/* 渲染共享层（web/render.js，构建注入）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
-        buildGroups, statsRows, reportToMarkdown, adviceToMarkdown,
-        SEV_NAME, PROFILE_META,
-        HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
+/* 渲染共享层（web/render.js，构建注入）：转义/评分行/发现卡/建议行/常量 */
+const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+        findingsHtml, adviceRowsHtml, statsRows,
+        reportToMarkdown, adviceToMarkdown,
+        PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
 let currentMode = "analyze";
 let debounceTimer = null;
@@ -687,7 +687,8 @@ function toast(msg, ms = 1600, action) {
   toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
 }
 
-// 报告组装：聚组/统计行/Markdown 导出走共享层（render.js），这里只管屏幕形态
+// 报告组装：统计块本端排布（印章/统计行/域外/段落热度），发现卡/弱命中/
+// 免责走共享层（render.js）
 function renderReport(result) {
   if (!result) return;
   reportEl.classList.toggle("swap", shouldAnimate);
@@ -697,43 +698,7 @@ function renderReport(result) {
 
   parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
-  const F = result.findings;
-  const bySev = { high: [], medium: [], low: [] };
-  F.forEach(f => bySev[f.severity].push(f));
-  const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
-    .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`);
-
-  const explained = new Set();
-  const { groups, docLevel, sevRank } = buildGroups(F);
-  groups.forEach(g => {
-    const top = g.items.reduce((acc, i) =>
-      (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
-    // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
-    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
-    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
-    const taste = [...new Set(g.items.map(i => i.taste).filter(Boolean))].join("/");
-    const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
-    const why = g.items.find(i => !explained.has(i.rule_id));
-    if (why) explained.add(why.rule_id);
-    g.items.forEach(i => explained.add(i.rule_id));
-    parts.push(`<div class="found sev-${top.severity}"${g.sentence ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
-      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote title="点击定位原稿">${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
-      ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
-      ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
-    </div>`);
-  });
-  docLevel.forEach(f => {
-    const taste = f.taste ? `<span class="taste">${esc(f.taste)}</span>` : "";
-    const why = !explained.has(f.rule_id);
-    explained.add(f.rule_id);
-    parts.push(`<div class="found sev-${f.severity}">
-      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span>${taste}<span class="loc">全文</span></div>
-      ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
-      ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
-    </div>`);
-  });
+  parts.push(findingsHtml(result, { locate: true }));
 
   parts.push(hintsHtml(result.hints));
 
@@ -742,7 +707,6 @@ function renderReport(result) {
   if (reset) reportEl.scrollTop = 0;
 }
 
-const ADVICE_META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
 const FILTERS = [["all", "全部"], ["删", "删"], ["改", "改"], ["保留", "留"]];
 
 function renderAdvice() {
@@ -754,16 +718,7 @@ function renderAdvice() {
       `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}${key !== "all" ? `<span class="f-n">${n(key)}</span>` : ""}</button>`).join("")}</span></div>`];
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
   if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目</div>');
-  shown.forEach(a => {
-    const [cls, label] = ADVICE_META[a.action] || ["keep", "?"];
-    const taste = a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
-    parts.push(`<div class="advice ${cls}">
-      <div class="line"><span class="tag">${label}</span>${esc(a.text)}${taste}</div>
-      ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
-      ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : ""}
-      ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
-    </div>`);
-  });
+  parts.push(adviceRowsHtml(shown));
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;   // 换档/换模式/进视图是上下文切换：回顶再看
@@ -1046,8 +1001,6 @@ reportEl.addEventListener("focus", () => {
   document.getElementById("reportPane").classList.add("active");
 }, true);
 
-/* 段落热度点击 → 原稿定位：选中该段首句（excerpt 在原稿 indexOf），
-   编辑框自动滚动过去。含行内标记的段落清洗后失配，静默不动 */
 /* 段落热度 / 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
    含行内标记的段落清洗后失配，静默不动 */
 reportEl.addEventListener("click", (e) => {

@@ -31,52 +31,20 @@ try { SCORING = __SCORING_JSON__; } catch (e) { SCORING = {}; }
 const VERSION = "__VERSION__";
 const PROFILES = Object.keys(RULES);
 
-/* 渲染共享层（web/render.js）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, oodLines, paraHeatHtml, hintsHtml,
-        buildGroups, statsRows, reportToMarkdown, adviceToMarkdown,
-        SEV_NAME, PROFILE_META,
-        HINTS_MAX, DISCLAIMER, ADVICE_FOOTER } = HvARender;
+/* 渲染共享层（web/render.js）：转义/高亮/评分行/发现卡/建议行/常量。
+   buildGroups 仅为本文件底部再导出保留（冒烟测试的兼容面） */
+const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+        findingsHtml, adviceRowsHtml, statsRows,
+        reportToMarkdown, adviceToMarkdown,
+        PROFILE_META, DISCLAIMER, ADVICE_FOOTER, buildGroups } = HvARender;
 
-/* ================= 报告组装（结构与 CLI/网页/VS Code 同一份内容） ================= */
+/* ================= 报告组装（统计块本端排布；发现卡走共享层） ================= */
 
 function renderReportHtml(profile, result) {
   const parts = [];
   parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${esc(r)}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
-  const F = result.findings;
-  const bySev = { high: [], medium: [], low: [] };
-  F.forEach(f => bySev[f.severity].push(f));
-  const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
-    .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`);
-
-  const explained = new Set();
-  const { groups, docLevel, sevRank } = buildGroups(F);
-  groups.forEach(g => {
-    const top = g.items.reduce((acc, i) =>
-      (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
-    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
-    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
-    const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
-    const why = g.items.find(i => !explained.has(i.rule_id));
-    g.items.forEach(i => explained.add(i.rule_id));
-    parts.push(`<div class="found sev-${top.severity}">
-      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span><span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
-      ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
-      ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
-    </div>`);
-  });
-  docLevel.forEach(f => {
-    const why = !explained.has(f.rule_id);
-    explained.add(f.rule_id);
-    parts.push(`<div class="found sev-${f.severity}">
-      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">全文</span></div>
-      ${f.matches.length ? `<div class="match">命中：<code>${esc([...new Set(f.matches)].join("、"))}</code></div>` : ""}
-      ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
-    </div>`);
-  });
-
+  parts.push(findingsHtml(result));
   parts.push(hintsHtml(result.hints));
   parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
   return parts.join("");
@@ -86,14 +54,7 @@ function renderAdviceHtml(result, sourceText) {
   const A = result.advices;
   const n = k => A.filter(a => a.action === k).length;
   const parts = [`<div class="counts"><span>共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></span></div>`];
-  const ICON = { "删": "del", "改": "chg", "保留": "keep" };
-  A.forEach(a => {
-    parts.push(`<div class="advice ${ICON[a.action] || "keep"}">
-      <div class="line"><span class="tag">${a.action}</span>${esc(a.text)}${a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : ""}</div>
-      ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
-      ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : (a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : "")}
-    </div>`);
-  });
+  parts.push(adviceRowsHtml(A));
   /* 清理稿：删/改建议机械落地后的草稿（传入原文才有）——折叠呈现，
      选中 <pre> 里的纯文本即可复制回笔记 */
   if (typeof sourceText === "string" && HvARewrite.applyRewrite) {

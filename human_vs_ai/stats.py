@@ -17,7 +17,7 @@ from __future__ import annotations
 import math
 import re
 from collections import Counter
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 PUNCT = re.compile(r"[，。！？；：、…“”‘’《》（）\(\)\[\]【】,\.!\?;:\"'—\-\s]")
 
@@ -50,7 +50,6 @@ class DocStats:
     n_paragraphs: int = 0
     n_sentences: int = 0
     n_chars: int = 0  # 去标点后的正文字符
-    sentence_cvs: list[float] = field(default_factory=list)  # 每段内句长 CV
     sentence_cv: float = math.nan  # 全文句长 CV（主指标）
     para_len_cv: float = math.nan  # 段落长度 CV
     ttr: float = math.nan  # MATTR 滑窗词汇丰富度（字级 2-gram，长度归一）
@@ -152,7 +151,6 @@ def compute_doc_stats(
         n_paragraphs=len(paragraphs),
         n_sentences=len(clean_sents),
         n_chars=sum(lens),
-        sentence_cvs=[_cv([float(len(c)) for c in para]) for para in clean_paras],
         sentence_cv=_cv([float(x) for x in lens]),
         para_len_cv=_cv([float(x) for x in para_lens]),
         ttr=mattr(tokens),

@@ -16,9 +16,11 @@ try { HvARewrite = require("./rewrite.js"); } catch (e) { HvARewrite = null; }
 const RULES = require("./rules.json");
 let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
-/* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
-const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
-        buildGroups, SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
+/* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/评分行/发现卡/
+   建议行/常量——三端同一份 UI 事实 */
+const { esc, fmt, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+        findingsHtml, adviceRowsHtml,
+        PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
    编辑器装饰必须给实色；hint 档不画装饰） */
@@ -41,45 +43,9 @@ function renderReportHtml(fileName, profile, result) {
     ${paraHeatHtml(result)}
   </div>`);
 
-  const F = result.findings;
-  const bySev = { high: [], medium: [], low: [] };
-  F.forEach(f => bySev[f.severity].push(f));
-  const dist = ["high", "medium", "low"].filter(sv => bySev[sv].length)
-    .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
-  parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`);
-
-  /* 同句多规则聚成一张卡（与网页/Obsidian/CLI 同口径）——按严重级逐卡平铺
-     会让同一句话引用多次、解释重复，长文里尤其吵 */
-  const explained = new Set();
-  const { groups, docLevel, sevRank } = buildGroups(F);
-  groups.forEach(g => {
-    const top = g.items.reduce((acc, i) =>
-      (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
-    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
-    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
-    const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
-    const why = g.items.find(i => !explained.has(i.rule_id));
-    g.items.forEach(i => explained.add(i.rule_id));
-    parts.push(`<div class="found sev-${top.severity}">
-      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span><span class="loc">¶${g.para + 1}</span></div>
-      ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
-      ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
-      ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
-    </div>`);
-  });
-  docLevel.forEach(f => {
-    const why = !explained.has(f.rule_id);
-    explained.add(f.rule_id);
-    const matchArr = [...new Set(f.matches)];
-    parts.push(`<div class="found sev-${f.severity}">
-      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">全文</span></div>
-      ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
-      ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
-    </div>`);
-  });
-
+  /* 发现卡/弱命中/免责走共享层（render.js）——与网页/Obsidian 同一份结构 */
+  parts.push(findingsHtml(result));
   parts.push(hintsHtml(result.hints));
-
   parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
 
   return `<!DOCTYPE html>
@@ -197,18 +163,7 @@ mark {
 function renderAdviceHtml(fileName, result, sourceText) {
   const A = result.advices;
   const n = k => A.filter(a => a.action === k).length;
-  const META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
-  const rows = A.map(a => {
-    const [cls, label] = META[a.action] || ["keep", "?"];
-    const taste = a.taste && a.taste.length
-      ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
-    return `<div class="advice ${cls}">
-      <div class="line"><span class="tag">${label}</span>${esc(a.text)}${taste}</div>
-      ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
-      ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : ""}
-      ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
-    </div>`;
-  }).join("");
+  const rows = adviceRowsHtml(A);
   const counts = `<div class="counts">共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></div>`;
   /* 清理稿：删/改建议机械落地后的草稿（传入原文才有）——webview 无脚本，
      用可选中纯文本 <pre> 呈现，默认折叠 */
