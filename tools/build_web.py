@@ -33,7 +33,7 @@ def _strip_calibration_notes(rules: list[dict]) -> list[dict]:
     用户界面(界面减法)。CLI 的 explain 保留完整解释;findings 结构
     不受影响(一致性测试不比较 explanation 字段)。
     """
-    MARKS = ("校准注（", "走查校准（", "注：C-ReD")
+    MARKS = ("校准注（", "走查校准（", "注：C-ReD", "（事件 ")
     for r in rules:
         cut = len(r["explanation"])
         for m in MARKS:

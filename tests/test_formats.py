@@ -141,6 +141,15 @@ class TestBatch:
         assert csv_out.startswith("file,index,findings")
         assert "a.md" in csv_out and ",," not in csv_out.split("\n")[1].rsplit(",", 1)[0] or True
 
+    def test_single_file_csv_is_one_row_batch(self, tmp_path, capsys):
+        # 单文件 -f csv 曾裸抛 ValueError：补齐为"只有一行的批量汇总"，列结构一致可拼接
+        (tmp_path / "a.md").write_text(AI_TEXT, encoding="utf-8")
+        cli.main(["check", str(tmp_path / "a.md"), "-f", "csv"])
+        csv_out = capsys.readouterr().out
+        lines = [l for l in csv_out.splitlines() if l]
+        assert lines[0].startswith("file,index,findings")
+        assert len(lines) == 2 and "a.md" in lines[1]
+
     def test_batch_skips_unreadable(self, tmp_path, capsys):
         (tmp_path / "a.md").write_text("内容。", encoding="utf-8")
         (tmp_path / "bad.docx").write_bytes(b"garbage")

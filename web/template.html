@@ -930,6 +930,8 @@ clearBtn.onclick = () => {
   inputEl.value = "";
   inputEl.dispatchEvent(new Event("input", { bubbles: true }));
   inputEl.focus();
+  clearTimeout(debounceTimer);
+  analyzeNow();   // 清空是显式动作：空态立即出现，不走 300ms 防抖
   toast("已清空", 6000, { label: "撤销", cb: () => {
     inputEl.value = stash;
     inputEl.dispatchEvent(new Event("input", { bubbles: true }));
