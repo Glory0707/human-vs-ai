@@ -70,12 +70,14 @@ class LineAdvice:
     reason: str = ""
     candidate: str = ""  # 规则化改写候选（可能为空）
     direction: str = ""  # 方向提示（缺梗时可读）
+    line: int = -1  # 在原文 splitlines() 中的行号——apply_edits 靠它落回原稿
 
     def to_dict(self) -> dict:
         return {
             "text": self.text, "action": self.action, "taste": self.taste,
             "rules": self.rules, "reason": self.reason,
             "candidate": self.candidate, "direction": self.direction,
+            "line": self.line,
         }
 
     def proposal(self) -> str:
@@ -95,6 +97,7 @@ class LineAdvice:
 class RewriteResult:
     advices: list[LineAdvice] = field(default_factory=list)
     profile: str = "personal"
+    source: str = ""  # 原文——apply_edits 从它出发落删改，避免调用方再传一遍
 
     @property
     def findings(self):
@@ -250,15 +253,51 @@ def classify_line(text: str, rules: list[engine.Rule] | None = None) -> LineAdvi
 def rewrite_text(text: str, profile: str = "personal") -> RewriteResult:
     """逐行给建议。文案池的惯例是一行一条——按行判定与 JS 端同构，
     避免两端在"一行多句"上出现口径漂移（一致性探针会抓）。
-    行首的列表符（- / * / 1. / 1、）剥掉再判，避免锚定模式漏匹配。"""
+    行首的列表符（- / * / 1. / 1、）剥掉再判，避免锚定模式漏匹配。
+    advices 里的 line 是原文 splitlines() 的行号（空行不判定但占号），
+    apply_edits 靠它把删改落回原稿。"""
     rules = engine.load_rules(profile)
-    result = RewriteResult(profile=profile)
-    for raw in text.splitlines():
+    result = RewriteResult(profile=profile, source=text)
+    for i, raw in enumerate(text.splitlines()):
         line = _LEAD_MARKER.sub("", raw.strip())
         if not line:
             continue
-        result.advices.append(classify_line(line, rules))
+        adv = classify_line(line, rules)
+        adv.line = i
+        result.advices.append(adv)
     return result
+
+
+def apply_edits(result: RewriteResult) -> str:
+    """把建议机械落地成清理稿：删档整行移除，改档有候选的换候选，
+    其余（保留档、只有方向提示的改档、空行）原样保留。
+
+    清理稿是草稿不是终稿——方向提示类改动（"补一个梗"）本来就只能
+    人来执行，所以落地后仍要人工过一遍。行终结符（CRLF/行尾空白）
+    原样保留：删行带走终结符，换候选只换正文。
+    """
+    by_line = {a.line: a for a in result.advices if a.line >= 0}
+    out = []
+    for i, raw in enumerate(result.source.splitlines(True)):
+        adv = by_line.get(i)
+        if adv is None:
+            out.append(raw)
+        elif adv.action == DELETE:
+            continue
+        elif adv.action == REWRITE and adv.candidate:
+            ending = raw[len(raw.rstrip("\r\n")):]
+            out.append(adv.candidate + ending)
+        else:
+            out.append(raw)
+    return "".join(out)
+
+
+def apply_counts(result: RewriteResult) -> tuple[int, int]:
+    """清理稿动了多少行：(删掉的行数, 换了候选的行数)。供各端一句话说明。"""
+    deleted = sum(1 for a in result.advices if a.action == DELETE)
+    changed = sum(1 for a in result.advices
+                  if a.action == REWRITE and a.candidate)
+    return deleted, changed
 
 
 def render_advice(result: RewriteResult) -> str:

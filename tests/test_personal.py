@@ -242,3 +242,63 @@ class TestRewriteNoopGuard:
         # 单句行为不受影响：仍是截半句候选
         single = rewrite.classify_line("窗口一开，就是你的战场。")
         assert single.candidate == "窗口一开。"
+
+
+class TestApplyEdits:
+    """清理稿（apply_edits）：删档删行、改档换候选、其余原样，行号对位。"""
+
+    TEXT = ("自动匹配相关内容，一次最多 3 篇。\n"
+            "\n"
+            "- 别急，代码明天还在仓库里。\n"
+            "已完成 3 轮内测，通过率 100%。\n"
+            "深夜的你，还在改稿。\n")
+
+    def test_line_field_maps_to_source_lines(self):
+        r = rewrite.rewrite_text(self.TEXT)
+        lines = self.TEXT.splitlines()
+        for a in r.advices:
+            assert lines[a.line].strip().lstrip("-*0123456789.、) \t").endswith(a.text), \
+                f"行号失配：advice.line={a.line}"
+
+    def test_draft_drops_deletes_swaps_candidates_keeps_rest(self):
+        r = rewrite.rewrite_text(self.TEXT)
+        draft = rewrite.apply_edits(r)
+        out_lines = draft.splitlines()
+        # 空行与保留档原样还在
+        assert out_lines[0] == self.TEXT.splitlines()[0]   # R1 保护行
+        assert out_lines[1] == ""                          # 空行
+        assert "已完成 3 轮内测" in draft                   # 保留档
+        # 改档换成候选
+        assert "代码明天还在仓库里" not in draft
+        # 每个改档候选都出现在稿子里
+        for a in r.advices:
+            if a.action == rewrite.REWRITE and a.candidate:
+                assert a.candidate in draft
+
+    def test_deleted_line_removed_entirely(self):
+        r = rewrite.rewrite_text("点击右上角选择文件，支持批量导入。\n保留这行。\n")
+        assert r.advices[0].action == rewrite.DELETE
+        draft = rewrite.apply_edits(r)
+        assert draft == "保留这行。\n"
+
+    def test_crlf_endings_preserved(self):
+        r = rewrite.rewrite_text("点击右上角选择文件，支持批量导入。\r\n保留这行。\r\n")
+        draft = rewrite.apply_edits(r)
+        assert draft == "保留这行。\r\n"
+
+    def test_counts(self):
+        r = rewrite.rewrite_text(self.TEXT)
+        deleted, changed = rewrite.apply_counts(r)
+        assert (deleted, changed) == (
+            sum(1 for a in r.advices if a.action == rewrite.DELETE),
+            sum(1 for a in r.advices if a.action == rewrite.REWRITE and a.candidate))
+
+    def test_cli_rewrite_apply(self, tmp_path):
+        f = tmp_path / "t.txt"
+        f.write_text("点击右上角选择文件，支持批量导入。\n保留这行。\n", encoding="utf-8")
+        proc = subprocess.run(
+            [sys.executable, "-m", "human_vs_ai.cli", "rewrite", str(f), "--apply"],
+            capture_output=True, text=True, encoding="utf-8", cwd=str(ROOT),
+        )
+        assert proc.returncode == 0, proc.stderr
+        assert proc.stdout.strip() == "保留这行。"

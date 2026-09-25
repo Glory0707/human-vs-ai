@@ -30,6 +30,7 @@ cat 论文.md | human-vs-ai check -    # 管道输入（check/stats/rewrite 均�
 human-vs-ai stats 论文.md            # 只看统计特征（JSON）
 human-vs-ai explain L-INFL-01        # 查一条规则的完整解释与出处
 human-vs-ai rewrite 文案.txt         # 按个人口味给逐句改写建议（删/改/保留）
+human-vs-ai rewrite 文案.txt --apply # 直接输出清理稿（删行/换候选已落地，草稿）
 human-vs-ai profiles                 # academic（学术）· essay（作文）· general（问答/自媒体）· news（新闻）
                                      # · official（公文）· personal（个人口味）· review（短评）
 human-vs-ai collect 稿件.md --label fp  # 导出脱敏校准样本（误报/漏报/准确，自愿提交）
@@ -38,13 +39,13 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 
 输入支持 txt / md（UTF-8、GB18030 自动识别）/ **docx / odt**（纯标准库解包，零新增依赖）。`--fail-above` 对 <8 句的未出分文件不判定（宁可不判，不假过）。
 
-**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线，规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。指数以印章呈现、命中词波浪线圈划、发现以批注卡列出；手动亮/暗切换（记忆选择，默认跟系统）。改了规则用 `python tools/build_web.py` 重新生成。
+**网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线，规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。指数以印章呈现、命中词波浪线圈划、发现以批注卡列出；改写模式一键切换「清理稿」视图（删/改建议机械落地的草稿，可整体复制）；手动亮/暗切换（记忆选择，默认跟系统）。改了规则用 `python tools/build_web.py` 重新生成。
 
-**VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
+**VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议，面板底部附清理稿折叠块（选中即可复制）。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
-**Obsidian 插件**：把 [obsidian-plugin/](obsidian-plugin/) 目录复制到 `<仓库>/.obsidian/plugins/human-vs-ai/`（文件夹名必须是 human-vs-ai），启用插件后：左侧栏印章图标或命令「分析当前文档」在侧边视图出报告（场景下拉/检测与改写建议切换/复制 Markdown），笔记修改 800ms 后自动重析；「改写建议（个人口味）」给删/改/留建议；设置页可选默认场景。视图跟随 Obsidian 亮暗主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_obsidian.py` 重新生成。
+**Obsidian 插件**：把 [obsidian-plugin/](obsidian-plugin/) 目录复制到 `<仓库>/.obsidian/plugins/human-vs-ai/`（文件夹名必须是 human-vs-ai），启用插件后：左侧栏印章图标或命令「分析当前文档」在侧边视图出报告（场景下拉/检测与改写建议切换/复制 Markdown），笔记修改 800ms 后自动重析；「改写建议（个人口味）」给删/改/留建议，底部附清理稿折叠块；设置页可选默认场景。视图跟随 Obsidian 亮暗主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_obsidian.py` 重新生成。
 
-**七个场景词表**：academic（学术）/ general（问答）/ official（公文）/ personal（口味）/ essay（作文，留出 0.951）/ news（新闻，留出 0.935）/ review（影评短评——统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
+**七个场景词表**：academic（学术）/ general（问答）/ official（公文）/ personal（口味）/ essay（作文，留出 0.953）/ news（新闻，留出 0.948）/ review（影评短评——统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
 
 **域外提示**：文本超出校准域时四端随行提示——文言/诗行为"文体域外，指数仅供参考"；official 场景的印发/批复类公文为"文种域外"且不出指数（详见已知限制）。
 
@@ -79,8 +80,8 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 | HC3-Chinese 问答（391 篇过 8 句门槛） | TTR（字级 2-gram MATTR） | 0.826 | 0.868 | 0.684 |
 | HC3-Chinese 问答（general 词表） | 三连排比命中率 | 43% | 22% | +0.22 |
 | 中国政府网公开公文 15 篇（official 词表） | 真公文误报率 | — | **0/15 = 0%** | 验收 <20% PASS |
-| C-ReD composition（高考作文真人 1070 vs 7 模型 7544） | 综合评分 | AI | 真人 | **0.952**（留出 0.951） |
-| C-ReD news（真人 1413 vs 7 模型 15112） | 综合评分 | AI | 真人 | **0.938**（留出 0.935） |
+| C-ReD composition（高考作文真人 1070 vs 7 模型 7544） | 综合评分 | AI | 真人 | **0.954**（留出 0.953） |
+| C-ReD news（真人 1413 vs 7 模型 15112） | 综合评分 | AI | 真人 | **0.951**（留出 0.948） |
 | gen2026 当季公文（真人事务公文 71 vs 9 模型 70） | 综合评分 | AI | 真人 | **0.957**（留出 0.923） |
 | 知乎真实长回答 110 vs gen2026 当季回答 69（general 重拟合） | 综合评分 | AI | 真人 | **0.945**（留出 0.935；旧 HC3 系数在同期语料仅 0.602） |
 | **样本外体检**：豆瓣/果壳真人 78 vs 未参拟合的四模型 27（general） | 综合评分 | AI | 真人 | **0.923**（冻结系数只测不调，掉幅 0.012 → PASS） |

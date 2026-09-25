@@ -18,7 +18,7 @@ let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/高亮/评分行/常量 */
 const { esc, fmt, hiSentence, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
-        SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
+        buildGroups, SEV_NAME, PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
    编辑器装饰必须给实色；hint 档不画装饰） */
@@ -48,21 +48,34 @@ function renderReportHtml(fileName, profile, result) {
     .map(sv => `${SEV_NAME[sv]} ${bySev[sv].length}`).join(" · ");
   parts.push(`<div class="summary">${F.length ? `发现 ${F.length} 处（${dist}）` : "未发现模板化写作"}</div>`);
 
+  /* 同句多规则聚成一张卡（与网页/Obsidian/CLI 同口径）——按严重级逐卡平铺
+     会让同一句话引用多次、解释重复，长文里尤其吵 */
   const explained = new Set();
-  ["high", "medium", "low"].forEach(sev => {
-    bySev[sev].sort((a, b) => a.para - b.para).forEach(f => {
-      const loc = f.para >= 0 ? `¶${f.para + 1}` : "全文";
-      // 同一规则的解释全文只讲一次——与 CLI/网页版口径一致
-      const showWhy = !explained.has(f.rule_id);
-      if (showWhy) explained.add(f.rule_id);
-      const matchArr = [...new Set(f.matches)];
-      parts.push(`<div class="found sev-${sev}">
-        <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[sev]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">${loc}</span></div>
-        ${f.sentence ? `<blockquote>${hiSentence(f.sentence, matchArr)}</blockquote>` : ""}
-        ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
-        ${showWhy ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
-      </div>`);
-    });
+  const { groups, docLevel, sevRank } = buildGroups(F);
+  groups.forEach(g => {
+    const top = g.items.reduce((acc, i) =>
+      (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
+    const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
+    const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
+    const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
+    const why = g.items.find(i => !explained.has(i.rule_id));
+    g.items.forEach(i => explained.add(i.rule_id));
+    parts.push(`<div class="found sev-${top.severity}">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span><span class="loc">¶${g.para + 1}</span></div>
+      ${g.sentence ? `<blockquote>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
+      ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
+      ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
+    </div>`);
+  });
+  docLevel.forEach(f => {
+    const why = !explained.has(f.rule_id);
+    explained.add(f.rule_id);
+    const matchArr = [...new Set(f.matches)];
+    parts.push(`<div class="found sev-${f.severity}">
+      <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">全文</span></div>
+      ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
+      ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
+    </div>`);
   });
 
   parts.push(hintsHtml(result.hints));
@@ -181,7 +194,7 @@ mark {
 <body><div class="docname">${esc(fileName)} · ${esc((PROFILE_META[profile] || [profile])[0])}</div>${parts.join("")}</body></html>`;
 }
 
-function renderAdviceHtml(fileName, result) {
+function renderAdviceHtml(fileName, result, sourceText) {
   const A = result.advices;
   const n = k => A.filter(a => a.action === k).length;
   const META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
@@ -197,6 +210,17 @@ function renderAdviceHtml(fileName, result) {
     </div>`;
   }).join("");
   const counts = `<div class="counts">共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></div>`;
+  /* 清理稿：删/改建议机械落地后的草稿（传入原文才有）——webview 无脚本，
+     用可选中纯文本 <pre> 呈现，默认折叠 */
+  let draftBlock = "";
+  if (typeof sourceText === "string" && HvARewrite) {
+    const draft = HvARewrite.applyRewrite(sourceText, A);
+    if (draft.trim()) {
+      draftBlock = `<details class="draftbox"><summary>清理稿（草稿 · 选中即可复制）</summary>` +
+        `<pre>${esc(draft)}</pre>` +
+        `<div class="draft-note">只落地了删行与换候选；带「→ 方向」的条目要人来改。</div></details>`;
+    }
+  }
   const footer = `<div class="disclaimer">${ADVICE_FOOTER}</div>`;
 
   return `<!DOCTYPE html>
@@ -240,8 +264,20 @@ b { font-variant-numeric: tabular-nums; }
 .dir { color: var(--ink-3); margin: 3px 0 0 26px; font-size: 12px; }
 .disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
               color: var(--ink-3); border-radius: 3px; }
+.draftbox { margin-top: 14px; border: 1px solid var(--hairline); border-radius: 3px; }
+.draftbox summary { cursor: pointer; user-select: none; padding: 7px 10px; font-size: 12px;
+                    font-weight: 600; color: var(--ink-2); list-style: none; }
+.draftbox summary::before { content: '▸ '; }
+.draftbox[open] summary::before { content: '▾ '; }
+.draftbox summary::-webkit-details-marker { display: none; }
+.draftbox pre { margin: 0; padding: 10px 12px; border-top: 1px solid var(--hairline);
+                white-space: pre-wrap; overflow-wrap: anywhere;
+                font-family: var(--vscode-editor-font-family, Consolas); font-size: 12.5px;
+                line-height: 1.7; background: var(--soft); }
+.draft-note { padding: 6px 10px; font-size: 10.5px; color: var(--ink-3);
+              border-top: 1px solid var(--hairline); }
 </style></head>
-<body><div class="docname">${esc(fileName)} · 我的口味</div>${counts}${rows}${footer}</body></html>`;
+<body><div class="docname">${esc(fileName)} · 我的口味</div>${counts}${rows}${draftBlock}${footer}</body></html>`;
 }
 
 /* 发现 → 文档偏移：句子级发现按段落序在原文里顺序定位（报告按严重级排序，
@@ -317,7 +353,7 @@ function rewriteActive() {
     "humanVsAiRewrite", "human-vs-ai 改写建议 · " + fileName,
     vscode.ViewColumn.Beside, { enableScripts: false }
   );
-  panel.webview.html = renderAdviceHtml(fileName, result);
+  panel.webview.html = renderAdviceHtml(fileName, result, text);
   // 删/改条目同步画到编辑器里：红色待删、黄色待改
   const located = locateFindings(text, result.advices
     .filter(a => a.action === "删" || a.action === "改")

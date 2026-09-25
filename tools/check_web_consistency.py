@@ -87,15 +87,17 @@ for (const [name, text] of Object.entries(texts)) {
   out[name] = HvA.analyze(text, rules, scoring);
 }
 const rw = {};
+const applyOut = {};
 for (const [name, text] of Object.entries(texts)) {
   rw[name] = HvARewrite.rewriteText(text, rules);
+  applyOut[name] = HvARewrite.applyRewrite(text, rw[name].advices);
 }
 // 孤立代理（无配对的高/低代理项）转义回 \uXXXX 再出管道；成对代理保持原样
 const LONE_HI = /[\uD800-\uDBFF](?![\uDC00-\uDFFF])/g;
 const LONE_LO = /(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g;
 const escS = t => t.replace(LONE_HI, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"))
                  .replace(LONE_LO, c => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"));
-process.stdout.write(escS(JSON.stringify({ analyze: out, rewrite: rw })));
+process.stdout.write(escS(JSON.stringify({ analyze: out, rewrite: rw, apply: applyOut })));
 """
 
 # 改写器探针语料：覆盖每个判档分支（删/改/保留 × 腔调/功能说明/R1 数据保护）
@@ -265,6 +267,20 @@ def main() -> None:
                       f"\n    js={json.dumps(js_rw, ensure_ascii=True)[:300]}")
             else:
                 print(f"[ok] {profile}/rewrite#{i}")
+
+        # 清理稿一致性：行号对位 + 落地结果逐字一致。探针文本都是 \n 行界
+        # （Python apply 保 CRLF、浏览器 textarea 恒 \n，行界不同才有差异）
+        from human_vs_ai.rewrite import apply_edits as py_apply_edits
+        for i, text in enumerate(REWRITE_PROBES):
+            py_draft = py_apply_edits(rewrite_text(text, profile))
+            js_draft = payload["apply"][f"rw{i}"]
+            if py_draft != js_draft:
+                failed = True
+                print(f"[FAIL] {profile}/apply#{i} {text[:24]}")
+                print(f"    py={json.dumps(py_draft, ensure_ascii=True)[:300]}"
+                      f"\n    js={json.dumps(js_draft, ensure_ascii=True)[:300]}")
+            else:
+                print(f"[ok] {profile}/apply#{i}")
 
     if failed:
         sys.exit("一致性检查未通过——两端实现已漂移,禁止发布")

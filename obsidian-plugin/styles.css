@@ -152,3 +152,19 @@ mark {
 .advice .why { color: var(--ink-2); margin: 4px 0 0 26px; }
 .advice .cand { color: var(--accent-deep); margin: 3px 0 0 26px; }
 .advice .dir { color: var(--ink-3); margin: 3px 0 0 26px; font-size: 12px; }
+
+/* 清理稿（改写建议视图底部）：折叠引用块，纯文本可选中复制 */
+.hva-root .draftbox { margin-top: 14px; border: 1px solid var(--hairline); border-radius: 3px; }
+.hva-root .draftbox summary.t { cursor: pointer; user-select: none; padding: 6px 10px;
+  font-size: 12px; font-weight: 600; color: var(--ink-2); list-style: none; }
+.hva-root .draftbox summary.t::before { content: '▸ '; }
+.hva-root .draftbox[open] summary.t::before { content: '▾ '; }
+.hva-root .draftbox summary.t::-webkit-details-marker { display: none; }
+.hva-root .draftbox pre {
+  margin: 0; padding: 10px 12px; border-top: 1px solid var(--hairline);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  font-family: var(--sans); font-size: 13px; line-height: 1.7;
+  background: var(--paper-deep); color: var(--ink);
+}
+.hva-root .draft-note { padding: 6px 10px; font-size: 10.5px; color: var(--ink-3);
+  border-top: 1px solid var(--hairline); }

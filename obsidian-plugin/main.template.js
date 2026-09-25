@@ -82,7 +82,7 @@ function renderReportHtml(profile, result) {
   return parts.join("");
 }
 
-function renderAdviceHtml(result) {
+function renderAdviceHtml(result, sourceText) {
   const A = result.advices;
   const n = k => A.filter(a => a.action === k).length;
   const parts = [`<div class="counts"><span>共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></span></div>`];
@@ -94,6 +94,16 @@ function renderAdviceHtml(result) {
       ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : (a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : "")}
     </div>`);
   });
+  /* 清理稿：删/改建议机械落地后的草稿（传入原文才有）——折叠呈现，
+     选中 <pre> 里的纯文本即可复制回笔记 */
+  if (typeof sourceText === "string" && HvARewrite.applyRewrite) {
+    const draft = HvARewrite.applyRewrite(sourceText, A);
+    if (draft.trim()) {
+      parts.push(`<details class="draftbox"><summary class="t">清理稿（草稿 · 选中即可复制）</summary>` +
+        `<pre>${esc(draft)}</pre>` +
+        `<div class="draft-note">只落地了删行与换候选；带「→ 方向」的条目要人来改。</div></details>`);
+    }
+  }
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   return parts.join("");
 }
@@ -186,7 +196,7 @@ function makePlugin(obsidian) {
       const rules = RULES[this.profile];
       if (this.mode === "rewrite") {
         this.lastResult = HvARewrite.rewriteText(text, rules);
-        reportEl.innerHTML = renderAdviceHtml(this.lastResult);
+        reportEl.innerHTML = renderAdviceHtml(this.lastResult, text);
       } else {
         this.lastResult = HvA.analyze(text, rules, SCORING[this.profile] || null);
         reportEl.innerHTML = renderReportHtml(this.profile, this.lastResult);

@@ -107,6 +107,9 @@ def main(argv: list[str] | None = None) -> None:
     p_rw.add_argument("file", help="txt/md/docx/odt 文件；或 - 从标准输入读")
     p_rw.add_argument("-p", "--profile", default="personal")
     p_rw.add_argument("-f", "--format", default="terminal", choices=["terminal", "json"])
+    p_rw.add_argument(
+        "--apply", action="store_true",
+        help="直接输出清理稿（删/改建议机械落地），而不是建议列表")
     p_rw.add_argument("-o", "--output", help="写入文件（默认打印）")
 
     sub.add_parser("profiles", help="列出可用场景")
@@ -178,6 +181,12 @@ def _dispatch(args: argparse.Namespace) -> None:
         _require_profile(args.profile)
         text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
         result = rewrite.rewrite_text(text, args.profile)
+        if args.apply:
+            # 清理稿是纯文本出口：终端打印时提示一句它是草稿（stderr，不污染管道）
+            if not args.output:
+                print("清理稿是草稿：带「→ 方向」的条目要人来改。", file=sys.stderr)
+            _emit(rewrite.apply_edits(result), args.output)
+            return
         if args.format == "json":
             out = json.dumps(
                 {"tool": "human-vs-ai", "version": __version__, "profile": result.profile,

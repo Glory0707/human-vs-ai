@@ -258,7 +258,10 @@
     return L.join("\n");
   }
 
-  function adviceToMarkdown(adviceResult) {
+  /* 改写建议 → Markdown。draft 由调用方用各自宿主的 applyRewrite 算好传入
+     （render.js 不依赖 rewrite 模块）；传了就随一份"清理稿（草稿）"段——
+     建议列表是"怎么改"，清理稿是"已经改了什么"，复制出去一起带走 */
+  function adviceToMarkdown(adviceResult, draft) {
     const A = adviceResult ? adviceResult.advices : null;
     if (!A) return "";
     const n = k => A.filter(a => a.action === k).length;
@@ -271,6 +274,10 @@
       else if (a.direction) L.push(`  → ${a.direction}`);
       L.push("");
     });
+    if (typeof draft === "string" && draft.trim()) {
+      L.push("## 清理稿（草稿）", "", "```", draft, "```", "",
+        "清理稿只落地了删行与换候选；带「→ 方向」的条目要人来改。", "");
+    }
     L.push("---", "", ADVICE_FOOTER);
     return L.join("\n");
   }

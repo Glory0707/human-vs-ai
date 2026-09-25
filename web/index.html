@@ -258,7 +258,8 @@ body.resizing .pane { transition: none; }
 /* 上下文切换（空态→内容/换档/换模式）时内容轻浮入场；逐键重渲染不动画 */
 @keyframes popIn { from { opacity: 0; transform: translateY(4px) scale(0.985); } to { opacity: 1; transform: none; } }
 #report.swap .stats, #report.swap .summary, #report.swap .hints,
-#report.swap .advice, #report.swap .empty-block { animation: popIn var(--t-base) var(--ease-out) backwards; }
+#report.swap .advice, #report.swap .empty-block,
+#report.swap .draftmeta, #report.swap .draftpre { animation: popIn var(--t-base) var(--ease-out) backwards; }
 #report.swap .found:nth-child(3) { animation: popIn var(--t-base) var(--ease-out) .03s backwards; }
 #report.swap .found:nth-child(4) { animation: popIn var(--t-base) var(--ease-out) .06s backwards; }
 #report.swap .found:nth-child(n+5) { animation: popIn var(--t-base) var(--ease-out) .09s backwards; }
@@ -431,17 +432,30 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
 .filters button.on { color: var(--accent-deep); background: var(--accent-soft); font-weight: 600; }
 .filters button .f-n { font-family: var(--mono); font-size: var(--fs-xs); margin-left: 3px; color: var(--ink-3); }
 
-/* —— toast（eggpaper：吸底居中、墨底纸字），可携带一个撤销动作 */
+/* —— 清理稿（改写模式）：删行/换候选已机械落地，方向条目仍需人来改。
+   正文用阅读字号排版（sans + 行高 1.8），只有草稿容器是"引用块" */
+.draftmeta { font-size: var(--fs-xs); color: var(--ink-3); padding: 2px 0 10px; }
+.draftmeta b { font-family: var(--mono); font-weight: 600; color: var(--ink); }
+.draftpre {
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  font-family: var(--sans); font-size: var(--fs-read); line-height: 1.8; color: var(--ink);
+  background: var(--paper-deep); border: 1px solid var(--hairline); border-radius: 4px;
+  padding: 14px 16px; margin: 0 0 12px;
+}
+.draft-empty { color: var(--ink-3); padding: 24px 0; }
+
+/* —— toast（eggpaper：吸底居中、墨底纸字），可携带一个撤销动作。
+   出入场 = 淡入 + 轻微上浮，离场反向——只有透明度突变会显得"闪断" */
 .toast {
-  position: fixed; bottom: 26px; left: 50%; transform: translateX(-50%);
+  position: fixed; bottom: 26px; left: 50%; transform: translate(-50%, 8px);
   z-index: 600; background: var(--ink); color: var(--paper);
   font-size: var(--fs-sm); padding: 9px 16px; border-radius: 4px;
   box-shadow: var(--shadow-pop);
   max-width: min(76vw, 620px); text-align: center; line-height: 1.55;
   opacity: 0; pointer-events: none;
-  transition: opacity var(--t-base) var(--ease-smooth);
+  transition: opacity var(--t-base) var(--ease-smooth), transform var(--t-base) var(--ease-out);
 }
-.toast.show { opacity: 1; pointer-events: auto; }
+.toast.show { opacity: 1; pointer-events: auto; transform: translate(-50%, 0); }
 .toast .t-act {
   margin-left: 10px; padding: 2px 10px; font-size: var(--fs-xs);
   background: transparent; color: var(--paper);
@@ -489,7 +503,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.27.0</span>
+    <span class="head-ver">v0.28.0</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -504,7 +518,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="draftBtn" class="ghost" hidden disabled>清理稿</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -1339,21 +1353,53 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   }
 
   var LEAD_MARKER_RE = /^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*/;
+  /* 行边界集与 Python splitlines 对齐（engine.js LINE_BREAK_RE 同步） */
+  var LINE_BREAK_RE = /(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/;
 
   function rewriteText(text, rules) {
     var compiled = compile(rules);
     var advices = [];
-    /* 行边界集与 Python splitlines 对齐（engine.js LINE_BREAK_RE 同步） */
-    var lines = String(text).split(/(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/);
+    var lines = String(text).split(LINE_BREAK_RE);
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim().replace(LEAD_MARKER_RE, "");
       if (!line) continue;
-      advices.push(classifyLine(line, compiled));
+      var adv = classifyLine(line, compiled);
+      adv.line = i;   // 原文行号（空行占号）——applyRewrite 靠它落回原稿
+      advices.push(adv);
     }
-    return { advices: advices };
+    return { advices: advices, text: String(text) };
   }
 
-  return { rewriteText: rewriteText };
+  /* 清理稿：删档整行移除、改档有候选的换候选，其余（保留档/只有方向
+     提示的改档/空行）原样——与 Python rewrite.apply_edits 同构，
+     一致性探针对拍（\n 文本两侧逐字一致）。浏览器 textarea 值恒为 \n，
+     join("\n") 无失真；Python 侧用 keepends 保 CRLF。 */
+  function applyRewrite(text, advices) {
+    var byLine = {};
+    (advices || []).forEach(function (a) { if (a.line >= 0) byLine[a.line] = a; });
+    var lines = String(text).split(LINE_BREAK_RE);
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      var a = byLine[i];
+      if (!a) { out.push(lines[i]); continue; }
+      if (a.action === DELETE) continue;
+      if (a.action === REWRITE && a.candidate) { out.push(a.candidate); continue; }
+      out.push(lines[i]);
+    }
+    return out.join("\n");
+  }
+
+  /* 清理稿动了多少行：[删掉的行数, 换了候选的行数]（与 Python apply_counts 同构） */
+  function applyCounts(advices) {
+    var deleted = 0, changed = 0;
+    (advices || []).forEach(function (a) {
+      if (a.action === DELETE) deleted++;
+      else if (a.action === REWRITE && a.candidate) changed++;
+    });
+    return [deleted, changed];
+  }
+
+  return { rewriteText: rewriteText, applyRewrite: applyRewrite, applyCounts: applyCounts };
 });
 
 </script>
@@ -1618,7 +1664,10 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     return L.join("\n");
   }
 
-  function adviceToMarkdown(adviceResult) {
+  /* 改写建议 → Markdown。draft 由调用方用各自宿主的 applyRewrite 算好传入
+     （render.js 不依赖 rewrite 模块）；传了就随一份"清理稿（草稿）"段——
+     建议列表是"怎么改"，清理稿是"已经改了什么"，复制出去一起带走 */
+  function adviceToMarkdown(adviceResult, draft) {
     const A = adviceResult ? adviceResult.advices : null;
     if (!A) return "";
     const n = k => A.filter(a => a.action === k).length;
@@ -1631,6 +1680,10 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       else if (a.direction) L.push(`  → ${a.direction}`);
       L.push("");
     });
+    if (typeof draft === "string" && draft.trim()) {
+      L.push("## 清理稿（草稿）", "", "```", draft, "```", "",
+        "清理稿只落地了删行与换候选；带「→ 方向」的条目要人来改。", "");
+    }
     L.push("---", "", ADVICE_FOOTER);
     return L.join("\n");
   }
@@ -1665,6 +1718,7 @@ let lastResult = null;   // 检测模式最近一次结果（复制按钮的数�
 let lastAdvice = null;   // 改写模式最近一次结果
 let lastAnalyzedText = ""; // 与 lastResult 配套的原文——导出样本时不拿新输入配旧分析
 let adviceFilter = "all";
+let adviceView = "list";   // 改写模式的两个视图：建议列表 / 清理稿
 try { const f = localStorage.getItem("hva:filter"); if (["all", "删", "改", "保留"].includes(f)) adviceFilter = f; } catch (e) {}
 let analyzeGen = 0;   // 大文本 rAF 任务的代数——换档/换模式后旧任务作废
 let shouldAnimate = true;   // 上下文切换（空态/换档/换模式）时给一次入场动画
@@ -1732,6 +1786,7 @@ function renderModes() {
     b.onclick = () => {
       currentMode = key;
       if (key === "rewrite") currentProfile = "personal";
+      adviceView = "list";   // 换模式回建议列表，不留在清理稿视图
       shouldAnimate = true;
       persistUi();
       renderModes(); renderProfiles(); analyzeNow();
@@ -1806,6 +1861,7 @@ function toast(msg, ms = 1600, action) {
 function renderReport(result) {
   if (!result) return;
   reportEl.classList.toggle("swap", shouldAnimate);
+  const reset = shouldAnimate;   // 换场景/换模式后回到报告开头，不留在旧滚动位
   shouldAnimate = false;
   const parts = [];
 
@@ -1853,12 +1909,14 @@ function renderReport(result) {
 
   parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
   reportEl.innerHTML = parts.join("");
+  if (reset) reportEl.scrollTop = 0;
 }
 
 const ADVICE_META = { "删": ["del", "删"], "改": ["chg", "改"], "保留": ["keep", "留"] };
 const FILTERS = [["all", "全部"], ["删", "删"], ["改", "改"], ["保留", "留"]];
 
 function renderAdvice() {
+  if (adviceView === "draft" && lastAdvice) return renderDraft();
   const A = lastAdvice ? lastAdvice.advices : [];
   const n = k => A.filter(a => a.action === k).length;
   const parts = [`<div class="counts"><span>共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></span>` +
@@ -1878,8 +1936,10 @@ function renderAdvice() {
   });
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
+  const reset = shouldAnimate;   // 换档/换模式/进视图是上下文切换：回顶再看
   shouldAnimate = false;
   reportEl.innerHTML = parts.join("");
+  if (reset) reportEl.scrollTop = 0;
   reportEl.querySelectorAll(".filters button").forEach(b => {
     b.onclick = () => {
       adviceFilter = b.dataset.f;
@@ -1887,6 +1947,23 @@ function renderAdvice() {
       renderAdvice();
     };
   });
+}
+
+/* 清理稿：把"删/改"建议机械落地后的草稿——建议列表说"怎么改"，
+   这里给"已经改了什么"；方向条目（补梗类）只能人来做，文案里明说 */
+function renderDraft() {
+  const draft = HvARewrite.applyRewrite(lastAnalyzedText, lastAdvice.advices);
+  const [del, chg] = HvARewrite.applyCounts(lastAdvice.advices);
+  const parts = [`<div class="draftmeta">清理稿是草稿：删 <b>${del}</b> 行 · 换写法 <b>${chg}</b> 行，其余原样保留。带「→ 方向」的条目要人来改，梗得你自己补。</div>`];
+  parts.push(draft.trim()
+    ? `<pre class="draftpre">${esc(draft)}</pre>`
+    : '<div class="draft-empty">稿子空了——所有行都被判删时，回建议列表逐条复核。</div>');
+  parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
+  reportEl.classList.toggle("swap", shouldAnimate);
+  const reset = shouldAnimate;
+  shouldAnimate = false;
+  reportEl.innerHTML = parts.join("");
+  if (reset) reportEl.scrollTop = 0;
 }
 
 function analyzeNow() {
@@ -1939,12 +2016,38 @@ function doAnalyze(text) {
 function updateCopyBtn() {
   copyBtn.disabled = !(lastResult || lastAdvice);
   document.getElementById("sampleBtn").disabled = !(lastResult && currentMode === "analyze");
+  // 清理稿入口只在改写模式且有建议时出现；进入清理稿视图后变"返回建议"
+  const inDraft = currentMode === "rewrite" && adviceView === "draft" && lastAdvice;
+  draftBtn.hidden = !(currentMode === "rewrite" && lastAdvice);
+  draftBtn.disabled = !lastAdvice;
+  draftBtn.textContent = inDraft ? "返回建议" : "清理稿";
+  copyBtn.textContent = inDraft ? "复制清理稿" : "复制 Markdown";
 }
 
+const draftBtn = document.getElementById("draftBtn");
+draftBtn.onclick = () => {
+  adviceView = adviceView === "draft" ? "list" : "draft";
+  shouldAnimate = true;
+  renderAdvice();
+  updateCopyBtn();
+};
+
 copyBtn.onclick = async () => {
+  // 清理稿视图下复制的是草稿纯文本（贴回编辑器即用）；列表视图照旧导出 Markdown
+  if (currentMode === "rewrite" && adviceView === "draft" && lastAdvice) {
+    const draft = HvARewrite.applyRewrite(lastAnalyzedText, lastAdvice.advices);
+    let ok = false;
+    try {
+      await navigator.clipboard.writeText(draft);
+      ok = true;
+    } catch (e) { ok = false; }
+    toast(ok ? "已复制清理稿" : "复制失败");
+    return;
+  }
   const label = (PROFILE_META[currentProfile] || [currentProfile])[0];
   const md = currentMode === "rewrite"
-    ? adviceToMarkdown(lastAdvice)
+    ? adviceToMarkdown(lastAdvice,
+        lastAdvice ? HvARewrite.applyRewrite(lastAnalyzedText, lastAdvice.advices) : undefined)
     : reportToMarkdown(label, lastResult);
   if (!md) return;
   let ok = false;

@@ -177,19 +177,51 @@
   }
 
   var LEAD_MARKER_RE = /^\s*(?:[-*+]\s+|\d+[.、)](?=\s|\D))\s*/;
+  /* 行边界集与 Python splitlines 对齐（engine.js LINE_BREAK_RE 同步） */
+  var LINE_BREAK_RE = /(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/;
 
   function rewriteText(text, rules) {
     var compiled = compile(rules);
     var advices = [];
-    /* 行边界集与 Python splitlines 对齐（engine.js LINE_BREAK_RE 同步） */
-    var lines = String(text).split(/(?:\r\n|[\n\r\v\f\x1c\x1d\x1e\x85\u2028\u2029])/);
+    var lines = String(text).split(LINE_BREAK_RE);
     for (var i = 0; i < lines.length; i++) {
       var line = lines[i].trim().replace(LEAD_MARKER_RE, "");
       if (!line) continue;
-      advices.push(classifyLine(line, compiled));
+      var adv = classifyLine(line, compiled);
+      adv.line = i;   // 原文行号（空行占号）——applyRewrite 靠它落回原稿
+      advices.push(adv);
     }
-    return { advices: advices };
+    return { advices: advices, text: String(text) };
   }
 
-  return { rewriteText: rewriteText };
+  /* 清理稿：删档整行移除、改档有候选的换候选，其余（保留档/只有方向
+     提示的改档/空行）原样——与 Python rewrite.apply_edits 同构，
+     一致性探针对拍（\n 文本两侧逐字一致）。浏览器 textarea 值恒为 \n，
+     join("\n") 无失真；Python 侧用 keepends 保 CRLF。 */
+  function applyRewrite(text, advices) {
+    var byLine = {};
+    (advices || []).forEach(function (a) { if (a.line >= 0) byLine[a.line] = a; });
+    var lines = String(text).split(LINE_BREAK_RE);
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      var a = byLine[i];
+      if (!a) { out.push(lines[i]); continue; }
+      if (a.action === DELETE) continue;
+      if (a.action === REWRITE && a.candidate) { out.push(a.candidate); continue; }
+      out.push(lines[i]);
+    }
+    return out.join("\n");
+  }
+
+  /* 清理稿动了多少行：[删掉的行数, 换了候选的行数]（与 Python apply_counts 同构） */
+  function applyCounts(advices) {
+    var deleted = 0, changed = 0;
+    (advices || []).forEach(function (a) {
+      if (a.action === DELETE) deleted++;
+      else if (a.action === REWRITE && a.candidate) changed++;
+    });
+    return [deleted, changed];
+  }
+
+  return { rewriteText: rewriteText, applyRewrite: applyRewrite, applyCounts: applyCounts };
 });
