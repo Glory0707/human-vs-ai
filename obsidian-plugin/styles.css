@@ -153,6 +153,11 @@ mark {
 .advice .cand { color: var(--accent-deep); margin: 3px 0 0 26px; }
 .advice .dir { color: var(--ink-3); margin: 3px 0 0 26px; font-size: 12px; }
 
+/* 暗色下波浪线换暗色主题朱砂（data-URI 吃不到 CSS 变量） */
+.theme-dark .hva-root mark, .theme-dark.hva-root mark {
+  background-color: rgba(217, 118, 92, 0.16);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 3q1.75 -2.4 3.5 0t3.5 0' fill='none' stroke='%23d9765c' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
+}
 /* 清理稿（改写建议视图底部）：折叠引用块，纯文本可选中复制 */
 .hva-root .draftbox { margin-top: 14px; border: 1px solid var(--hairline); border-radius: 3px; }
 .hva-root .draftbox summary.t { cursor: pointer; user-select: none; padding: 6px 10px;

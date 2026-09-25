@@ -84,6 +84,11 @@ body.vscode-dark, body.vscode-high-contrast {
   --mark: rgba(224, 106, 80, 0.16);
   --chip: rgba(255, 255, 255, 0.06);
   --soft: rgba(255, 255, 255, 0.05);
+  /* 波浪线 data-URI 吃不到变量：暗色整条换暗色主题朱砂 */
+  mark {
+    background-color: rgba(224, 106, 80, 0.16);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 3q1.75 -2.4 3.5 0t3.5 0' fill='none' stroke='%23d9765c' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
+  }
 }
 b { font-variant-numeric: tabular-nums; }
 @keyframes riseIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }

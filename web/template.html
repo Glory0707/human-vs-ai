@@ -356,7 +356,11 @@ mark {
   background-repeat: repeat-x; background-position: 0 100%; background-size: 7px 4px;
   color: inherit; border-radius: 1px; padding: 0 1px;
 }
-html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
+/* 暗色下波浪线换暗色主题朱砂——data-URI 吃不到 CSS 变量，只能整条换 */
+html.dark mark {
+  background-color: rgba(217, 118, 92, 0.16);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='4'%3E%3Cpath d='M0 3q1.75 -2.4 3.5 0t3.5 0' fill='none' stroke='%23d9765c' stroke-opacity='.8' stroke-width='1'/%3E%3C/svg%3E");
+}
 
 .hints { margin-top: 12px; padding-top: 9px; border-top: 1.5px dotted var(--hairline); }
 .hints summary.t { cursor: pointer; user-select: none; list-style: none; }
