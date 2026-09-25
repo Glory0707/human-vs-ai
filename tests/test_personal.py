@@ -281,6 +281,14 @@ class TestApplyEdits:
         draft = rewrite.apply_edits(r)
         assert draft == "保留这行。\n"
 
+    def test_exotic_line_separators_pass_through(self):
+        #  / // 也是 splitlines 行界：无删改时清理稿
+        # 必须逐字等于原文（终结符原样）；有删改时只动目标行
+        for sep in (" ", " ", "", ""):
+            text = f"保留这行。{sep}点击右上角选择文件，支持批量导入。{sep}也保留。{sep}"
+            r = rewrite.rewrite_text(text)
+            assert rewrite.apply_edits(r) == f"保留这行。{sep}也保留。{sep}"
+
     def test_crlf_endings_preserved(self):
         r = rewrite.rewrite_text("点击右上角选择文件，支持批量导入。\r\n保留这行。\r\n")
         draft = rewrite.apply_edits(r)

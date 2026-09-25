@@ -65,6 +65,12 @@ def _cn_quotes(text: str) -> str:
     return "\n".join(out)
 
 
+def _num(value, default: float) -> float:
+    """YAML 数值字段容错读取：显式 null（不是缺失）也落默认值——
+    配置里一个空值不该炸掉整份报告。"""
+    return float(value) if value is not None else default
+
+
 @dataclass
 class Rule:
     id: str
@@ -207,9 +213,9 @@ def load_rules(profile: str) -> list[Rule]:
                 references=item.get("references", []),
                 doc_metric=item.get("doc_metric", ""),
                 doc_compare=item.get("doc_compare", ""),
-                doc_threshold=float(item.get("doc_threshold", "nan")),
+                doc_threshold=_num(item.get("doc_threshold"), math.nan),
                 doc_tiers=[(t[0], float(t[1])) for t in item.get("doc_tiers", [])],
-                min_sentences=int(item.get("min_sentences", 8)),
+                min_sentences=int(item["min_sentences"]) if item.get("min_sentences") is not None else 8,
                 taste=item.get("taste", ""),
             )
         )
@@ -324,10 +330,10 @@ def compute_score(
         "conn_density": doc_stats.conn_density,
     }
     picked = _pick_scoring(scoring, doc_stats.n_chars)
-    z = float(picked.get("intercept", 0.0))
+    z = _num(picked.get("intercept"), 0.0)
     components: dict[str, float] = {}
     for feat, coef in picked.items():
-        if feat in _SCORING_META:
+        if feat in _SCORING_META or coef is None:
             continue
         v = values.get(feat)
         if v is None or v != v:  # 该 profile 没有此特征或值为 NaN（无词表等）
@@ -339,9 +345,9 @@ def compute_score(
         index=100.0 / (1.0 + math.exp(-z)),
         components=components,
         corpus=str(scoring.get("corpus", "")),
-        auroc=float(scoring.get("auroc", math.nan)),
-        human_p50=int(scoring.get("human_p50", 0)),
-        human_p90=int(scoring.get("human_p90", 0)),
+        auroc=_num(scoring.get("auroc"), math.nan),
+        human_p50=int(scoring.get("human_p50") or 0),
+        human_p90=int(scoring.get("human_p90") or 0),
     )
 
 

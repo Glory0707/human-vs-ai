@@ -757,6 +757,7 @@ function analyzeNow() {
   const text = inputEl.value;
   if (!text.trim()) {
     // 空文本不给"未发现"的假全清判定，回到初始提示
+    adviceView = "list";   // 清空即复位视图，不带着清理稿状态进新文本
     lastResult = lastAdvice = null;
     lastAnalyzedText = "";
     updateCopyBtn();
@@ -962,7 +963,12 @@ inputPane.addEventListener("drop", async (e) => {
     toast("文件超过 5 MB");
     return;
   }
-  inputEl.value = await file.text();
+  try {
+    inputEl.value = await file.text();
+  } catch (err) {
+    toast("文件读取失败");
+    return;
+  }
   inputEl.dispatchEvent(new Event("input", { bubbles: true }));
 });
 
@@ -1063,12 +1069,15 @@ document.getElementById("sampleBtn").onclick = async () => {
 
 renderProfiles();
 renderModes();
-window.addEventListener("resize", () => {
+const placeThumbs = () => {
   placeThumb(document.getElementById("profiles"),
     document.querySelector("#profiles button.on"));
   placeThumb(document.getElementById("modes"),
     document.querySelector("#modes button.on"));
-});
+};
+window.addEventListener("resize", placeThumbs);
+/* 字体异步加载会改变按钮宽度——就绪后重摆，避免滑块错位 */
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeThumbs);
 reportEl.innerHTML = EMPTY_HTML;
 bindEmpty();
 updateCharCount(null);

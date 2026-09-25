@@ -389,6 +389,20 @@ class TestScore:
         # <8 句不出分：统计层不判，评分也不判
         assert engine.analyze("你好呀。", "academic").score is None
 
+    def test_score_tolerates_null_fields(self):
+        # 病态配置容错：YAML 里显式 null 的 intercept/系数/分位
+        # 不该炸报告——null 系数当缺省跳过，null 分位落 0
+        r = engine.analyze(AI_TEXT, "academic")
+        scoring = {"intercept": None, "hit_density": None, "sentence_cv": None,
+                   "ttr": 10.0, "ngram_repeat": None, "conn_density": None,
+                   "corpus": "t", "auroc": None, "human_p50": None, "human_p90": None}
+        s = engine.compute_score(r.doc_stats, r.findings, r.hints, scoring)
+        assert s is not None
+        assert list(s.components) == ["ttr"]
+        assert s.human_p50 == 0 and s.human_p90 == 0
+        assert s.auroc != s.auroc  # NaN
+        assert 0.0 <= s.index <= 100.0
+
     def test_score_uncalibrated_profiles_none(self):
         # v0.17.8 起 official 获真人配对语料出分（71 真人 vs 70 AI 拟合）；
         # personal 是改写层仍不出分

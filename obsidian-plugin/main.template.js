@@ -78,6 +78,9 @@ function makePlugin(obsidian) {
       this.plugin = plugin;
       this.mode = plugin.settings.mode || "analyze";
       this.profile = plugin.settings.profile || "academic";
+      /* 改写建议只按 personal 出口径——旧数据/手改 data.json 可能存出
+         mode=rewrite + profile=其他 的错配，恢复时归位 */
+      if (this.mode === "rewrite") this.profile = "personal";
       this.navigation = false;
     }
     getViewType() { return VIEW_TYPE; }
