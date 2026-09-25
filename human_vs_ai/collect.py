@@ -28,7 +28,7 @@ def sanitize(text: str) -> str:
     return text
 
 
-LABELS = {"miss": "漏报（AI 味没报出来）", "fp": "误报（人写被误伤）", "hit": "判定准确"}
+LABELS = {"miss": "漏报", "fp": "误报", "hit": "判定准确"}
 
 
 def build_sample(text: str, profile: str, label: str) -> dict:

@@ -503,12 +503,12 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.28.1</span>
+    <span class="head-ver">v0.28.2</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
-  <span class="note">纯本地 · 文本不上传</span>
-  <span class="actions"><button id="themeBtn" class="ghost" title="切换亮 / 暗">◐</button></span>
+  <span class="note">纯本地</span>
+  <span class="actions"><button id="themeBtn" class="ghost" title="切换主题">◐</button></span>
   <div class="tran-line" id="tranline"><i></i></div>
 </header>
 <main id="mainPanes">
@@ -518,7 +518,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制 Markdown</button><button id="draftBtn" class="ghost" hidden disabled>清理稿</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制</button><button id="draftBtn" class="ghost" hidden disabled>清理稿</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -1511,7 +1511,7 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
     return `<div class="row score">` +
       `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
       `<span class="score-main"><span class="t">${idx} / 100</span>` +
-      `<span class="sub" title="校准语料真人分数：p50≈${score.human_p50}，p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
+      `<span class="sub" title="真人 p50≈${score.human_p50} · p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
   }
 
   /* 域外提示：与 Python report._ood_lines 同构。按"文体/文种"两族分行——
@@ -1658,12 +1658,12 @@ html.dark mark { background-color: rgba(217, 118, 92, 0.16); }
   }
 
   function statsRows(s) {
-    const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
+    const rows = [`${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
     // 统计行只在样本够判定时展示（与 doc 规则的 min_sentences=8 同口径）：
     // 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
     if (s.n_sentences < 8) return rows;
-    rows.push(`节奏：句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
-    rows.push(`词汇：TTR ${fmt(s.ttr)} · 连接词密度 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 ${fmt(s.ngram_repeat)}`);
+    rows.push(`句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
+    rows.push(`TTR ${fmt(s.ttr)} · 连接词 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? "/句" : ""} · 重复率 ${fmt(s.ngram_repeat)}`);
     return rows;
   }
 
@@ -1974,10 +1974,10 @@ function renderAdvice() {
 function renderDraft() {
   const draft = HvARewrite.applyRewrite(lastAnalyzedText, lastAdvice.advices);
   const [del, chg] = HvARewrite.applyCounts(lastAdvice.advices);
-  const parts = [`<div class="draftmeta">清理稿是草稿：删 <b>${del}</b> 行 · 换写法 <b>${chg}</b> 行，其余原样保留。带「→ 方向」的条目要人来改，梗得你自己补。</div>`];
+  const parts = [`<div class="draftmeta">删 <b>${del}</b> 行 · 改 <b>${chg}</b> 行</div>`];
   parts.push(draft.trim()
     ? `<pre class="draftpre">${esc(draft)}</pre>`
-    : '<div class="draft-empty">稿子空了——所有行都被判删时，回建议列表逐条复核。</div>');
+    : '<div class="draft-empty">已全部删除</div>');
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;
@@ -2036,12 +2036,11 @@ function doAnalyze(text) {
 function updateCopyBtn() {
   copyBtn.disabled = !(lastResult || lastAdvice);
   document.getElementById("sampleBtn").disabled = !(lastResult && currentMode === "analyze");
-  // 清理稿入口只在改写模式且有建议时出现；进入清理稿视图后变"返回建议"
+  // 清理稿入口只在改写模式且有建议时出现；进入清理稿视图后变"返回"
   const inDraft = currentMode === "rewrite" && adviceView === "draft" && lastAdvice;
   draftBtn.hidden = !(currentMode === "rewrite" && lastAdvice);
   draftBtn.disabled = !lastAdvice;
-  draftBtn.textContent = inDraft ? "返回建议" : "清理稿";
-  copyBtn.textContent = inDraft ? "复制清理稿" : "复制 Markdown";
+  draftBtn.textContent = inDraft ? "返回" : "清理稿";
 }
 
 const draftBtn = document.getElementById("draftBtn");
@@ -2061,7 +2060,7 @@ copyBtn.onclick = async () => {
       await navigator.clipboard.writeText(draft);
       ok = true;
     } catch (e) { ok = false; }
-    toast(ok ? "已复制清理稿" : "复制失败");
+    toast(ok ? "已复制" : "复制失败");
     return;
   }
   const label = (PROFILE_META[currentProfile] || [currentProfile])[0];
@@ -2085,7 +2084,7 @@ copyBtn.onclick = async () => {
     try { ok = document.execCommand("copy"); } catch (e2) { ok = false; }
     ta.remove();
   }
-  toast(ok ? "已复制 Markdown" : "复制失败");
+  toast(ok ? "已复制" : "复制失败");
 };
 
 inputEl.addEventListener("input", () => {
@@ -2294,7 +2293,7 @@ document.getElementById("sampleBtn").onclick = async () => {
   a.download = `hva-sample-${sample.text_sha256}.jsonl`;
   a.click();
   URL.revokeObjectURL(a.href);
-  toast("样本已导出");
+  toast("已导出");
 };
 
 renderProfiles();

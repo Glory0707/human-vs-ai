@@ -105,7 +105,7 @@
     return `<div class="row score">` +
       `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
       `<span class="score-main"><span class="t">${idx} / 100</span>` +
-      `<span class="sub" title="校准语料真人分数：p50≈${score.human_p50}，p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
+      `<span class="sub" title="真人 p50≈${score.human_p50} · p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
   }
 
   /* 域外提示：与 Python report._ood_lines 同构。按"文体/文种"两族分行——
@@ -252,12 +252,12 @@
   }
 
   function statsRows(s) {
-    const rows = [`规模：${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
+    const rows = [`${s.n_paragraphs} 段 · ${s.n_sentences} 句 · ${s.n_chars} 字`];
     // 统计行只在样本够判定时展示（与 doc 规则的 min_sentences=8 同口径）：
     // 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
     if (s.n_sentences < 8) return rows;
-    rows.push(`节奏：句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
-    rows.push(`词汇：TTR ${fmt(s.ttr)} · 连接词密度 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 ${fmt(s.ngram_repeat)}`);
+    rows.push(`句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
+    rows.push(`TTR ${fmt(s.ttr)} · 连接词 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? "/句" : ""} · 重复率 ${fmt(s.ngram_repeat)}`);
     return rows;
   }
 

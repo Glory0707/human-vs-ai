@@ -41,9 +41,9 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 
 **网页版**：双击 [web/index.html](web/index.html)，浏览器打开即用，纯本地可离线，规则与 CLI 完全一致（双引擎一致性测试逐字段守护）。指数以印章呈现、命中词波浪线圈划、发现以批注卡列出；改写模式一键切换「清理稿」视图（删/改建议机械落地的草稿，可整体复制）；手动亮/暗切换（记忆选择，默认跟系统）。改了规则用 `python tools/build_web.py` 重新生成。
 
-**VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议，面板底部附清理稿折叠块（选中即可复制）。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
+**VS Code 扩展**：把 [vscode-extension/](vscode-extension/) 目录放进 `%USERPROFILE%\.vscode\extensions\` 重载窗口，命令面板执行「human-vs-ai: 分析当前文档」出完整报告并在正文给命中句画严重级波浪线；「human-vs-ai: 改写建议（个人口味）」给删/改/留建议，面板底部附清理稿折叠块。面板跟随编辑器主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_vscode.py` 重新注入。
 
-**Obsidian 插件**：把 [obsidian-plugin/](obsidian-plugin/) 目录复制到 `<仓库>/.obsidian/plugins/human-vs-ai/`（文件夹名必须是 human-vs-ai），启用插件后：左侧栏印章图标或命令「分析当前文档」在侧边视图出报告（场景下拉/检测与改写建议切换/复制 Markdown），笔记修改 800ms 后自动重析；「改写建议（个人口味）」给删/改/留建议，底部附清理稿折叠块；设置页可选默认场景。视图跟随 Obsidian 亮暗主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_obsidian.py` 重新生成。
+**Obsidian 插件**：把 [obsidian-plugin/](obsidian-plugin/) 目录复制到 `<仓库>/.obsidian/plugins/human-vs-ai/`（文件夹名必须是 human-vs-ai），启用插件后：左侧栏印章图标或命令「分析当前文档」在侧边视图出报告（场景下拉/检测与改写建议切换/复制），笔记修改 800ms 后自动重析；「改写建议（个人口味）」给删/改/留建议，底部附清理稿折叠块；设置页可选默认场景。视图跟随 Obsidian 亮暗主题。构建产物已入库，clone 即用；改了规则用 `python tools/build_obsidian.py` 重新生成。
 
 **七个场景词表**：academic（学术）/ general（问答）/ official（公文）/ personal（口味）/ essay（作文，留出 0.953）/ news（新闻，留出 0.948）/ review（影评短评——统计无样本，仅词表层，诚实标注）。每库的砍掉清单与反向规则见 docs/rules.md。
 

@@ -166,5 +166,3 @@ mark {
   font-family: var(--sans); font-size: 13px; line-height: 1.7;
   background: var(--paper-deep); color: var(--ink);
 }
-.hva-root .draft-note { padding: 6px 10px; font-size: 10.5px; color: var(--ink-3);
-  border-top: 1px solid var(--hairline); }

@@ -103,15 +103,15 @@ def stats_lines(result: AnalysisResult) -> list[str]:
         rows.append(f"AI 味指数：—（{result.scoring_note}）")
     rows.extend(_ood_lines(result))
     rows.append(_heat_line(result))
-    rows.append(f"规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
+    rows.append(f"{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
     # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
     if s.n_sentences < 8:
         return rows
-    rows.append(f"节奏：句长 CV {_fmt(s.sentence_cv)} · 段长 CV {_fmt(s.para_len_cv)}")
-    rows.append(f"词汇：TTR {_fmt(s.ttr)} · 连接词密度 {_fmt(s.conn_density)}"
-                f"{' 条/句' if s.conn_density == s.conn_density else ''}"
-                f" · 4-gram 重复率 {_fmt(s.ngram_repeat)}")
+    rows.append(f"句长 CV {_fmt(s.sentence_cv)} · 段长 CV {_fmt(s.para_len_cv)}")
+    rows.append(f"TTR {_fmt(s.ttr)} · 连接词 {_fmt(s.conn_density)}"
+                f"{'/句' if s.conn_density == s.conn_density else ''}"
+                f" · 重复率 {_fmt(s.ngram_repeat)}")
     return rows
 
 
@@ -155,7 +155,7 @@ def render_terminal(result: AnalysisResult) -> str:
     sev_color = {"high": "1;31", "medium": "33", "low": "36", "hint": "90"}
 
     out: list[str] = []
-    out.append(C("1", f"human-vs-ai v{__version__} · {result.profile} profile"))
+    out.append(C("1", f"human-vs-ai v{__version__} · {result.profile}"))
     out.append("─" * 46)
     out.extend(stats_lines(result))
     out.append("")

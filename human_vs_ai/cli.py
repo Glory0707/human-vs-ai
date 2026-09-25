@@ -184,7 +184,7 @@ def _dispatch(args: argparse.Namespace) -> None:
         if args.apply:
             # 清理稿是纯文本出口：终端打印时提示一句它是草稿（stderr，不污染管道）
             if not args.output:
-                print("清理稿是草稿：带「→ 方向」的条目要人来改。", file=sys.stderr)
+                print("清理稿是草稿。", file=sys.stderr)
             _emit(rewrite.apply_edits(result), args.output)
             return
         if args.format == "json":

@@ -119,7 +119,7 @@ def _score_html(result: AnalysisResult) -> str:
                 f'<span class="seal" style="color:{_SEV_COLOR[band]}">'
                 f'<span class="n">{idx}</span><span class="u">AI味指数</span></span>'
                 f'<span class="score-main"><span class="t">{idx} / 100</span>'
-                f'<span class="sub" title="校准语料真人分数：p50≈{s.human_p50}，p90≈{s.human_p90}">'
+                f'<span class="sub" title="真人 p50≈{s.human_p50} · p90≈{s.human_p90}">'
                 f'{band_text} · 构成：{comps}</span></span></div>')
     if result.scoring_note:
         return (f'<div class="score-row"><span class="score-main">'

@@ -55,14 +55,12 @@ function renderAdviceHtml(result, sourceText) {
   const n = k => A.filter(a => a.action === k).length;
   const parts = [`<div class="counts"><span>共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></span></div>`];
   parts.push(adviceRowsHtml(A));
-  /* 清理稿：删/改建议机械落地后的草稿（传入原文才有）——折叠呈现，
-     选中 <pre> 里的纯文本即可复制回笔记 */
+  /* 清理稿：删/改建议机械落地后的草稿（传入原文才有）——折叠呈现 */
   if (typeof sourceText === "string" && HvARewrite.applyRewrite) {
     const draft = HvARewrite.applyRewrite(sourceText, A);
     if (draft.trim()) {
-      parts.push(`<details class="draftbox"><summary class="t">清理稿（草稿 · 选中即可复制）</summary>` +
-        `<pre>${esc(draft)}</pre>` +
-        `<div class="draft-note">只落地了删行与换候选；带「→ 方向」的条目要人来改。</div></details>`);
+      parts.push(`<details class="draftbox"><summary class="t">清理稿</summary>` +
+        `<pre>${esc(draft)}</pre></details>`);
     }
   }
   parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
@@ -96,10 +94,10 @@ function makePlugin(obsidian) {
           <span class="hva-modes">${MODES.map(([k, lbl]) =>
             `<button class="hva-mode ${k === this.mode ? "on" : ""}" data-m="${k}">${lbl}</button>`).join("")}</span>
           <button class="hva-rescan">重新分析</button>
-          <button class="hva-copy" disabled>复制 Markdown</button>
+          <button class="hva-copy" disabled>复制</button>
         </div>
         <div class="hva-file"></div>
-        <div class="hva-report"><div class="hva-empty">打开一篇笔记即可分析。</div></div>`;
+        <div class="hva-report"><div class="hva-empty">未打开笔记。</div></div>`;
       root.querySelector(".hva-profiles").onchange = (e) => {
         this.profile = e.target.value;
         this.plugin.settings.profile = this.profile;
@@ -124,7 +122,7 @@ function makePlugin(obsidian) {
         if (!r) return;
         const md = this.mode === "rewrite" ? adviceToMarkdown(r) : reportToMarkdown(this.profile, r);
         navigator.clipboard.writeText(md).then(
-          () => new Notice("已复制 Markdown"),
+          () => new Notice("已复制"),
           () => new Notice("复制失败"));
       };
       this.analyze();
@@ -143,13 +141,13 @@ function makePlugin(obsidian) {
       const reportEl = this.contentEl.querySelector(".hva-report");
       fileEl.textContent = this.currentFileName() || "";
       if (text == null) {
-        reportEl.innerHTML = `<div class="hva-empty">当前没有打开的笔记。</div>`;
+        reportEl.innerHTML = `<div class="hva-empty">未打开笔记。</div>`;
         this.lastResult = null;
         this.contentEl.querySelector(".hva-copy").disabled = true;
         return;
       }
       if (!text.trim()) {
-        reportEl.innerHTML = `<div class="hva-empty">笔记是空的。</div>`;
+        reportEl.innerHTML = `<div class="hva-empty">笔记为空。</div>`;
         this.lastResult = null;
         this.contentEl.querySelector(".hva-copy").disabled = true;
         return;

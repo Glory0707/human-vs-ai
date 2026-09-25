@@ -36,9 +36,9 @@ function renderReportHtml(fileName, profile, result) {
   parts.push(`<div class="stats">
     ${sealHtml(result.score)}
     ${scoreNoteRow(result.score_note)}
-    <div class="row">规模：<b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
-    ${s.n_sentences < 8 ? "" : `<div class="row">节奏：句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
-    <div class="row">词汇：TTR <b>${fmt(s.ttr)}</b> · 连接词密度 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? " 条/句" : ""} · 4-gram 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
+    <div class="row"><b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
+    ${s.n_sentences < 8 ? "" : `<div class="row">句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
+    <div class="row">TTR <b>${fmt(s.ttr)}</b> · 连接词 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? "/句" : ""} · 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
     ${oodHtml(result.ood)}
     ${paraHeatHtml(result)}
   </div>`);
@@ -171,9 +171,7 @@ function renderAdviceHtml(fileName, result, sourceText) {
   if (typeof sourceText === "string" && HvARewrite) {
     const draft = HvARewrite.applyRewrite(sourceText, A);
     if (draft.trim()) {
-      draftBlock = `<details class="draftbox"><summary>清理稿（草稿 · 选中即可复制）</summary>` +
-        `<pre>${esc(draft)}</pre>` +
-        `<div class="draft-note">只落地了删行与换候选；带「→ 方向」的条目要人来改。</div></details>`;
+      draftBlock = `<details class="draftbox"><summary>清理稿</summary><pre>${esc(draft)}</pre></details>`;
     }
   }
   const footer = `<div class="disclaimer">${ADVICE_FOOTER}</div>`;
@@ -229,8 +227,6 @@ b { font-variant-numeric: tabular-nums; }
                 white-space: pre-wrap; overflow-wrap: anywhere;
                 font-family: var(--vscode-editor-font-family, Consolas); font-size: 12.5px;
                 line-height: 1.7; background: var(--soft); }
-.draft-note { padding: 6px 10px; font-size: 10.5px; color: var(--ink-3);
-              border-top: 1px solid var(--hairline); }
 </style></head>
 <body><div class="docname">${esc(fileName)} · 我的口味</div>${counts}${rows}${draftBlock}${footer}</body></html>`;
 }
@@ -294,7 +290,7 @@ function rewriteActive() {
   const vscode = require("vscode");
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
-    vscode.window.showInformationMessage("human-vs-ai：先打开一个文本文件。");
+    vscode.window.showInformationMessage("human-vs-ai：先打开文本文件。");
     return;
   }
   if (!HvARewrite) {
@@ -342,7 +338,7 @@ async function analyzeActive() {
   const vscode = require("vscode");
   const editor = vscode.window.activeTextEditor;
   if (!editor) {
-    vscode.window.showInformationMessage("human-vs-ai：先打开一个文本文件。");
+    vscode.window.showInformationMessage("human-vs-ai：先打开文本文件。");
     return;
   }
   const profile = await pickProfile(vscode);
