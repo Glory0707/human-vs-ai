@@ -160,7 +160,7 @@ function makePlugin(obsidian) {
         this.lastResult = HvARewrite.rewriteText(text, rules);
         reportEl.innerHTML = renderAdviceHtml(this.lastResult, text);
       } else {
-        this.lastResult = HvA.analyze(text, rules, SCORING[this.profile] || null);
+        this.lastResult = HvA.analyze(text, rules, SCORING[this.profile] || null, this.profile);
         reportEl.innerHTML = renderReportHtml(this.profile, this.lastResult);
       }
       this.contentEl.querySelector(".hva-copy").disabled = !this.lastResult;

@@ -432,6 +432,12 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
             else:
                 score_scoring = dict(cfg)
 
+    # 公文风格提示：official 的词表/系数按公文校准，其他场景遇到公文风
+    # 文本会系统性误报，指向 official 场景。与 genre_ood 的数据侧开关不同，
+    # 这里就是场景指向——profile 名两端调用方都拿得到，硬编码最直白。
+    if profile != "official" and ood.detect_officialese(all_para) and "officialese" not in result.ood:
+        result.ood.append("officialese")
+
     raw_hits: dict[str, list[Finding]] = {}
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
     for pi, block in enumerate(doc):

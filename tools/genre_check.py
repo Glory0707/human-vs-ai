@@ -33,8 +33,8 @@ GEN_CAL = ROOT / "_qa/corpus/gen-cal/gov-genre.jsonl"
 GOV_HU = ROOT / "_qa/corpus/gov-oos"
 REPORT = ROOT / "_qa/genre-check.md"
 
-LINE = 0.873          # 预声明判定线 = official auroc_holdout 0.923 − 0.05
-BASELINE = 0.923
+LINE = 0.884          # 判定线 = official auroc_holdout − 0.05（随 rules/*.yaml 基线走，v0.29.0 起 0.934）
+BASELINE = 0.934
 GENRE_NAME = {"issuance-notice": "印发", "approval-reply": "批复"}
 
 

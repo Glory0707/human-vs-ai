@@ -795,7 +795,7 @@ function doAnalyze(text) {
     lastAdvice = HvARewrite.rewriteText(text, rules);
     renderAdvice();
   } else {
-    lastResult = HvA.analyze(text, rules, SCORING[currentProfile] || null);
+    lastResult = HvA.analyze(text, rules, SCORING[currentProfile] || null, currentProfile);
     renderReport(lastResult);
   }
   setBusy(false);

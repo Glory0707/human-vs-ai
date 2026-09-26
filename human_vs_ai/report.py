@@ -49,6 +49,19 @@ _OOD_KIND = {"classical": "文体", "verse": "文体",
 _OOD_WHY = {"文体": "指数仅供参考", "文种": "本篇仅供参考"}
 
 
+def _ood_lines(result: AnalysisResult) -> list[str]:
+    groups: dict[str, list[str]] = {}
+    for kind in result.ood:
+        if kind == "officialese":  # 切场景提示，专属行输出，不走域外分组
+            continue
+        groups.setdefault(_OOD_KIND.get(kind, "文体"), []).append(_OOD_NAME.get(kind, kind))
+    lines = [f"※ {k}域外（{'、'.join(groups[k])}）：{_OOD_WHY[k]}"
+             for k in ("文体", "文种") if k in groups]
+    if "officialese" in result.ood:
+        lines.append("※ 公文/公务文书风格：official 场景更准")
+    return lines
+
+
 def _band_text(score: Score) -> str:
     """分数读数：相对校准语料真人分布的位置，比裸 p50/p90 数字可读。"""
     if score.index > score.human_p90:
@@ -56,14 +69,6 @@ def _band_text(score: Score) -> str:
     if score.index > score.human_p50:
         return "超过半数校准真人"
     return "低于半数校准真人"
-
-
-def _ood_lines(result: AnalysisResult) -> list[str]:
-    groups: dict[str, list[str]] = {}
-    for kind in result.ood:
-        groups.setdefault(_OOD_KIND.get(kind, "文体"), []).append(_OOD_NAME.get(kind, kind))
-    return [f"※ {k}域外（{'、'.join(groups[k])}）：{_OOD_WHY[k]}"
-            for k in ("文体", "文种") if k in groups]
 
 
 def _heat_line(result: AnalysisResult) -> str:

@@ -449,6 +449,38 @@
     return kinds;
   }
 
+  /* ---------- 公文风格（切场景提示）：与 Python ood.detect_officialese 同构 ---------- */
+
+  /* 机关行文结构短语。标定（真人公文 87 篇覆盖 65 vs 知乎/豆瓣/果壳 0 误触）。
+     纯编号（一、二、）不收——知乎长答也常用，实测 5 篇误触 */
+  var OFFICIAL_RES = [
+    /特此(?:通知|报告|函复|公告|批复)/,
+    /现将.{0,24}(?:通知如下|报告如下|情况如下|函复如下)/,
+    /现提出如下|现作如下|作如下决定|提出如下(?:意见|措施)|制定如下措施/,
+    /印发给你们/,
+    /批复如下/,
+    /请遵照执行|请认真贯彻执行/,
+    /(?:为深入|为认真|为贯彻|为落实).{0,10}(?:贯彻|落实|精神)/,
+    /结合.{0,16}实际，?制定/,
+    /经.{0,20}(?:同意|决定|审议通过)，/
+  ];
+  var OFFICIAL_HEADS = ["抄送", "主送"];
+
+  function detectOfficialese(sents) {
+    var joined = "";
+    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
+    if (cpLength(joined.replace(PUNCT_RE, "")) < 80) return false;
+    for (var r = 0; r < OFFICIAL_RES.length; r++) {
+      if (OFFICIAL_RES[r].test(joined)) return true;
+    }
+    for (var s = 0; s < sents.length; s++) {
+      for (var h = 0; h < OFFICIAL_HEADS.length; h++) {
+        if (sents[s].text.indexOf(OFFICIAL_HEADS[h]) === 0) return true;
+      }
+    }
+    return false;
+  }
+
   /* ---------- 段落热度：与 Python compute_para_heat 同构 ---------- */
 
   function computeParaHeat(doc, findings, hints) {
@@ -501,7 +533,7 @@
     return out;
   }
 
-  function analyze(text, rules, scoring) {
+  function analyze(text, rules, scoring, profile) {
     rules = compileRules(rules);
     var doc = splitDocument(text);
     var findings = [], hints = [];
@@ -631,6 +663,13 @@
         else scoreScoring = gcfg;
         break;
       }
+    }
+    /* 公文风格提示：非 official 场景遇公文风文本指向 official——official 的
+       词表/系数按公文校准，其他场景系统性误报。与 Python analyze 同构
+       （profile 名由调用方传入，未传不判） */
+    if (profile != null && profile !== "official" &&
+        detectOfficialese(allSents) && oodKinds.indexOf("officialese") < 0) {
+      oodKinds.push("officialese");
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空；
        文种抑制的说明优先于通用分支 */

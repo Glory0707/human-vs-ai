@@ -72,6 +72,9 @@ PROBE_TEXTS = [
     # 其余 profile 对拍 genre_ood 门控为空（合成样例，真实公文不入库）
     ("gov_yinfa", "各街道办事处，区政府各部门、各直属单位：《某区口袋公园建设三年行动计划（2026—2028年）》已经区政府同意，现印发给你们，请结合实际认真组织实施。某区口袋公园建设三年行动计划为完善城市绿色空间布局，结合我区实际，制定本行动计划。一、总体目标。到二〇二八年，全区建成口袋公园六十处，人均公园绿地面积明显提升。二、重点任务。优先利用边角地、桥下空间，见缝插绿，突出地域文化特色，一园一主题。三、保障措施。区绿化部门统筹推进，各街道落实属地责任，每月报送建设进展。"),
     ("gov_pifu", "某市人民政府：你市《关于报请审批某市历史文化名城保护规划的请示》收悉。经研究，现批复如下：一、原则同意《某市历史文化名城保护规划（2026—2035年）》。二、你市要加强对历史文化名城的保护与管理，不得擅自调整规划确定的保护内容，重大调整须按程序报批。三、省住房和城乡建设厅要加强对规划实施工作的指导、监督和检查。"),
+    # 公文风格切场景提示（detect_officialese 双端对拍）：事务公文正文，
+    # 无印发/批复结构——official 场景不出 officialese，其余场景必出
+    ("gov_shiwu", "为深入贯彻落实上级关于优化营商环境的部署要求，结合我区实际，制定本实施方案。一、工作目标。现提出如下措施：年内政务服务事项网上办结率达到百分之九十五以上，企业开办时间压缩至半个工作日。二、重点任务。各部门要切实扛起责任，持续压减办事环节，不断优化审批流程，确保各项改革举措落地见效。三、保障措施。区政务办统筹调度，每月通报进展。特此通知。"),
 ]
 
 NODE_SCRIPT = r"""
@@ -81,9 +84,10 @@ const HvARewrite = require(process.argv[3]);
 const rules = JSON.parse(fs.readFileSync(process.argv[4], "utf8"));
 const texts = JSON.parse(fs.readFileSync(process.argv[5], "utf8"));
 const scoring = JSON.parse(fs.readFileSync(process.argv[6], "utf8"));
+const profile = process.argv[7];
 const out = {};
 for (const [name, text] of Object.entries(texts)) {
-  out[name] = HvA.analyze(text, rules, scoring);
+  out[name] = HvA.analyze(text, rules, scoring, profile);
 }
 const rw = {};
 const applyOut = {};
@@ -219,7 +223,7 @@ def main() -> None:
             json.dumps(scoring_to_json(profile), ensure_ascii=False), encoding="utf-8")
         proc = subprocess.run(
             ["node", str(script), str(engine_js.resolve()), str(rewrite_js.resolve()),
-             str(rules_path), str(texts_path), str(scoring_path)],
+             str(rules_path), str(texts_path), str(scoring_path), profile],
             capture_output=True, text=True, encoding="utf-8",
         )
         if proc.returncode != 0:

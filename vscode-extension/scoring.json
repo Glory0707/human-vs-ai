@@ -58,16 +58,16 @@
   "human_p90": 55
  },
  "official": {
-  "corpus": "真人事务公文 71 篇（gov.cn/部委/省门户）vs gen2026 当季 9 模型公文 70 篇，类平衡，2026-09",
-  "intercept": 44.4895,
-  "hit_density": 13.7992,
-  "sentence_cv": 3.1677,
-  "ttr": -44.4823,
-  "ngram_repeat": -67.5341,
+  "corpus": "真人事务公文 71 篇（gov.cn/部委/省门户）vs gen2026 当季 9 模型公文 70 篇，类平衡，2026-09（二轮重拟合 v0.29.0：O-INFL/O-PARA 撤出后）",
+  "intercept": 44.4248,
+  "hit_density": 23.6565,
+  "sentence_cv": 3.0339,
+  "ttr": -44.333,
+  "ngram_repeat": -66.8477,
   "auroc": 0.957,
-  "auroc_holdout": 0.923,
+  "auroc_holdout": 0.934,
   "human_p50": 4,
-  "human_p90": 57,
+  "human_p90": 58,
   "genre_ood": true,
   "genre_scoring": {
    "issuance-notice": {

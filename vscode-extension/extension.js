@@ -355,7 +355,7 @@ async function analyzeActive() {
   }
   lastProfile = profile;
   const text = editor.document.getText();
-  const result = HvA.analyze(text, rules, SCORING[profile] || null);
+  const result = HvA.analyze(text, rules, SCORING[profile] || null, profile);
   const fileName = path.basename(editor.document.fileName);
 
   const panel = vscode.window.createWebviewPanel(

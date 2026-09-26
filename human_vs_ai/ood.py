@@ -104,3 +104,36 @@ def detect_genre(sentences: list[str]) -> list[str]:
     if _RE_PIFU.search(text):
         kinds.append("approval-reply")
     return kinds
+
+
+# 公文风格判据（供非 official 场景提示切场景）：机关行文的结构短语，
+# 与分数、与作者无关（同 detect_genre 哲学）。标定（真人公文 87 篇 vs
+# 知乎 116 答/豆瓣 60 影评/果壳 32 文）：覆盖 61/87，三个负样本语料
+# 65/87，负样本 0 误触。纯编号（一、二、）不收——知乎长答也常用，实测 5 篇误触。
+_OFFICIAL_RES = (
+    re.compile(r"特此(?:通知|报告|函复|公告|批复)"),
+    re.compile(r"现将.{0,24}(?:通知如下|报告如下|情况如下|函复如下)"),
+    re.compile(r"现提出如下|现作如下|作如下决定|提出如下(?:意见|措施)|制定如下措施"),
+    re.compile(r"印发给你们"),
+    re.compile(r"批复如下"),
+    re.compile(r"请遵照执行|请认真贯彻执行"),
+    re.compile(r"(?:为深入|为认真|为贯彻|为落实).{0,10}(?:贯彻|落实|精神)"),
+    re.compile(r"结合.{0,16}实际，?制定"),
+    re.compile(r"经.{0,20}(?:同意|决定|审议通过)，"),
+)
+_OFFICIAL_HEADS = ("抄送", "主送")
+
+
+def detect_officialese(sentences: list[str]) -> bool:
+    """判定公文/公务文书风格。
+
+    official 的词表与评分系数按公文校准，其他场景拿公文风文本去套会
+    系统性误报——命中时报告指向 official 场景（engine 按 profile 决定
+    是否调用）。入参与 detect 同口径：统计层展平后的句子文本。
+    """
+    text = "".join(sentences)
+    if len(PUNCT.sub("", text)) < _N_MIN:
+        return False
+    if any(r.search(text) for r in _OFFICIAL_RES):
+        return True
+    return any(s.startswith(_OFFICIAL_HEADS) for s in sentences)

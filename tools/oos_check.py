@@ -1,4 +1,4 @@
-"""泛化体检：冻结 v0.18.0 系数，在样本外语料上只测不调。
+"""泛化体检：冻结 rules/*.yaml 现行系数，在样本外语料上只测不调。
 
 与拟合语料的边界（全部不重叠）：
 - AI 侧：gen-oos/ 用 doubao-seed-2.0-pro / glm-4.7-flash / deepseek-chat /
@@ -35,7 +35,7 @@ GOV_HU = ROOT / "_qa/corpus/gov-oos"
 # 营销号/搬运文标记（只收窄不放宽——宁可漏收不可错收真人样本）
 _SPAM = re.compile(r"首发|公众号|公号：|扫码|微信号|搬运|转载|出处[:：]|Appcaret敬请")
 
-BASELINE = {"general": 0.935, "official": 0.923}  # rules/*.yaml auroc_holdout
+BASELINE = {"general": 0.935, "official": 0.934}  # rules/*.yaml auroc_holdout
 DROP_LIMIT = 0.05
 
 
@@ -145,7 +145,7 @@ def main() -> None:
     genre_slices(L_gov)
 
     header = [
-        "# 泛化体检：样本外独立验证（v0.18.0 冻结系数）",
+        "# 泛化体检：样本外独立验证（现行系数冻结）",
         "",
         "拟合集（gen2026 九模型 + 知乎回答 + gov.cn/部委/广东公文）与样本外",
         "（四模型 + 豆瓣/果壳 + 湖北/四川公文）零重叠，评分只测不调。",
@@ -158,19 +158,25 @@ def main() -> None:
         "",
         "## 结论",
         "",
-        f"- **general 通过**（{auc_qa:.3f}，掉 {BASELINE['general'] - auc_qa:.3f}）：换模型"
-        "（四个样本外模型）+ 换渠道（豆瓣/果壳）双重位移下 AUROC 与真人分位基本保持，",
-        "  README 的 general 指标获得样本外背书。deepseek-chat 漏检偏高（62% <80）",
-        "  延续\"平价/旧代模型更人味\"的已知规律，被统计底盘兜住。",
-        f"- **official 不通过**（{auc_gov:.3f}，掉 {BASELINE['official'] - auc_gov:.3f}），但 AI 侧",
-        "  分布与拟合时一致（中位 74–92，无特征漂移迹象），问题出在真人侧新文种：",
-        "  省级门户的**印发类**（正文=规划/方案全文附录，p50=76、TTR 0.898）与",
-        "  **批复**（公式化短文，p90=98）。同文种对照：印发类 AUROC 0.294（反转——",
-        "  真人规划的指标密度比 AI 模板文更\"AI\"）、批复 0.614（近随机）。",
-        "  **official 系数绑定事务文种（通知/通报/方案正文），跨文种不可靠，",
-        "  真人侧会大面积误报。**改法排队：文种域外提示（ood 同思路）或文种内校准。",
-        "",
+        f"- **general {'通过' if auc_qa >= BASELINE['general'] - DROP_LIMIT else '不通过'}**"
+        f"（{auc_qa:.3f}，掉 {BASELINE['general'] - auc_qa:+.3f}）：换模型（四个样本外模型）"
+        "+ 换渠道（豆瓣/果壳）双重位移，deepseek-chat 漏检偏高延续",
+        "  \"平价/旧代模型更人味\"的已知规律，被统计底盘兜住。",
     ]
+    if auc_gov >= BASELINE["official"] - DROP_LIMIT:
+        header += [
+            f"- **official 通过**（{auc_gov:.3f}，掉 {BASELINE['official'] - auc_gov:+.3f}）。",
+            "",
+        ]
+    else:
+        header += [
+            f"- **official 不通过**（{auc_gov:.3f}，掉 {BASELINE['official'] - auc_gov:+.3f}）。"
+            "印发/批复文种已由 genre_scoring 抑制出分（v0.20.0），剩余误报集中在省门户",
+            "  的表彰/决定类公文（见按真人渠道表）——official 系数绑定事务文种，",
+            "  跨文种出分是已知边界；决定/表彰类文种扩展校准在 design.md §4 排队。",
+            "",
+        ]
+    header += []
     out = ROOT / "_qa/generalization-check.md"
     out.write_text("\n".join(header + L_qa + L_gov), encoding="utf-8")
     print(f"报告：{out}")

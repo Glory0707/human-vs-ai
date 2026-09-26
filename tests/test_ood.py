@@ -8,7 +8,7 @@
 运行：python -m pytest tests/test_ood.py -q
 """
 from human_vs_ai import engine, segment
-from human_vs_ai.ood import detect, detect_genre
+from human_vs_ai.ood import detect, detect_genre, detect_officialese
 
 
 def _sents(text):
@@ -281,3 +281,46 @@ class TestGenreEngine:
         r = engine.analyze(SHIWU, "official")
         assert r.ood == []
         assert r.score is not None
+
+
+class TestOfficialese:
+    """公文风格切场景提示（v0.29.0）：判据在 gov 87 真人公文（覆盖 65）
+    与知乎 116 答/豆瓣 60 影评/果壳 32 文（0 误触）上标定；
+    入库样本一律合成样例（真实公文不进仓库）。"""
+
+    def test_structural_phrases_flagged(self):
+        for text in (YINFA, SHIWU, PIFU):
+            assert detect_officialese(_sents(text)) is True
+
+    def test_baihua_clean(self):
+        assert detect_officialese(_sents(BAIHUA)) is False
+        assert detect_officialese(_sents(RECOMMEND)) is False
+
+    def test_short_fragment_skipped(self):
+        assert detect_officialese(_sents("特此通知。")) is False
+
+    def test_numbering_alone_not_flagged(self):
+        # 纯"一、二、三"编号不是公文判据——知乎长答也常用（实测 5 篇误触）
+        text = ("先说一、第一点看法，展开说说理由。再说二、第二点看法，也有依据。"
+                "最后三、第三点看法，同样成立。以上是我的回答，谢谢。")
+        assert detect_officialese(_sents(text)) is False
+
+    def test_non_official_profiles_hint(self):
+        for prof in ("general", "academic", "essay"):
+            assert "officialese" in engine.analyze(SHIWU, prof).ood
+
+    def test_official_profile_no_hint(self):
+        assert "officialese" not in engine.analyze(SHIWU, "official").ood
+
+    def test_terminal_report_hint_line(self):
+        from human_vs_ai import report
+        out = report.render_terminal(engine.analyze(SHIWU, "general"))
+        assert "公文/公务文书风格：official 场景更准" in out
+
+    def test_official_lexical_rules_pruned(self):
+        # v0.29.0 撤出 O-INFL-01/O-PARA-01：gen2026 当代语料上反向
+        #（套话拔高真人 14 次 vs AI 1 次、递进排比真人 1 vs AI 0）
+        ids = {r.id for r in engine.load_rules("official")}
+        assert "O-INFL-01" not in ids and "O-PARA-01" not in ids
+        # 现役信号不得被顺手清掉
+        assert {"O-STK-01", "O-TAIL-01", "O-EXCL-01", "D-STKD-01"} <= ids

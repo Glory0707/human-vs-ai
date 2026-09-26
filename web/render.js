@@ -122,12 +122,16 @@
     if (!ood || !ood.length) return [];
     const groups = {};
     ood.forEach(k => {
+      if (k === "officialese") return;   // 切场景提示，专属行输出，不走域外分组
       const kind = OOD_KIND[k] || "文体";
       (groups[kind] = groups[kind] || []).push(OOD_NAME[k] || k);
     });
-    return ["文体", "文种"]
+    const lines = ["文体", "文种"]
       .filter(kind => groups[kind])
       .map(kind => `${kind}域外（${groups[kind].join("、")}）：${OOD_WHY[kind]}`);
+    /* 公文风格切场景提示（与 Python report._ood_lines 同构） */
+    if (ood.indexOf("officialese") >= 0) lines.push("公文/公务文书风格：official 场景更准");
+    return lines;
   }
   function oodHtml(ood) {
     /* ※ 前缀由 CSS .ood-note::before 补，HTML 里写死会显示两个 */
