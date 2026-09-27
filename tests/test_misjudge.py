@@ -35,3 +35,32 @@ def test_colloquial_findings_stay_bounded():
     # 规则层撤出后，口语排版的词表发现量级应从几十处回落到个位数
     r = engine.analyze(COLLOQUIAL, "general")
     assert len(r.findings) <= 6, f"发现 {len(r.findings)} 处——口语排版误伤回潮？"
+
+
+class TestDegenerateInput:
+    """极端输入（v0.30.3）：纯标点碎片曾实测 official 轰出 100 分/40 处
+    发现——无内容句不匹配规则、全文无有效字符抑制出分。"""
+
+    PUNCT = "。，！？" * 40
+
+    def test_pure_punct_no_findings(self):
+        for prof in ("general", "official", "essay", "academic"):
+            r = engine.analyze(self.PUNCT, prof)
+            assert not r.findings and not r.hints, f"{prof}: {len(r.findings)} 处"
+
+    def test_pure_punct_suppressed(self):
+        for prof in ("general", "official"):
+            r = engine.analyze(self.PUNCT, prof)
+            assert r.score is None
+
+    def test_suppress_note_precedence(self):
+        # 无评分 profile：具体原因（无有效文本）不被通用"该文体未校准"覆盖
+        r = engine.analyze(self.PUNCT, "personal")
+        assert r.scoring_note == "无有效文本"
+
+    def test_content_sentence_still_flagged(self):
+        # 守卫不得误伤正常句子：感叹号规则照常工作
+        r = engine.analyze("让我们凝心聚力、真抓实干，为建设美丽家园而努力奋斗！"
+                           "第二句正常表述。第三句也没问题。第四句完整。第五句收束。",
+                           "official")
+        assert any(f.rule_id == "O-EXCL-01" for f in r.findings)

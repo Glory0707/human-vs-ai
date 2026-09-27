@@ -74,6 +74,9 @@ PROBE_TEXTS = [
     ("gov_pifu", "某市人民政府：你市《关于报请审批某市历史文化名城保护规划的请示》收悉。经研究，现批复如下：一、原则同意《某市历史文化名城保护规划（2026—2035年）》。二、你市要加强对历史文化名城的保护与管理，不得擅自调整规划确定的保护内容，重大调整须按程序报批。三、省住房和城乡建设厅要加强对规划实施工作的指导、监督和检查。"),
     # 公文风格切场景提示（detect_officialese 双端对拍）：事务公文正文，
     # 无印发/批复结构——official 场景不出 officialese，其余场景必出
+    # 无有效文本（纯标点碎片）：曾实测 official 轰出 100 分/40 处发现——
+    # 无内容句不匹配规则，全文无有效字符抑制出分（v0.30.3 双端对拍钉住）
+    ("punct_only", "。，！？" * 40),
     # 非中文为主（detect_lang 双端对拍）：指数抑制，提示行随行
     ("english_text", "Thank you for your email regarding the project timeline. I have reviewed the draft proposal and discussed it with the team this morning. Overall the plan looks solid, but we would like to propose a few adjustments to the delivery schedule. Please let me know if you are available for a short call tomorrow afternoon to walk through the details together. Best regards."),
     ("gov_shiwu", "为深入贯彻落实上级关于优化营商环境的部署要求，结合我区实际，制定本实施方案。一、工作目标。现提出如下措施：年内政务服务事项网上办结率达到百分之九十五以上，企业开办时间压缩至半个工作日。二、重点任务。各部门要切实扛起责任，持续压减办事环节，不断优化审批流程，确保各项改革举措落地见效。三、保障措施。区政务办统筹调度，每月通报进展。特此通知。"),

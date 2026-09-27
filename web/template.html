@@ -697,7 +697,7 @@ function renderAdvice() {
     `<span class="filters">${FILTERS.map(([key, label]) =>
       `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}${key !== "all" ? `<span class="f-n">${n(key)}</span>` : ""}</button>`).join("")}</span></div>`];
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
-  if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目</div>');
+  if (!shown.length && A.length) parts.push('<div class="empty">该类没有条目</div>');
   parts.push(adviceRowsHtml(shown));
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;   // 换档/换模式/进视图是上下文切换：回顶再看

@@ -331,6 +331,8 @@
 
   /* 严重级 → 加权密度系数（与 Python _SCORE_WEIGHT / fit_score.py 同步） */
   var SCORE_WEIGHT = { high: 3.0, medium: 2.0, low: 1.0 };
+  /* 无内容句（无汉字/字母/数字）不参与逐句规则——与 Python _RE_CONTENT 同构 */
+  var CONTENT_RE = /[0-9A-Za-z一-鿿]/;
   /* scoring 段里的元字段，不是特征（genre_ood=文种提示开关，
      genre_scoring=按文种接管出分的配置块） */
   var SCORING_META = { corpus: 1, auroc: 1, auroc_holdout: 1, human_p50: 1, human_p90: 1,
@@ -571,6 +573,7 @@
       var block = doc[pi];
       for (var si = 0; si < block.sents.length; si++) {
         var sent = block.sents[si];
+        if (!CONTENT_RE.test(sent.text)) continue;  // 纯标点/符号碎片不匹配（与 Python 同构）
         for (var ri = 0; ri < rules.length; ri++) {
           var rule = rules[ri];
           if (rule.scope !== "sentence") continue;
@@ -697,6 +700,15 @@
       oodKinds.push("non-chinese");
       scoreScoring = null;
       genreNote = "非中文文本不适用";
+    }
+    /* 全文无有效字符（纯标点/符号碎片）：统计与规则都没有对象，抑制出分 */
+    var hasContent = false;
+    for (var hc = 0; hc < allSents.length; hc++) {
+      if (CONTENT_RE.test(allSents[hc].text)) { hasContent = true; break; }
+    }
+    if (!hasContent) {
+      scoreScoring = null;
+      genreNote = "无有效文本";
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空；
        文种抑制的说明优先于通用分支 */

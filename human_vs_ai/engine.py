@@ -225,6 +225,9 @@ _DENSITY_PREFIXES = ("L-CONN", "O-STK")  # 词表规则同时供全文密度统�
 
 # 评分特征权重：严重级 → 加权密度系数（拟合工具 fit_score*.py 直接引用本表）
 _SCORE_WEIGHT = {"high": 3.0, "medium": 2.0, "low": 1.0}
+# 无内容句（无汉字/字母/数字，如"。。。"）不携带风格信号，不参与逐句规则；
+# 显式字符类而非 \w——Python \w 认 CJK 而 JS 不认（segment.py 同教训）。
+_RE_CONTENT = re.compile(r"[0-9A-Za-z一-鿿]")
 
 
 def compute_para_heat(para_texts: list[list[str]], findings: list[Finding],
@@ -447,6 +450,8 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
     for pi, block in enumerate(doc):
         for sent in block.sents:
+            if not _RE_CONTENT.search(sent.text):
+                continue  # 纯标点/符号碎片：匹配只会产出噪音（纯标点实测 40 处）
             for rule in rules:
                 if rule.scope != "sentence":
                     continue
@@ -467,7 +472,7 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
         for rule in rules:
             if rule.scope != "shape":
                 continue
-            if rule.doc_metric == "one_liner" and len(para) == 1 and len(para[0].text) <= 40:
+            if rule.doc_metric == "one_liner" and len(para) == 1 and len(para[0].text) <= 40                     and _RE_CONTENT.search(para[0].text):
                 raw_hits.setdefault(rule.id, []).append(
                     _finding(rule, pi, para[0].text, [f"独句段（{len(para[0].text)} 字）"])
                 )
@@ -506,6 +511,10 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     result.findings.sort(
         key=lambda f: (-SEVERITY_ORDER.get(f.severity, 0), f.para)
     )
+    # 全文无有效字符（纯标点/符号碎片）：统计与规则都没有对象，抑制出分
+    if not any(_RE_CONTENT.search(s) for s in all_para):
+        score_scoring = None
+        result.scoring_note = "无有效文本"
     result.score = compute_score(
         result.doc_stats,
         result.findings,
@@ -514,7 +523,8 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     )
     # 文种抑制已提前给过 scoring_note（"该文种未校准"）——profile 级
     # scoring 存在时通用分支不触发，不会覆盖
-    if result.score is None and scoring is None and result.doc_stats.n_sentences >= 8:
-        result.scoring_note = "该文体未校准"
+    if (result.score is None and scoring is None and not result.scoring_note
+            and result.doc_stats.n_sentences >= 8):
+        result.scoring_note = "该文体未校准"  # 更具体的抑制原因（无有效文本等）优先
     result.para_heat = compute_para_heat(para_texts, result.findings, result.hints)
     return result
