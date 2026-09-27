@@ -106,6 +106,7 @@ b { font-variant-numeric: tabular-nums; }
 .seal.medium { color: var(--sev-medium); }
 .seal.low { color: var(--sev-low); }
 .mono-num { font-family: var(--mono); }
+.score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
 .stats .row.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
 .summary { padding: 12px 0 4px; font-weight: 650; }

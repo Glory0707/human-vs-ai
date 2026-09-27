@@ -293,6 +293,7 @@ body.resizing .pane { transition: none; }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
 .row.score .comp { color: var(--ink-3); }
+.score-main .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 3px; }
 .stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
 
@@ -696,8 +697,12 @@ function renderAdvice() {
   const parts = [`<div class="counts"><span>共 <b>${A.length}</b> 条 · 删 <b>${n("删")}</b> · 改 <b>${n("改")}</b> · 保留 <b>${n("保留")}</b></span>` +
     `<span class="filters">${FILTERS.map(([key, label]) =>
       `<button class="${adviceFilter === key ? "on" : ""}" data-f="${key}">${label}${key !== "all" ? `<span class="f-n">${n(key)}</span>` : ""}</button>`).join("")}</span></div>`];
+  // 持久化的筛选项在新文本下可能为空：自动回落"全部"，首屏不给空态
+  if (adviceFilter !== "all" && A.length && !A.some(a => a.action === adviceFilter)) {
+    adviceFilter = "all";
+    try { localStorage.setItem("hva:filter", "all"); } catch (e) {}
+  }
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
-  if (!shown.length && A.length) parts.push('<div class="empty">该类没有条目</div>');
   parts.push(adviceRowsHtml(shown));
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;   // 换档/换模式/进视图是上下文切换：回顶再看
