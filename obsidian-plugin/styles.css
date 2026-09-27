@@ -84,8 +84,6 @@
 .seal.low { color: var(--accent); }
 .score-main .t { font-weight: 650; font-size: 14px; }
 .mono-num { font-family: var(--mono); }
-.score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
-.score-main .ci { white-space: nowrap; }
 
 .summary { font-weight: 650; font-size: 14px; padding: 12px 0 8px; }
 .found {
@@ -105,7 +103,6 @@
 .sev-high .mg-kind { color: var(--vermilion); }
 .sev-medium .mg-kind { color: var(--ochre); }
 .sev-low .mg-kind { color: var(--accent); }
-.rid { font-family: var(--mono); font-size: 10.5px; color: var(--ink-2); }
 .rname { font-weight: 600; font-size: 12px; }
 .loc { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-left: auto; }
 blockquote {

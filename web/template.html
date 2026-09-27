@@ -296,9 +296,6 @@ body.resizing .pane { transition: none; }
 .seal.low { color: var(--accent); }
 .score-main { min-width: 0; }
 .score-main .t { font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
-.score-main .sub { display: block; font-size: var(--fs-xs); color: var(--ink-3); margin-top: 3px; }
-.score-main .sub .mono-num { font-family: var(--mono); }
-.score-main .ci { white-space: nowrap; }
 .row.score .comp { color: var(--ink-3); }
 .stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
@@ -333,7 +330,6 @@ body.resizing .pane { transition: none; }
 .found.sev-high .mg-kind { color: var(--vermilion); }
 .found.sev-medium .mg-kind { color: var(--ochre); }
 .found.sev-low .mg-kind { color: var(--accent); }
-.found .rid { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-2); letter-spacing: 0.02em; }
 .found .rname { font-weight: 600; font-size: var(--fs-sm); }
 .found .loc { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); margin-left: auto; }
 .found blockquote {
@@ -369,7 +365,6 @@ html.dark mark {
 .hints[open] summary.t::before { content: '▾ '; }
 .hints summary.t:hover { color: var(--ink); }
 .hints .h { font-size: var(--fs-sm); color: var(--ink-3); margin-top: 2px; }
-.hints .h .rid, .hints .rid { font-family: var(--mono); font-size: var(--fs-xs); }
 
 .disclaimer {
   margin-top: 16px; padding: 10px 14px; background: var(--paper-deep);
@@ -542,7 +537,7 @@ const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/评分行/发现卡/建议行/常量 */
 const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
-        findingsHtml, adviceRowsHtml, statsRows,
+        findingsHtml, adviceRowsHtml, statsRows, statsHtml,
         reportToMarkdown, adviceToMarkdown,
         PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = HvARender;
 let currentProfile = PROFILES[0];
@@ -700,7 +695,7 @@ function renderReport(result) {
   shouldAnimate = false;
   const parts = [];
 
-  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsRows(result.stats).map(r => `<div class="row">${r}</div>`).join("")}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
 
   parts.push(findingsHtml(result, { locate: true }));
 

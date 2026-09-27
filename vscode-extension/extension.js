@@ -18,7 +18,7 @@ let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/评分行/发现卡/
    建议行/常量——三端同一份 UI 事实 */
-const { esc, fmt, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml, statsHtml,
         findingsHtml, adviceRowsHtml,
         PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
@@ -36,9 +36,7 @@ function renderReportHtml(fileName, profile, result) {
   parts.push(`<div class="stats">
     ${sealHtml(result.score)}
     ${scoreNoteRow(result.score_note)}
-    <div class="row"><b>${s.n_paragraphs}</b> 段 · <b>${s.n_sentences}</b> 句 · <b>${s.n_chars}</b> 字</div>
-    ${s.n_sentences < 8 ? "" : `<div class="row">句长 CV <b>${fmt(s.sentence_cv)}</b> · 段长 CV <b>${fmt(s.para_len_cv)}</b></div>
-    <div class="row">TTR <b>${fmt(s.ttr)}</b> · 连接词 <b>${fmt(s.conn_density)}</b>${s.conn_density === s.conn_density ? "/句" : ""} · 重复率 <b>${fmt(s.ngram_repeat)}</b></div>`}
+    ${statsHtml(result.stats)}
     ${oodHtml(result.ood)}
     ${paraHeatHtml(result)}
   </div>`);
@@ -111,8 +109,6 @@ b { font-variant-numeric: tabular-nums; }
 .seal.low { color: var(--sev-low); }
 .mono-num { font-family: var(--mono); }
 .score-main .t { font-weight: 650; font-size: 14px; }
-.score-main .sub { display: block; font-size: 10.5px; color: var(--ink-3); margin-top: 2px; }
-.score-main .ci { white-space: nowrap; }
 .stats .row.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
 .stats .row.heat-note { font-size: 11px; color: var(--ink-3); margin-top: 6px; }
@@ -138,7 +134,6 @@ b { font-variant-numeric: tabular-nums; }
 .sev-high .mg-kind { color: var(--sev-high); }
 .sev-medium .mg-kind { color: var(--sev-medium); }
 .sev-low .mg-kind { color: var(--sev-low); }
-.rid { font-family: var(--mono, Consolas); font-size: 10.5px; color: var(--ink-2); }
 .rname { font-weight: 600; font-size: 12px; }
 .found .head .loc, .loc { color: var(--ink-3); font-weight: 400; font-size: 10.5px; margin-left: auto; font-family: var(--mono, Consolas); }
 blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid var(--hairline); color: var(--ink-2); }

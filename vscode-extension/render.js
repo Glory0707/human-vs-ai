@@ -75,15 +75,6 @@
     }).join(" · ");
   }
 
-  /* 构成列 HTML 版（指数印章 sub 行专用）：每项 nowrap，窄屏换行
-     不拆"标签 数值"；纯文本版 componentsText 仍服务 Markdown 出口 */
-  function compsHtml(components) {
-    return Object.keys(components).map(f => {
-      const v = components[f];
-      return `<span class="ci">${SCORE_LABEL[f] || f} ${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(0)}</span>`;
-    }).join(`<span class="ci-sep"> · </span>`);
-  }
-
   /* 指数印章：分档颜色锚定校准语料的真人分位（>p90 高 / >p50 中 / 其余低）。
      够 8 句却没出分（无校准语料）的场景由各端用 scoreNoteRow 给一行原因 */
   function scoreNoteRow(note) {
@@ -95,7 +86,8 @@
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
-     分档读数直接说人话（"超过 90% 校准真人"），p50/p90 数字放悬浮提示 */
+     印章就是数字本体，旁边只给人话读数（"超过 90% 校准真人"）；构成系数与
+     真人分位是诊断信息，悬浮可查，不占版面 */
   function sealHtml(score) {
     if (!score) return "";
     const idx = score.index.toFixed(0);
@@ -104,8 +96,8 @@
       : band === "medium" ? "超过半数校准真人" : "低于半数校准真人";
     return `<div class="row score">` +
       `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-      `<span class="score-main"><span class="t">${idx} / 100</span>` +
-      `<span class="sub" title="真人 p50≈${score.human_p50} · p90≈${score.human_p90}">${bandText} · 构成：${compsHtml(score.components)}</span></span></div>`;
+      `<span class="score-main" title="构成：${esc(componentsText(score.components))} · 真人 p50≈${score.human_p50} · p90≈${score.human_p90}">` +
+      `<span class="t">${bandText}</span></span></div>`;
   }
 
   /* 域外提示：与 Python report._ood_lines 同构。按"文体/文种"两族分行——
@@ -157,7 +149,7 @@
     const more = hints.length - shown.length;
     /* 折叠为 details：弱命中只是参考信息，默认收起不淹没正文发现 */
     return `<details class="hints"><summary class="t">另有 ${hints.length} 处弱命中</summary>` +
-      shown.map(h => `<div class="h">· ${esc(h.rule_id)} ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
+      shown.map(h => `<div class="h">· ${esc(h.rule_name)}（¶${h.para + 1}）</div>`).join("") +
       (more ? `<div class="h">…等 ${more} 处</div>` : "") +
       `</details>`;
   }
@@ -188,9 +180,8 @@
       const why = g.items.find(i => !explained.has(i.rule_id));
       g.items.forEach(i => explained.add(i.rule_id));
       parts.push(`<div class="found sev-${top.severity}"${g.sentence && locate ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
-        <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rid">${esc(ids)}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
         ${g.sentence ? `<blockquote${locate ? ` title="点击定位原稿"` : ""}>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
-        ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
     });
@@ -200,7 +191,7 @@
       explained.add(f.rule_id);
       const matchArr = [...new Set(f.matches)];
       parts.push(`<div class="found sev-${f.severity}">
-        <div class="mg-head"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rid">${esc(f.rule_id)}</span><span class="rname">${esc(f.rule_name)}</span>${taste}<span class="loc">全文</span></div>
+        <div class="mg-head" title="${esc(f.rule_id)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rname">${esc(f.rule_name)}</span>${taste}<span class="loc">全文</span></div>
         ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
@@ -263,6 +254,14 @@
     rows.push(`句长 CV ${fmt(s.sentence_cv)} · 段长 CV ${fmt(s.para_len_cv)}`);
     rows.push(`TTR ${fmt(s.ttr)} · 连接词 ${fmt(s.conn_density)}${s.conn_density === s.conn_density ? "/句" : ""} · 重复率 ${fmt(s.ngram_repeat)}`);
     return rows;
+  }
+
+  /* 报告面板统计块：一行规模，诊断口径（CV/TTR/连接词/重复率）进悬浮——
+     面板做减法；完整三行仍走 statsRows 服务 Markdown 导出 */
+  function statsHtml(s) {
+    const rows = statsRows(s);
+    const detail = rows.slice(1).join(" · ");
+    return `<div class="row"${detail ? ` title="${esc(detail)}"` : ""}>${esc(rows[0])}</div>`;
   }
 
   /* 报告 → Markdown。label 由调用方给（web 用中文场景名，Obsidian 用
@@ -357,7 +356,7 @@
     oodHtml: oodHtml, oodLines: oodLines, paraHeatHtml: paraHeatHtml,
     hintsHtml: hintsHtml,
     findingsHtml: findingsHtml, adviceRowsHtml: adviceRowsHtml,
-    buildGroups: buildGroups, statsRows: statsRows,
+    buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,
     reportToMarkdown: reportToMarkdown, adviceToMarkdown: adviceToMarkdown,
     SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
     HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
