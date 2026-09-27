@@ -225,7 +225,7 @@ official 的词表/系数按公文校准，其他场景拿公文风文本去套�
 
 ## 8. 综合评分（AI 味指数）系数表
 
-`tools/fit_score.py`（academic/general）与 `tools/fit_domain.py`（essay/news，C-ReD 全量类平衡）拟合，半样本拟合并留出验证；系数与真人分位锚点随 `scoring` 段入库。特征：门控前严重级加权命中密度（hit_density）、句长 CV、字级 2-gram TTR（全文唯一切分口径，四端同数）、4-gram 重复率。essay/news 系数与砍掉清单见 §9。
+`tools/fit_score.py`（academic）、`tools/fit_general.py`（general 当代口径）、`tools/fit_official.py`（official 当代口径）与 `tools/fit_domain.py`（essay/news，C-ReD 全量类平衡）拟合，半样本拟合并留出验证；系数与真人分位锚点随 `scoring` 段入库。特征：门控前严重级加权命中密度（hit_density）、句长 CV、字级 2-gram TTR（全文唯一切分口径，四端同数）、4-gram 重复率。essay/news 系数与砍掉清单见 §9。
 
 | Profile | 语料（过 8 句门槛） | 扣词 | 门控 | 纯统计 | **综合** | **分层留出** | 真人 p50 / p90 |
 |---|---|---|---|---|---|---|---|
