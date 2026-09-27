@@ -40,6 +40,15 @@ _STRONG_MIN = 0.008  # classical：文言虚词密度下限
 _LE_MAX = 0.006    # classical：了字密度上限
 _BAL_MIN = 0.60    # verse：等长对句占比下限
 _BAL_SENTS_MIN = 4  # verse：最少句数
+
+
+def _joined(sentences: list[str]) -> str:
+    return "".join(sentences)
+
+
+def _too_short(text: str) -> bool:
+    """全文清洗后不足 _N_MIN 字：各判据共用的最短门槛。"""
+    return len(PUNCT.sub("", text)) < _N_MIN
 _PART_LEN = (5, 9)  # verse：对句分句字数窗（五言~九言）
 
 
@@ -95,8 +104,8 @@ def detect_genre(sentences: list[str]) -> list[str]:
 
     入参与 detect 同口径：统计层展平后的句子文本，两端都从这里取数。
     """
-    text = "".join(sentences)
-    if len(PUNCT.sub("", text)) < _N_MIN:
+    text = _joined(sentences)
+    if _too_short(text):
         return []
     kinds: list[str] = []
     if _RE_YINFA.search(text):
@@ -133,9 +142,10 @@ _CJK_MIN = 0.30
 
 def detect_lang(sentences: list[str]) -> bool:
     """判定文本是否非中文为主（抑制出分：指数无校准依据）。"""
-    clean = PUNCT.sub("", "".join(sentences))
-    if len(clean) < _N_MIN:
+    text = _joined(sentences)
+    if _too_short(text):
         return False
+    clean = PUNCT.sub("", text)
     cjk = sum(1 for ch in clean if "一" <= ch <= "鿿")
     return cjk / len(clean) < _CJK_MIN
 
@@ -147,8 +157,8 @@ def detect_officialese(sentences: list[str]) -> bool:
     系统性误报——命中时报告指向 official 场景（engine 按 profile 决定
     是否调用）。入参与 detect 同口径：统计层展平后的句子文本。
     """
-    text = "".join(sentences)
-    if len(PUNCT.sub("", text)) < _N_MIN:
+    text = _joined(sentences)
+    if _too_short(text):
         return False
     if any(r.search(text) for r in _OFFICIAL_RES):
         return True

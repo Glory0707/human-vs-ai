@@ -125,9 +125,8 @@ class Score:
     """AI 味指数：规则命中密度 + 全文统计的逻辑回归综合分（0-100）。
 
     系数在 profile YAML 的 scoring 段（校准只改数据的纪律），拟合与
-    分层验证见 tools/fit_score.py 与 _qa/score-fit.json。它回答"这篇
-    整体上模板腔有多重"，逐句归因仍由 findings 承担——分数不许单独
-    定罪，免责声明始终随行。
+    分层验证见 tools/fit_*.py。它回答"这篇整体上模板腔有多重"，
+    逐句归因仍由 findings 承担——分数不许单独定罪。
     """
 
     index: float  # 0-100

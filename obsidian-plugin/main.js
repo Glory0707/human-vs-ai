@@ -454,28 +454,35 @@ const HvA = (function () {
   var GENRE_PIFU_RE = /批复如下/;
 
   function detectGenre(sents) {
-    var joined = "";
-    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
-    if (cpLength(joined.replace(PUNCT_RE, "")) < 80) return [];
+    var joined = joinedText(sents);
+    if (cleanCpLen(joined) < 80) return [];
     var kinds = [];
     if (GENRE_YINFA_RE.test(joined)) kinds.push("issuance-notice");
     if (GENRE_PIFU_RE.test(joined)) kinds.push("approval-reply");
     return kinds;
   }
 
+  /* 判据函数共用：展平句子；标点清洗后的码点长度（与 Python _too_short 同源） */
+  function joinedText(sents) {
+    var joined = "";
+    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
+    return joined;
+  }
+  function cleanCpLen(joined) {
+    return cpLength(joined.replace(PUNCT_RE, ""));
+  }
+
   /* ---------- 非中文为主：与 Python ood.detect_lang 同构。只对全文判，
      阈值 0.30 远低于校准语料最低值 0.60（中文长文里一段外文引用不触发） ---------- */
   function detectLang(sents) {
-    var joined = "";
-    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
-    var clean = joined.replace(PUNCT_RE, "");
-    if (cpLength(clean) < 80) return false;
+    var joined = joinedText(sents);
+    if (cleanCpLen(joined) < 80) return false;
     var cjk = 0;
-    for (var i = 0; i < clean.length; i++) {
-      var cc = clean.charCodeAt(i);
+    for (var i = 0; i < joined.length; i++) {
+      var cc = joined.charCodeAt(i);
       if (cc >= 0x4e00 && cc <= 0x9fff) cjk++;
     }
-    return cjk / cpLength(clean) < 0.30;
+    return cjk / cleanCpLen(joined) < 0.30;
   }
 
   /* ---------- 公文风格（切场景提示）：与 Python ood.detect_officialese 同构 ---------- */
@@ -496,9 +503,8 @@ const HvA = (function () {
   var OFFICIAL_HEADS = ["抄送", "主送"];
 
   function detectOfficialese(sents) {
-    var joined = "";
-    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
-    if (cpLength(joined.replace(PUNCT_RE, "")) < 80) return false;
+    var joined = joinedText(sents);
+    if (cleanCpLen(joined) < 80) return false;
     for (var r = 0; r < OFFICIAL_RES.length; r++) {
       if (OFFICIAL_RES[r].test(joined)) return true;
     }
@@ -1285,16 +1291,13 @@ const HvARender = (function () {
   }
 
   return {
-    esc: esc, fmt: fmt, hiSentence: hiSentence,
-    componentsText: componentsText,
+    esc: esc,
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, oodLines: oodLines,
-    hintsHtml: hintsHtml,
+    oodHtml: oodHtml, hintsHtml: hintsHtml,
     findingsHtml: findingsHtml, adviceRowsHtml: adviceRowsHtml,
     buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,
     reportToMarkdown: reportToMarkdown, adviceToMarkdown: adviceToMarkdown,
-    SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
-    HINTS_MAX: HINTS_MAX,
+    PROFILE_META: PROFILE_META,
   };
 });
 

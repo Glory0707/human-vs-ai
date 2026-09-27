@@ -292,17 +292,9 @@ body.resizing .pane { transition: none; }
 .seal.high { color: var(--vermilion); }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
-.score-main { min-width: 0; }
-.score-main .t { font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 .row.score .comp { color: var(--ink-3); }
 .stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
-.ph b { font-weight: 650; }
-.ph[data-para] { cursor: pointer; }
-.ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
-.ph-high { color: var(--vermilion); }
-.ph-medium { color: var(--accent-deep); }
-.ph-sep { color: var(--hairline); }
 
 .summary { padding: 12px 0 8px; font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 
@@ -955,28 +947,35 @@ html.dark mark {
   var GENRE_PIFU_RE = /批复如下/;
 
   function detectGenre(sents) {
-    var joined = "";
-    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
-    if (cpLength(joined.replace(PUNCT_RE, "")) < 80) return [];
+    var joined = joinedText(sents);
+    if (cleanCpLen(joined) < 80) return [];
     var kinds = [];
     if (GENRE_YINFA_RE.test(joined)) kinds.push("issuance-notice");
     if (GENRE_PIFU_RE.test(joined)) kinds.push("approval-reply");
     return kinds;
   }
 
+  /* 判据函数共用：展平句子；标点清洗后的码点长度（与 Python _too_short 同源） */
+  function joinedText(sents) {
+    var joined = "";
+    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
+    return joined;
+  }
+  function cleanCpLen(joined) {
+    return cpLength(joined.replace(PUNCT_RE, ""));
+  }
+
   /* ---------- 非中文为主：与 Python ood.detect_lang 同构。只对全文判，
      阈值 0.30 远低于校准语料最低值 0.60（中文长文里一段外文引用不触发） ---------- */
   function detectLang(sents) {
-    var joined = "";
-    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
-    var clean = joined.replace(PUNCT_RE, "");
-    if (cpLength(clean) < 80) return false;
+    var joined = joinedText(sents);
+    if (cleanCpLen(joined) < 80) return false;
     var cjk = 0;
-    for (var i = 0; i < clean.length; i++) {
-      var cc = clean.charCodeAt(i);
+    for (var i = 0; i < joined.length; i++) {
+      var cc = joined.charCodeAt(i);
       if (cc >= 0x4e00 && cc <= 0x9fff) cjk++;
     }
-    return cjk / cpLength(clean) < 0.30;
+    return cjk / cleanCpLen(joined) < 0.30;
   }
 
   /* ---------- 公文风格（切场景提示）：与 Python ood.detect_officialese 同构 ---------- */
@@ -997,9 +996,8 @@ html.dark mark {
   var OFFICIAL_HEADS = ["抄送", "主送"];
 
   function detectOfficialese(sents) {
-    var joined = "";
-    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
-    if (cpLength(joined.replace(PUNCT_RE, "")) < 80) return false;
+    var joined = joinedText(sents);
+    if (cleanCpLen(joined) < 80) return false;
     for (var r = 0; r < OFFICIAL_RES.length; r++) {
       if (OFFICIAL_RES[r].test(joined)) return true;
     }
@@ -1782,16 +1780,13 @@ html.dark mark {
   }
 
   return {
-    esc: esc, fmt: fmt, hiSentence: hiSentence,
-    componentsText: componentsText,
+    esc: esc,
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, oodLines: oodLines,
-    hintsHtml: hintsHtml,
+    oodHtml: oodHtml, hintsHtml: hintsHtml,
     findingsHtml: findingsHtml, adviceRowsHtml: adviceRowsHtml,
     buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,
     reportToMarkdown: reportToMarkdown, adviceToMarkdown: adviceToMarkdown,
-    SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
-    HINTS_MAX: HINTS_MAX,
+    PROFILE_META: PROFILE_META,
   };
 });
 
@@ -1952,7 +1947,7 @@ function toast(msg, ms = 1600, action) {
 }
 
 // 报告组装：统计块本端排布（印章/统计行/域外），发现卡/弱命中/
-// 免责走共享层（render.js）
+
 function renderReport(result) {
   if (!result) return;
   reportEl.classList.toggle("swap", shouldAnimate);

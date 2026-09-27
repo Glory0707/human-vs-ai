@@ -26,7 +26,7 @@ const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml, statsHtml,
    编辑器装饰必须给实色；hint 档不画装饰） */
 const SEV_COLOR = { high: "#B3351F", medium: "#9C7414", low: "#1D4E5F" };
 
-/* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中 → 免责），
+/* 报告 HTML：结构与 CLI/网页版同一份内容（统计摘要 → 逐条发现 → 弱命中），
    样式对齐网页版；颜色走 --vscode-* 主题变量（VS Code 会给 webview body
    挂 vscode-light / vscode-dark 类），暗色主题下不再白底刺眼。 */
 function renderReportHtml(fileName, profile, result) {
@@ -40,7 +40,7 @@ function renderReportHtml(fileName, profile, result) {
     ${oodHtml(result.ood)}
   </div>`);
 
-  /* 发现卡/弱命中/免责走共享层（render.js）——与网页/Obsidian 同一份结构 */
+  /* 发现卡/弱命中走共享层（render.js）——与网页/Obsidian 同一份结构 */
   parts.push(findingsHtml(result));
   parts.push(hintsHtml(result.hints));
 
@@ -106,13 +106,8 @@ b { font-variant-numeric: tabular-nums; }
 .seal.medium { color: var(--sev-medium); }
 .seal.low { color: var(--sev-low); }
 .mono-num { font-family: var(--mono); }
-.score-main .t { font-weight: 650; font-size: 14px; }
 .stats .row.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
-.ph b { font-weight: 650; }
-.ph-high { color: var(--sev-high); }
-.ph-medium { color: var(--accent-deep); }
-.ph-sep { color: var(--hairline); }
 .summary { padding: 12px 0 4px; font-weight: 650; }
 .found {
   background: var(--chip); border: 1px solid var(--hairline);

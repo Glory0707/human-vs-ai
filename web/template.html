@@ -292,17 +292,9 @@ body.resizing .pane { transition: none; }
 .seal.high { color: var(--vermilion); }
 .seal.medium { color: var(--ochre); }
 .seal.low { color: var(--accent); }
-.score-main { min-width: 0; }
-.score-main .t { font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 .row.score .comp { color: var(--ink-3); }
 .stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
-.ph b { font-weight: 650; }
-.ph[data-para] { cursor: pointer; }
-.ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
-.ph-high { color: var(--vermilion); }
-.ph-medium { color: var(--accent-deep); }
-.ph-sep { color: var(--hairline); }
 
 .summary { padding: 12px 0 8px; font-weight: 650; font-size: var(--fs-xl); letter-spacing: -0.01em; }
 
@@ -677,7 +669,7 @@ function toast(msg, ms = 1600, action) {
 }
 
 // 报告组装：统计块本端排布（印章/统计行/域外），发现卡/弱命中/
-// 免责走共享层（render.js）
+
 function renderReport(result) {
   if (!result) return;
   reportEl.classList.toggle("swap", shouldAnimate);
