@@ -648,21 +648,6 @@
    "doc_tiers": []
   },
   {
-   "id": "G-CLOS-01",
-   "name": "独句总结段",
-   "tier": "structural",
-   "scope": "shape",
-   "severity": "low",
-   "patterns": [],
-   "explanation": "整段只有一句不超过 40 字的话，通常是“给上文盖章”——“这就是坚持的意义。”自媒体把它当节奏器用，AI 把它当默认收束。与 G-INTERACT-01 叠加出现时，“模板腔收尾”的信号很强",
-   "suggestion": "独句段承载新事实就并回上文；只是总结腔调就整段删掉。",
-   "doc_metric": "one_liner",
-   "doc_compare": "",
-   "taste": "",
-   "doc_threshold": null,
-   "doc_tiers": []
-  },
-  {
    "id": "D-UNIF-01",
    "name": "句长节奏均匀",
    "tier": "statistical",

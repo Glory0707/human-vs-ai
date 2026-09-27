@@ -438,6 +438,12 @@ def analyze(text: str, profile: str = "academic") -> AnalysisResult:
     if profile != "official" and ood.detect_officialese(all_para) and "officialese" not in result.ood:
         result.ood.append("officialese")
 
+    # 非中文为主：指数无校准依据，抑制出分（同文种抑制的诚实逻辑）
+    if ood.detect_lang(all_para):
+        result.ood.append("non-chinese")
+        score_scoring = None
+        result.scoring_note = "非中文文本不适用"
+
     raw_hits: dict[str, list[Finding]] = {}
     # 逐句规则 + 段落形状规则（shape：判的不是内容是形状，比如"一句话总结段"）
     for pi, block in enumerate(doc):

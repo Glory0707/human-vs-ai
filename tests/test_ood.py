@@ -329,3 +329,35 @@ class TestOfficialese:
         assert "O-INFL-01" not in ids and "O-PARA-01" not in ids
         # 现役信号不得被顺手清掉
         assert {"O-STK-01", "O-TAIL-01", "O-EXCL-01", "D-STKD-01"} <= ids
+
+
+class TestNonChinese:
+    """非中文为主（v0.30.0）：中文 AI 味分析只校准过中文，非中文为主时
+    抑制出分并给提示行。判据定义性：CJK 占比 < 0.30（校准语料最低 0.60，
+    零误触）；只对全文判，中文长文里的一段外文引用不触发。"""
+
+    EN = ("Thank you for your email regarding the project timeline. I have reviewed the "
+          "draft proposal and discussed it with the team this morning. Overall the plan "
+          "looks solid, but we would like to propose a few adjustments to the delivery "
+          "schedule. Please let me know if you are available for a short call tomorrow.")
+
+    def test_english_suppressed(self):
+        r = engine.analyze(self.EN, "general")
+        assert "non-chinese" in r.ood
+        assert r.score is None
+        assert r.scoring_note == "非中文文本不适用"
+
+    def test_chinese_unaffected(self):
+        r = engine.analyze(BAIHUA, "general")
+        assert "non-chinese" not in r.ood
+
+    def test_mixed_chinese_dominant_safe(self):
+        # 中文为主夹杂英文术语：正常出分路径，不抑制
+        text = BAIHUA + " 这个 workflow 依赖 token 刷新机制，review 一下 latency 的 benchmark 数据。"
+        r = engine.analyze(text, "general")
+        assert "non-chinese" not in r.ood
+
+    def test_report_hint_line(self):
+        from human_vs_ai import report
+        out = report.render_terminal(engine.analyze(self.EN, "general"))
+        assert "非中文文本" in out

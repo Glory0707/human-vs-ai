@@ -449,6 +449,21 @@
     return kinds;
   }
 
+  /* ---------- 非中文为主：与 Python ood.detect_lang 同构。只对全文判，
+     阈值 0.30 远低于校准语料最低值 0.60（中文长文里一段外文引用不触发） ---------- */
+  function detectLang(sents) {
+    var joined = "";
+    for (var i = 0; i < sents.length; i++) joined += sents[i].text;
+    var clean = joined.replace(PUNCT_RE, "");
+    if (cpLength(clean) < 80) return false;
+    var cjk = 0;
+    for (var i = 0; i < clean.length; i++) {
+      var cc = clean.charCodeAt(i);
+      if (cc >= 0x4e00 && cc <= 0x9fff) cjk++;
+    }
+    return cjk / cpLength(clean) < 0.30;
+  }
+
   /* ---------- 公文风格（切场景提示）：与 Python ood.detect_officialese 同构 ---------- */
 
   /* 机关行文结构短语。标定（真人公文 87 篇覆盖 65 vs 知乎/豆瓣/果壳 0 误触）。
@@ -670,6 +685,12 @@
     if (profile != null && profile !== "official" &&
         detectOfficialese(allSents) && oodKinds.indexOf("officialese") < 0) {
       oodKinds.push("officialese");
+    }
+    /* 非中文为主：指数无校准依据，抑制出分（与 Python analyze 同构） */
+    if (oodKinds.indexOf("non-chinese") < 0 && detectLang(allSents)) {
+      oodKinds.push("non-chinese");
+      scoreScoring = null;
+      genreNote = "非中文文本不适用";
     }
     /* 够 8 句却没出分（该 profile 无 scoring 段）给一句原因；<8 句保持空；
        文种抑制的说明优先于通用分支 */

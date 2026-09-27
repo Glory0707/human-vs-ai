@@ -35,7 +35,7 @@ GOV_HU = ROOT / "_qa/corpus/gov-oos"
 # 营销号/搬运文标记（只收窄不放宽——宁可漏收不可错收真人样本）
 _SPAM = re.compile(r"首发|公众号|公号：|扫码|微信号|搬运|转载|出处[:：]|Appcaret敬请")
 
-BASELINE = {"general": 0.935, "official": 0.934}  # rules/*.yaml auroc_holdout
+BASELINE = {"general": 0.929, "official": 0.934}  # rules/*.yaml auroc_holdout
 DROP_LIMIT = 0.05
 
 

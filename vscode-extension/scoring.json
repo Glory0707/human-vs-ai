@@ -34,16 +34,16 @@
   "human_p90": 55
  },
  "general": {
-  "corpus": "知乎真实长回答 110 篇 vs gen2026 当季 9 模型 600 字回答 69 篇，类平衡，2026-09",
-  "intercept": -61.9705,
-  "hit_density": 7.239,
-  "sentence_cv": -4.848,
-  "ttr": 67.6841,
-  "ngram_repeat": -107.1588,
-  "auroc": 0.945,
-  "auroc_holdout": 0.935,
+  "corpus": "知乎真实长回答 114 篇 vs gen2026 当季 9 模型 600 字回答 69 篇，类平衡，2026-09（v0.30.0 随 G-CLOS-01 撤出重拟合）",
+  "intercept": -58.3795,
+  "hit_density": 6.1082,
+  "sentence_cv": -5.991,
+  "ttr": 65.0166,
+  "ngram_repeat": -107.8282,
+  "auroc": 0.942,
+  "auroc_holdout": 0.929,
   "human_p50": 2,
-  "human_p90": 77
+  "human_p90": 58
  },
  "news": {
   "corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09 era 重拟合",

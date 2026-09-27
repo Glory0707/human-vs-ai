@@ -101,6 +101,7 @@
     verse: "等长对句诗行",
     "issuance-notice": "印发类",
     "approval-reply": "批复类",
+    "non-chinese": "非中文文本",
   };
   var OOD_KIND = { classical: "文体", verse: "文体", "issuance-notice": "文种", "approval-reply": "文种" };
   var OOD_WHY = { "文体": "指数仅供参考", "文种": "本篇仅供参考" };

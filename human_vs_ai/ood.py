@@ -124,6 +124,22 @@ _OFFICIAL_RES = (
 _OFFICIAL_HEADS = ("抄送", "主送")
 
 
+# 非中文为主：中文 AI 味分析只校准过中文——非中文字符占多数时词表与
+# 统计全部失效。判据是定义性的（本工具不做外文 AI 味），阈值 0.30 远低于
+# 全部校准语料的最低值 0.60，零误触。只对全文判（detect 逐段聚合会把
+# 中文长文里的一段外文引用放大成全文判定，所以单列函数）。
+_CJK_MIN = 0.30
+
+
+def detect_lang(sentences: list[str]) -> bool:
+    """判定文本是否非中文为主（抑制出分：指数无校准依据）。"""
+    clean = PUNCT.sub("", "".join(sentences))
+    if len(clean) < _N_MIN:
+        return False
+    cjk = sum(1 for ch in clean if "一" <= ch <= "鿿")
+    return cjk / len(clean) < _CJK_MIN
+
+
 def detect_officialese(sentences: list[str]) -> bool:
     """判定公文/公务文书风格。
 
