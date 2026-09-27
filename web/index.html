@@ -205,7 +205,6 @@ body {
 .segmented button:hover { background: transparent; }
 .segmented button.on { color: #fff; font-weight: 600; }
 .segmented button:disabled { opacity: 0.4; }
-.topbar .note { margin-left: auto; font-size: var(--fs-xs); color: var(--ink-3); letter-spacing: 0.04em; }
 .topbar .actions { display: flex; align-items: center; gap: 6px; }
 #themeBtn { padding: 4px 8px; font-size: var(--fs-md); line-height: 1; }
 
@@ -263,7 +262,6 @@ body.resizing .pane { transition: none; }
 #report.swap .found:nth-child(3) { animation: popIn var(--t-base) var(--ease-out) .03s backwards; }
 #report.swap .found:nth-child(4) { animation: popIn var(--t-base) var(--ease-out) .06s backwards; }
 #report.swap .found:nth-child(n+5) { animation: popIn var(--t-base) var(--ease-out) .09s backwards; }
-#report.swap .disclaimer { animation: popIn var(--t-base) var(--ease-out) .12s backwards; }
 /* 指数印章随内容入场落印：缩收 + 微转 + 透明度 */
 @keyframes stampIn {
   from { opacity: 0; transform: rotate(-8deg) scale(1.5); }
@@ -365,11 +363,6 @@ html.dark mark {
 .hints summary.t:hover { color: var(--ink); }
 .hints .h { font-size: var(--fs-sm); color: var(--ink-3); margin-top: 2px; }
 
-.disclaimer {
-  margin-top: 16px; padding: 10px 14px; background: var(--paper-deep);
-  font-size: var(--fs-xs); color: var(--ink-2); border-radius: 4px;
-}
-
 /* —— 空态（eggpaper empty 语言：大徽记 + display 标题 + 朱砂印章铭文） */
 .empty-block {
   height: 100%; min-height: 320px;
@@ -410,7 +403,6 @@ html.dark mark {
 .advice.del .tag { color: var(--vermilion); }
 .advice.chg .tag { color: var(--ochre); }
 .advice.keep .tag { color: var(--accent); }
-.advice .taste { font-family: var(--mono); font-size: var(--fs-xs); color: var(--ink-3); margin-left: 6px; }
 .advice .why { color: var(--ink-2); margin: 4px 0 0 26px; }
 .advice .cand { color: var(--accent-deep); margin: 3px 0 0 26px; }
 .advice .dir { color: var(--ink-3); margin: 3px 0 0 26px; font-size: var(--fs-sm); }
@@ -474,7 +466,6 @@ html.dark mark {
   .split-grip { display: none; }
   .pane + .pane { border-left: none; border-top: 1px solid var(--hairline); }
   .topbar { height: auto; padding: 8px 12px; row-gap: 6px; }
-  .topbar .note { flex-basis: 100%; margin-left: 0; order: 10; }
   .wordmark .name { font-size: var(--fs-xl); }
   /* 触控目标：分段按钮加高到 ~44px；允许换行，滑块在多行下无意义，
      改用填充高亮标示活动项 */
@@ -501,11 +492,11 @@ html.dark mark {
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.29.2</span>
+    <span class="head-ver">v0.29.3</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
-  <span class="note">纯本地</span>
+  
   <span class="actions"><button id="themeBtn" class="ghost" title="切换主题">◐</button></span>
   <div class="tran-line" id="tranline"><i></i></div>
 </header>
@@ -516,7 +507,7 @@ html.dark mark {
   </section>
   <div class="split-grip" id="splitGrip" role="separator" aria-orientation="vertical" tabindex="0" title="拖动调整，双击复位"></div>
   <section class="pane" id="reportPane">
-    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制</button><button id="draftBtn" class="ghost" hidden disabled>清理稿</button><button id="sampleBtn" class="ghost" disabled>匿名样本</button></div>
+    <div class="pane-head"><span class="p-t">分析报告</span><button id="copyBtn" disabled>复制</button><button id="draftBtn" class="ghost" hidden disabled>清理稿</button></div>
     <div id="report"></div>
   </section>
 </main>
@@ -1470,8 +1461,6 @@ html.dark mark {
   };
   /* 弱命中只是参考信息，长文里全量列出会淹没正文发现（与 CLI 同口径） */
   var HINTS_MAX = 12;
-  var DISCLAIMER = "风格提示，不是 AI 判定。";
-  var ADVICE_FOOTER = "重要数据和结论要保留；梗得人来补。";
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -1601,23 +1590,21 @@ html.dark mark {
       // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
       const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
       const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
-      const taste = [...new Set(g.items.map(i => i.taste).filter(Boolean))].join("/");
       const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
       const why = g.items.find(i => !explained.has(i.rule_id));
       g.items.forEach(i => explained.add(i.rule_id));
       parts.push(`<div class="found sev-${top.severity}"${g.sentence && locate ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
-        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span><span class="loc">¶${g.para + 1}</span></div>
         ${g.sentence ? `<blockquote${locate ? ` title="点击定位原稿"` : ""}>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
         ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
     });
     docLevel.forEach(f => {
-      const taste = f.taste ? `<span class="taste">${esc(f.taste)}</span>` : "";
       const why = !explained.has(f.rule_id);
       explained.add(f.rule_id);
       const matchArr = [...new Set(f.matches)];
       parts.push(`<div class="found sev-${f.severity}">
-        <div class="mg-head" title="${esc(f.rule_id)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rname">${esc(f.rule_name)}</span>${taste}<span class="loc">全文</span></div>
+        <div class="mg-head" title="${esc(f.rule_id)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">全文</span></div>
         ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
@@ -1631,9 +1618,8 @@ html.dark mark {
   function adviceRowsHtml(A) {
     return A.map(a => {
       const [cls, label] = ADVICE_META[a.action] || ["keep", "?"];
-      const taste = a.taste && a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
       return `<div class="advice ${cls}">
-        <div class="line"><span class="tag">${label}</span>${esc(a.text)}${taste}</div>
+        <div class="line"><span class="tag">${label}</span>${esc(a.text)}</div>
         ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
         ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : ""}
         ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
@@ -1732,7 +1718,7 @@ html.dark mark {
     docLevel.forEach(f => {
       const why = !explained.has(f.rule_id);
       explained.add(f.rule_id);
-      L.push(`### [${SEV_NAME[f.severity]}] ${f.rule_id} ${f.rule_name}${f.taste ? ` · ${f.taste}` : ""}（全文）`, "");
+      L.push(`### [${SEV_NAME[f.severity]}] ${f.rule_id} ${f.rule_name}（全文）`, "");
       if (f.matches.length) L.push(`**命中**：${[...new Set(f.matches)].join("、")}`, "");
       if (why) {
         L.push(f.explanation.trim());
@@ -1747,7 +1733,6 @@ html.dark mark {
       if (r.hints.length > HINTS_MAX) L.push(`- …等 ${r.hints.length} 处`);
       L.push("");
     }
-    L.push("---", "", DISCLAIMER);
     return L.join("\n");
   }
 
@@ -1761,7 +1746,7 @@ html.dark mark {
     const L = ["# human-vs-ai 改写建议（我的口味）", "",
       `共 ${A.length} 条 · 删 ${n("删")} · 改 ${n("改")} · 保留 ${n("保留")}`, ""];
     A.forEach(a => {
-      L.push(`[${a.action}]${a.taste.length ? " " + a.taste.join("/") : ""} ${a.text}`);
+      L.push(`[${a.action}] ${a.text}`);
       if (a.reason) L.push(`  ${a.reason}`);
       if (a.candidate) L.push(`  → ${a.candidate}`);
       else if (a.direction) L.push(`  → ${a.direction}`);
@@ -1771,7 +1756,6 @@ html.dark mark {
       L.push("## 清理稿（草稿）", "", "```", draft, "```", "",
         "清理稿只落地了删行与换候选；带「→ 方向」的条目要人来改。", "");
     }
-    L.push("---", "", ADVICE_FOOTER);
     return L.join("\n");
   }
 
@@ -1785,7 +1769,7 @@ html.dark mark {
     buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,
     reportToMarkdown: reportToMarkdown, adviceToMarkdown: adviceToMarkdown,
     SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
-    HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
+    HINTS_MAX: HINTS_MAX,
   };
 });
 
@@ -1798,7 +1782,7 @@ const PROFILES = Object.keys(RULES_BY_PROFILE);
 const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
         findingsHtml, adviceRowsHtml, statsRows, statsHtml,
         reportToMarkdown, adviceToMarkdown,
-        PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = HvARender;
+        PROFILE_META } = HvARender;
 let currentProfile = PROFILES[0];
 let currentMode = "analyze";
 let debounceTimer = null;
@@ -1960,7 +1944,6 @@ function renderReport(result) {
 
   parts.push(hintsHtml(result.hints));
 
-  parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
   reportEl.innerHTML = parts.join("");
   if (reset) reportEl.scrollTop = 0;
 }
@@ -1977,7 +1960,6 @@ function renderAdvice() {
   const shown = adviceFilter === "all" ? A : A.filter(a => a.action === adviceFilter);
   if (!shown.length && A.length) parts.push('<div class="empty">该档位没有条目</div>');
   parts.push(adviceRowsHtml(shown));
-  parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;   // 换档/换模式/进视图是上下文切换：回顶再看
   shouldAnimate = false;
@@ -2001,7 +1983,6 @@ function renderDraft() {
   parts.push(draft.trim()
     ? `<pre class="draftpre">${esc(draft)}</pre>`
     : '<div class="draft-empty">已全部删除</div>');
-  parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;
   shouldAnimate = false;
@@ -2059,7 +2040,6 @@ function doAnalyze(text) {
 
 function updateCopyBtn() {
   copyBtn.disabled = !(lastResult || lastAdvice);
-  document.getElementById("sampleBtn").disabled = !(lastResult && currentMode === "analyze");
   // 清理稿入口只在改写模式且有建议时出现；进入清理稿视图后变"返回"
   const inDraft = currentMode === "rewrite" && adviceView === "draft" && lastAdvice;
   draftBtn.hidden = !(currentMode === "rewrite" && lastAdvice);
@@ -2279,53 +2259,6 @@ reportEl.addEventListener("click", (e) => {
   inputEl.setSelectionRange(from, from + excerpt.length);
 });
 
-/* 匿名校准样本：脱敏（手机号/邮箱/身份证/长数字打码）后下载 .jsonl，
-   与 CLI `collect` 同一份形状——自愿提交到项目渠道帮词表在真实文本上进化 */
-const SENSITIVE = [
-  [/(?<!\d)\d{17}[\dXx](?!\d)/g, "【身份证号】"],
-  [/(?<!\d)1[3-9]\d{9}(?!\d)/g, "【手机号】"],
-  [/[A-Za-z0-9._%+-]{1,64}@[A-Za-z0-9-]{1,63}(?:\.[A-Za-z0-9._-]{1,63})+/g, "【邮箱】"],
-  [/(?<!\d)\d{16,}(?!\d)/g, "【卡号】"],  // 与 CLI collect 同口径：16 位起整段打码，宁枉勿纵
-];
-async function sha256hex(s) {
-  if (crypto.subtle) {
-    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
-    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("").slice(0, 16);
-  }
-  // file:// 无 crypto.subtle：FNV-1a 双盐，去重用途足够（非安全哈希）
-  const fnv = (salt) => {
-    let h = 0x811c9dc5 ^ salt;
-    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = (h * 0x01000193) >>> 0; }
-    return h.toString(16).padStart(8, "0");
-  };
-  return fnv(0x1b873593) + fnv(0xcc9e2d51);
-}
-document.getElementById("sampleBtn").onclick = async () => {
-  const text = lastAnalyzedText;
-  if (!text.trim() || currentMode !== "analyze") return;
-  let clean = text;
-  SENSITIVE.forEach(([rx, ph]) => { clean = clean.replace(rx, ph); });
-  const r = lastResult;
-  const sample = {
-    type: "human-vs-ai-calibration",
-    version: document.querySelector(".head-ver").textContent.replace("v", ""),
-    time: new Date().toISOString().slice(0, 7),
-    label: "unlabeled",
-    profile: currentProfile,
-    text: clean,
-    text_sha256: await sha256hex(clean),
-    score: r && r.score ? Math.round(r.score.index) : null,
-    findings: [...new Set((r ? r.findings : []).map(f => f.rule_id))].sort(),
-    n_chars: r ? r.stats.n_chars : 0,
-  };
-  const blob = new Blob([JSON.stringify(sample)], { type: "application/jsonl" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = `hva-sample-${sample.text_sha256}.jsonl`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast("已导出");
-};
 
 renderProfiles();
 renderModes();

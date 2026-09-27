@@ -8,8 +8,8 @@ from __future__ import annotations
 import html as _html
 from . import __version__
 from .engine import AnalysisResult
-from .report import (DISCLAIMER, HINTS_MAX, SCORE_LABEL, SEV_LABEL, group_by_sentence,
-                     group_top, stats_lines, taste_suffix)
+from .report import (HINTS_MAX, SCORE_LABEL, SEV_LABEL, group_by_sentence,
+                     group_top, stats_lines)
 
 _SEV_COLOR = {"high": "#B3351F", "medium": "#9C7414", "low": "#2E7D6E"}
 
@@ -68,8 +68,6 @@ mark { background-color:rgba(184,70,46,.12);
 .hints { margin-top:12px; padding-top:9px; border-top:1.5px dotted var(--hairline);
          font-size:12px; color:var(--ink-3); }
 .hints div { margin-top:2px; }
-.disclaimer { margin-top:16px; padding:10px 14px; background:var(--paper-deep);
-              font-size:11px; color:var(--ink-2); border-radius:4px; }
 @media print { body { padding:0; } }
 """
 
@@ -161,7 +159,6 @@ def render_html(result: AnalysisResult) -> str:
         top = group_top(group)
         ids = " + ".join(dict.fromkeys(f.rule_id for f in group))
         names = " + ".join(dict.fromkeys(f.rule_name for f in group))
-        taste = taste_suffix(group)
         body_parts = []
         for f in group:
             if f.rule_id in explained:
@@ -171,16 +168,15 @@ def render_html(result: AnalysisResult) -> str:
             if f.suggestion:
                 body_parts.append(f'<div class="tip">→ {_esc(f.suggestion)}</div>')
         out.append(_finding_card(
-            top, f"{_esc(ids)} {_esc(names)}{_esc(taste)}",
+            top, f"{_esc(ids)} {_esc(names)}",
             f"¶{group[0].para + 1}", group[0].sentence,
             [m for f in group for m in f.matches], "".join(body_parts)))
     for f in doc_level:
         body = f"<div>{_esc(f.explanation)}</div>"
         if f.suggestion:
             body += f'<div class="tip">→ {_esc(f.suggestion)}</div>'
-        taste = f" · {f.taste}" if f.taste else ""
         out.append(_finding_card(
-            f.severity, f"{_esc(f.rule_id)} {_esc(f.rule_name)}{_esc(taste)}", "全文",
+            f.severity, f"{_esc(f.rule_id)} {_esc(f.rule_name)}", "全文",
             "", list(f.matches), body))
 
     if result.hints:
@@ -191,6 +187,5 @@ def render_html(result: AnalysisResult) -> str:
             out.append(f"<div>· {_esc(f.rule_id)} {_esc(f.rule_name)}"
                        f"（¶{f.para + 1}）</div>")
         out.append("</div>")
-    out.append(f'<div class="disclaimer">{DISCLAIMER}</div>')
     out.append("</body>\n</html>")
     return "\n".join(out)

@@ -20,7 +20,7 @@ try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
    建议行/常量——三端同一份 UI 事实 */
 const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml, statsHtml,
         findingsHtml, adviceRowsHtml,
-        PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
+        PROFILE_META } = require("./render.js");
 
 /* 扩展专用：命中句在编辑器里画波浪线的严重级配色（webview 内用 CSS 变量，
    编辑器装饰必须给实色；hint 档不画装饰） */
@@ -43,7 +43,6 @@ function renderReportHtml(fileName, profile, result) {
   /* 发现卡/弱命中/免责走共享层（render.js）——与网页/Obsidian 同一份结构 */
   parts.push(findingsHtml(result));
   parts.push(hintsHtml(result.hints));
-  parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -89,7 +88,7 @@ body.vscode-dark, body.vscode-high-contrast {
 }
 b { font-variant-numeric: tabular-nums; }
 @keyframes riseIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-.found, .hints, .advice, .counts, .disclaimer { animation: riseIn .26s cubic-bezier(.2,.7,.3,1) backwards; }
+.found, .hints, .advice, .counts { animation: riseIn .26s cubic-bezier(.2,.7,.3,1) backwards; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 .stats { padding-bottom: 12px; border-bottom: 1px solid var(--hairline); }
 .stats .row { font-size: 12px; color: var(--ink-2); font-variant-numeric: tabular-nums; }
@@ -151,7 +150,6 @@ mark {
 .hints summary.t::before { content: '▸ '; }
 .hints[open] summary.t::before { content: '▾ '; }
 .hints .h { font-size: 12px; color: var(--ink-3); margin-top: 2px; }
-.disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
               color: var(--ink-3); border-radius: 3px; }
 .docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
 </style></head>
@@ -172,7 +170,6 @@ function renderAdviceHtml(fileName, result, sourceText) {
       draftBlock = `<details class="draftbox"><summary>清理稿</summary><pre>${esc(draft)}</pre></details>`;
     }
   }
-  const footer = `<div class="disclaimer">${ADVICE_FOOTER}</div>`;
 
   return `<!DOCTYPE html>
 <html lang="zh-CN">
@@ -198,7 +195,7 @@ body.vscode-dark, body.vscode-high-contrast {
 }
 b { font-variant-numeric: tabular-nums; }
 @keyframes riseIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
-.found, .hints, .advice, .counts, .disclaimer { animation: riseIn .26s cubic-bezier(.2,.7,.3,1) backwards; }
+.found, .hints, .advice, .counts { animation: riseIn .26s cubic-bezier(.2,.7,.3,1) backwards; }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 .docname { font-size: 10.5px; color: var(--ink-3); padding-bottom: 8px; }
 .counts { padding: 6px 0 12px; font-size: 12px; color: var(--ink-2); border-bottom: 1px solid var(--hairline); }
@@ -213,7 +210,6 @@ b { font-variant-numeric: tabular-nums; }
 .why { color: var(--ink-2); margin: 4px 0 0 26px; }
 .cand { color: var(--sev-low); margin: 3px 0 0 26px; }
 .dir { color: var(--ink-3); margin: 3px 0 0 26px; font-size: 12px; }
-.disclaimer { margin-top: 18px; padding: 10px 14px; background: var(--soft); font-size: 10.5px;
               color: var(--ink-3); border-radius: 3px; }
 .draftbox { margin-top: 14px; border: 1px solid var(--hairline); border-radius: 3px; }
 .draftbox summary { cursor: pointer; user-select: none; padding: 7px 10px; font-size: 12px;
@@ -226,7 +222,7 @@ b { font-variant-numeric: tabular-nums; }
                 font-family: var(--vscode-editor-font-family, Consolas); font-size: 12.5px;
                 line-height: 1.7; background: var(--soft); }
 </style></head>
-<body><div class="docname">${esc(fileName)} · 我的口味</div>${counts}${rows}${draftBlock}${footer}</body></html>`;
+<body><div class="docname">${esc(fileName)} · 我的口味</div>${counts}${rows}${draftBlock}</body></html>`;
 }
 
 /* 发现 → 文档偏移：句子级发现按段落序在原文里顺序定位（报告按严重级排序，

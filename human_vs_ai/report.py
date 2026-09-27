@@ -114,12 +114,6 @@ def group_by_sentence(findings: list[Finding]):
     return list(groups.values()), doc_level
 
 
-def taste_suffix(group: list[Finding]) -> str:
-    """口味条目编号（personal profile 专有）——指向 docs/taste_zhouao.md。"""
-    tags = list(dict.fromkeys(f.taste for f in group if f.taste))
-    return f" · {'/'.join(tags)}" if tags else ""
-
-
 def group_top(group: list[Finding]) -> str:
     return min((f.severity for f in group), key=lambda s: _SEV_RANK[s])
 
@@ -129,7 +123,7 @@ def _group_title(group: list[Finding]) -> str:
     ids = " + ".join(dict.fromkeys(f.rule_id for f in group))
     names = " + ".join(dict.fromkeys(f.rule_name for f in group))
     loc = f"¶{group[0].para + 1}"
-    return f"[{SEV_LABEL[group_top(group)]}] {ids} {names}{taste_suffix(group)} · {loc}"
+    return f"[{SEV_LABEL[group_top(group)]}] {ids} {names} · {loc}"
 
 
 def render_terminal(result: AnalysisResult) -> str:
@@ -173,8 +167,7 @@ def render_terminal(result: AnalysisResult) -> str:
                     out.append(C("32", f"    → {f.suggestion}"))
             out.append("")
         for f in doc_level:
-            tag = f" · {f.taste}" if f.taste else ""
-            out.append(C(sev_color[f.severity], f"[{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag} · 全文"))
+            out.append(C(sev_color[f.severity], f"[{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name} · 全文"))
             out.append(C("90", f"  命中：{f.matches[0]}"))
             out.append(f"  {f.explanation}")
             if f.suggestion:
@@ -188,7 +181,6 @@ def render_terminal(result: AnalysisResult) -> str:
             out.append(C("90", f"  · {f.rule_id} {f.rule_name} ¶{f.para + 1}"))
         out.append("")
     out.append(C("90", "─" * 46))
-    out.append(C("90", DISCLAIMER))
     return "\n".join(out)
 
 
@@ -225,8 +217,7 @@ def render_markdown(result: AnalysisResult) -> str:
                 out.append(f"**建议**：{f.suggestion}")
             out.append("")
     for f in doc_level:
-        tag = f" · {f.taste}" if f.taste else ""
-        out.append(f"### [{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}{tag}（全文）")
+        out.append(f"### [{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}（全文）")
         out.append("")
         out.append(f"**命中**：{f.matches[0]}")
         out.append("")
@@ -245,9 +236,6 @@ def render_markdown(result: AnalysisResult) -> str:
         for f in shown:
             out.append(f"- {f.rule_id} {f.rule_name}（¶{f.para + 1}）")
         out.append("")
-    out.append("---")
-    out.append("")
-    out.append(DISCLAIMER)
     return "\n".join(out)
 
 

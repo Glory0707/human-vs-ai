@@ -36,7 +36,7 @@ const PROFILES = Object.keys(RULES);
 const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
         findingsHtml, adviceRowsHtml, statsRows, statsHtml,
         reportToMarkdown, adviceToMarkdown,
-        PROFILE_META, DISCLAIMER, ADVICE_FOOTER, buildGroups } = HvARender;
+        PROFILE_META, buildGroups } = HvARender;
 
 /* ================= 报告组装（统计块本端排布；发现卡走共享层） ================= */
 
@@ -46,7 +46,6 @@ function renderReportHtml(profile, result) {
 
   parts.push(findingsHtml(result));
   parts.push(hintsHtml(result.hints));
-  parts.push(`<div class="disclaimer">${DISCLAIMER}</div>`);
   return parts.join("");
 }
 
@@ -63,7 +62,6 @@ function renderAdviceHtml(result, sourceText) {
         `<pre>${esc(draft)}</pre></details>`);
     }
   }
-  parts.push(`<div class="disclaimer">${ADVICE_FOOTER}</div>`);
   return parts.join("");
 }
 

@@ -34,7 +34,7 @@ const aiResult = HvA.analyze(aiText, RULES.academic, SCORING.academic || null);
 check("ai fixture has findings", aiResult.findings.length >= 5, `got ${aiResult.findings.length}`);
 const aiHtml = renderReportHtml("ai_academic.txt", "academic", aiResult);
 check("html contains rule ids", aiHtml.includes("L-FORM-01"));
-check("html contains disclaimer", aiHtml.includes("不是 AI 判定"));
+check("disclaimer retired from panel", !aiHtml.includes("不是 AI 判定"));
 // 同一规则的解释全文只讲一次(与 CLI/网页口径一致)
 const lconnHits = aiResult.findings.filter(f => f.rule_id === "L-CONN-01").length;
 const lconnExplained = aiHtml.split("这批词本身没有错").length - 1;
@@ -64,7 +64,7 @@ const advice = HvARewrite.rewriteText(copyText, RULES.personal);
 const adviceHtml = renderAdviceHtml("copy.txt", advice);
 check("advice has counts", adviceHtml.includes("共 <b>3</b> 条"));
 check("advice has del tag", /class="advice del"/.test(adviceHtml));
-check("advice footer", adviceHtml.includes("梗得人来补"));
+check("advice footer retired", !adviceHtml.includes("梗得人来补"));
 check("advice data kept", adviceHtml.includes("失败率降到 3%"));
 
 // 6. 原句命中高亮：<mark> 包住命中片段，句子不再截断（剥掉标签后应含完整原句）

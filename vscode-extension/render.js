@@ -27,8 +27,6 @@
   };
   /* 弱命中只是参考信息，长文里全量列出会淹没正文发现（与 CLI 同口径） */
   var HINTS_MAX = 12;
-  var DISCLAIMER = "风格提示，不是 AI 判定。";
-  var ADVICE_FOOTER = "重要数据和结论要保留；梗得人来补。";
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -158,23 +156,21 @@
       // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
       const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
       const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
-      const taste = [...new Set(g.items.map(i => i.taste).filter(Boolean))].join("/");
       const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
       const why = g.items.find(i => !explained.has(i.rule_id));
       g.items.forEach(i => explained.add(i.rule_id));
       parts.push(`<div class="found sev-${top.severity}"${g.sentence && locate ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
-        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span>${taste ? `<span class="taste">${esc(taste)}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span><span class="loc">¶${g.para + 1}</span></div>
         ${g.sentence ? `<blockquote${locate ? ` title="点击定位原稿"` : ""}>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
         ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
     });
     docLevel.forEach(f => {
-      const taste = f.taste ? `<span class="taste">${esc(f.taste)}</span>` : "";
       const why = !explained.has(f.rule_id);
       explained.add(f.rule_id);
       const matchArr = [...new Set(f.matches)];
       parts.push(`<div class="found sev-${f.severity}">
-        <div class="mg-head" title="${esc(f.rule_id)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rname">${esc(f.rule_name)}</span>${taste}<span class="loc">全文</span></div>
+        <div class="mg-head" title="${esc(f.rule_id)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[f.severity]}</span><span class="rname">${esc(f.rule_name)}</span><span class="loc">全文</span></div>
         ${matchArr.length ? `<div class="match">命中：<code>${esc(matchArr.join("、"))}</code></div>` : ""}
         ${why ? `<div class="why">${esc(f.explanation.trim())}</div>${f.suggestion ? `<div class="tip">→ ${esc(f.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
@@ -188,9 +184,8 @@
   function adviceRowsHtml(A) {
     return A.map(a => {
       const [cls, label] = ADVICE_META[a.action] || ["keep", "?"];
-      const taste = a.taste && a.taste.length ? `<span class="taste">${esc(a.taste.join("/"))}</span>` : "";
       return `<div class="advice ${cls}">
-        <div class="line"><span class="tag">${label}</span>${esc(a.text)}${taste}</div>
+        <div class="line"><span class="tag">${label}</span>${esc(a.text)}</div>
         ${a.reason ? `<div class="why">${esc(a.reason)}</div>` : ""}
         ${a.candidate ? `<div class="cand">→ ${esc(a.candidate)}</div>` : ""}
         ${a.direction ? `<div class="dir">→ ${esc(a.direction)}</div>` : ""}
@@ -289,7 +284,7 @@
     docLevel.forEach(f => {
       const why = !explained.has(f.rule_id);
       explained.add(f.rule_id);
-      L.push(`### [${SEV_NAME[f.severity]}] ${f.rule_id} ${f.rule_name}${f.taste ? ` · ${f.taste}` : ""}（全文）`, "");
+      L.push(`### [${SEV_NAME[f.severity]}] ${f.rule_id} ${f.rule_name}（全文）`, "");
       if (f.matches.length) L.push(`**命中**：${[...new Set(f.matches)].join("、")}`, "");
       if (why) {
         L.push(f.explanation.trim());
@@ -304,7 +299,6 @@
       if (r.hints.length > HINTS_MAX) L.push(`- …等 ${r.hints.length} 处`);
       L.push("");
     }
-    L.push("---", "", DISCLAIMER);
     return L.join("\n");
   }
 
@@ -318,7 +312,7 @@
     const L = ["# human-vs-ai 改写建议（我的口味）", "",
       `共 ${A.length} 条 · 删 ${n("删")} · 改 ${n("改")} · 保留 ${n("保留")}`, ""];
     A.forEach(a => {
-      L.push(`[${a.action}]${a.taste.length ? " " + a.taste.join("/") : ""} ${a.text}`);
+      L.push(`[${a.action}] ${a.text}`);
       if (a.reason) L.push(`  ${a.reason}`);
       if (a.candidate) L.push(`  → ${a.candidate}`);
       else if (a.direction) L.push(`  → ${a.direction}`);
@@ -328,7 +322,6 @@
       L.push("## 清理稿（草稿）", "", "```", draft, "```", "",
         "清理稿只落地了删行与换候选；带「→ 方向」的条目要人来改。", "");
     }
-    L.push("---", "", ADVICE_FOOTER);
     return L.join("\n");
   }
 
@@ -342,6 +335,6 @@
     buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,
     reportToMarkdown: reportToMarkdown, adviceToMarkdown: adviceToMarkdown,
     SEV_NAME: SEV_NAME, PROFILE_META: PROFILE_META,
-    HINTS_MAX: HINTS_MAX, DISCLAIMER: DISCLAIMER, ADVICE_FOOTER: ADVICE_FOOTER,
+    HINTS_MAX: HINTS_MAX,
   };
 });

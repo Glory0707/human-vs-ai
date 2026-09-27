@@ -288,7 +288,7 @@ class TestHtmlReport:
         cli.main(["check", str(f), "-f", "html", "-o", str(out)])
         html = out.read_text(encoding="utf-8")
         assert 'class="seal"' in html and "AI味指数" in html
-        assert "<mark>" in html and "风格提示，不是 AI 判定" in html
+        assert "<mark>" in html and "风格提示" not in html  # v0.29.3 免责行退出人类可读报告
         assert html.count('class="found"') >= 3
 
     def test_html_batch_rejected_cleanly(self, tmp_path):
