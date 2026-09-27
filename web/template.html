@@ -721,7 +721,7 @@ function renderDraft() {
   const parts = [`<div class="draftmeta">删 <b>${del}</b> 行 · 改 <b>${chg}</b> 行</div>`];
   parts.push(draft.trim()
     ? `<pre class="draftpre">${esc(draft)}</pre>`
-    : '<div class="draft-empty">已全部删除</div>');
+    : `<div class="draft-empty">暂无可落地改动</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;
   shouldAnimate = false;

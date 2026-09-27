@@ -80,7 +80,7 @@
     /* 虚线印章"—"：与指数印章同一形状语言，说明"这个位置本该有一个数"。
        被抑制（文种域外）与未校准（profile 无 scoring 段）两种情形共用 */
     return `<div class="row score"><span class="seal none" aria-hidden="true"><span class="n">—</span></span>` +
-      `<span class="score-main"><span class="t">AI 味指数未出</span><span class="sub">${esc(note)}</span></span></div>`;
+      `<span class="score-main"><span class="t">指数 —</span><span class="sub">${esc(note)}</span></span></div>`;
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。

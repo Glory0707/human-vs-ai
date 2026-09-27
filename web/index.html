@@ -484,7 +484,7 @@ html.dark mark {
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.30.1</span>
+    <span class="head-ver">v0.30.2</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1533,7 +1533,7 @@ html.dark mark {
     /* 虚线印章"—"：与指数印章同一形状语言，说明"这个位置本该有一个数"。
        被抑制（文种域外）与未校准（profile 无 scoring 段）两种情形共用 */
     return `<div class="row score"><span class="seal none" aria-hidden="true"><span class="n">—</span></span>` +
-      `<span class="score-main"><span class="t">AI 味指数未出</span><span class="sub">${esc(note)}</span></span></div>`;
+      `<span class="score-main"><span class="t">指数 —</span><span class="sub">${esc(note)}</span></span></div>`;
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
@@ -1999,7 +1999,7 @@ function renderDraft() {
   const parts = [`<div class="draftmeta">删 <b>${del}</b> 行 · 改 <b>${chg}</b> 行</div>`];
   parts.push(draft.trim()
     ? `<pre class="draftpre">${esc(draft)}</pre>`
-    : '<div class="draft-empty">已全部删除</div>');
+    : `<div class="draft-empty">暂无可落地改动</div>`);
   reportEl.classList.toggle("swap", shouldAnimate);
   const reset = shouldAnimate;
   shouldAnimate = false;
