@@ -86,18 +86,14 @@
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
-     印章就是数字本体，旁边只给人话读数（"超过 90% 校准真人"）；构成系数与
-     真人分位是诊断信息，悬浮可查，不占版面 */
+     印章就是报告的全部读数；构成系数与真人分位是诊断信息，悬浮可查 */
   function sealHtml(score) {
     if (!score) return "";
     const idx = score.index.toFixed(0);
     const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-    const bandText = band === "high" ? "超过 90% 校准真人"
-      : band === "medium" ? "超过半数校准真人" : "低于半数校准真人";
     return `<div class="row score">` +
-      `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-      `<span class="score-main" title="构成：${esc(componentsText(score.components))} · 真人 p50≈${score.human_p50} · p90≈${score.human_p90}">` +
-      `<span class="t">${bandText}</span></span></div>`;
+      `<span class="seal ${band}" title="构成：${esc(componentsText(score.components))} · 真人 p50≈${score.human_p50} · p90≈${score.human_p90}">` +
+      `<span class="n">${idx}</span><span class="u">AI味指数</span></span></div>`;
   }
 
   /* 域外提示：与 Python report._ood_lines 同构。按"文体/文种"两族分行——
@@ -128,19 +124,6 @@
   function oodHtml(ood) {
     /* ※ 前缀由 CSS .ood-note::before 补，HTML 里写死会显示两个 */
     return oodLines(ood).map(t => `<div class="row ood-note">${esc(t)}</div>`).join("");
-  }
-
-  /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
-     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现。
-     项上带 data-para/data-excerpt，交互端可监听点击在原稿中定位该段 */
-  function paraHeatHtml(result) {
-    const heat = ((result && result.para_heat) || []).slice(0, 3);
-    if (!heat.length) return "";
-    const items = heat.map(h =>
-      `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
-      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击定位原稿">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
-    ).join('<span class="ph-sep"> · </span>');
-    return `<div class="row heat-note">段落热度：${items}</div>`;
   }
 
   function hintsHtml(hints) {
@@ -353,7 +336,7 @@
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText,
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, oodLines: oodLines, paraHeatHtml: paraHeatHtml,
+    oodHtml: oodHtml, oodLines: oodLines,
     hintsHtml: hintsHtml,
     findingsHtml: findingsHtml, adviceRowsHtml: adviceRowsHtml,
     buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,

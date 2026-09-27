@@ -18,7 +18,7 @@ let SCORING = {};
 try { SCORING = require("./scoring.json"); } catch (e) { SCORING = {}; }
 /* 渲染共享层（web/render.js，build_vscode.py 复制）：转义/评分行/发现卡/
    建议行/常量——三端同一份 UI 事实 */
-const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml, statsHtml,
+const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml, statsHtml,
         findingsHtml, adviceRowsHtml,
         PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = require("./render.js");
 
@@ -38,7 +38,6 @@ function renderReportHtml(fileName, profile, result) {
     ${scoreNoteRow(result.score_note)}
     ${statsHtml(result.stats)}
     ${oodHtml(result.ood)}
-    ${paraHeatHtml(result)}
   </div>`);
 
   /* 发现卡/弱命中/免责走共享层（render.js）——与网页/Obsidian 同一份结构 */
@@ -111,7 +110,6 @@ b { font-variant-numeric: tabular-nums; }
 .score-main .t { font-weight: 650; font-size: 14px; }
 .stats .row.ood-note { font-size: 11px; color: var(--sev-high); margin-top: 6px; }
 .ood-note::before { content: '※ '; }
-.stats .row.heat-note { font-size: 11px; color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
 .ph-high { color: var(--sev-high); }
 .ph-medium { color: var(--accent-deep); }

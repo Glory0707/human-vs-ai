@@ -33,7 +33,7 @@ const PROFILES = Object.keys(RULES);
 
 /* 渲染共享层（web/render.js）：转义/高亮/评分行/发现卡/建议行/常量。
    buildGroups 仅为本文件底部再导出保留（冒烟测试的兼容面） */
-const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
         findingsHtml, adviceRowsHtml, statsRows, statsHtml,
         reportToMarkdown, adviceToMarkdown,
         PROFILE_META, DISCLAIMER, ADVICE_FOOTER, buildGroups } = HvARender;
@@ -42,7 +42,7 @@ const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
 
 function renderReportHtml(profile, result) {
   const parts = [];
-  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}</div>`);
 
   parts.push(findingsHtml(result));
   parts.push(hintsHtml(result.hints));

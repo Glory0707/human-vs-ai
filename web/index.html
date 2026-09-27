@@ -299,7 +299,6 @@ body.resizing .pane { transition: none; }
 .row.score .comp { color: var(--ink-3); }
 .stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
-.stats .row.heat-note { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
 .ph[data-para] { cursor: pointer; }
 .ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -395,7 +394,7 @@ html.dark mark {
 .empty-block .e-sub { font-size: var(--fs-md); color: var(--ink-3); }
 /* 折叠的弱命中展开时轻浮入场（summary 展开是瞬时动作，补一点反馈） */
 .hints[open] .h { animation: popIn var(--t-fast) var(--ease-out) backwards; }
-/* 发现卡原句 hover 可点定位（与段落热度同一交互） */
+/* 发现卡原句 hover 可点定位 */
 .found[data-excerpt] blockquote { cursor: pointer; }
 .found[data-excerpt] blockquote:hover { border-left-color: var(--accent-line); }
 
@@ -502,7 +501,7 @@ html.dark mark {
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.29.1</span>
+    <span class="head-ver">v0.29.2</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1530,18 +1529,14 @@ html.dark mark {
   }
 
   /* 指数印章（web/Obsidian/VS Code 三端同款）：mono + 大字距 + 档位色 + 斜放。
-     印章就是数字本体，旁边只给人话读数（"超过 90% 校准真人"）；构成系数与
-     真人分位是诊断信息，悬浮可查，不占版面 */
+     印章就是报告的全部读数；构成系数与真人分位是诊断信息，悬浮可查 */
   function sealHtml(score) {
     if (!score) return "";
     const idx = score.index.toFixed(0);
     const band = score.index > score.human_p90 ? "high" : score.index > score.human_p50 ? "medium" : "low";
-    const bandText = band === "high" ? "超过 90% 校准真人"
-      : band === "medium" ? "超过半数校准真人" : "低于半数校准真人";
     return `<div class="row score">` +
-      `<span class="seal ${band}"><span class="n">${idx}</span><span class="u">AI味指数</span></span>` +
-      `<span class="score-main" title="构成：${esc(componentsText(score.components))} · 真人 p50≈${score.human_p50} · p90≈${score.human_p90}">` +
-      `<span class="t">${bandText}</span></span></div>`;
+      `<span class="seal ${band}" title="构成：${esc(componentsText(score.components))} · 真人 p50≈${score.human_p50} · p90≈${score.human_p90}">` +
+      `<span class="n">${idx}</span><span class="u">AI味指数</span></span></div>`;
   }
 
   /* 域外提示：与 Python report._ood_lines 同构。按"文体/文种"两族分行——
@@ -1572,19 +1567,6 @@ html.dark mark {
   function oodHtml(ood) {
     /* ※ 前缀由 CSS .ood-note::before 补，HTML 里写死会显示两个 */
     return oodLines(ood).map(t => `<div class="row ood-note">${esc(t)}</div>`).join("");
-  }
-
-  /* 段落热度：混写文本里全篇一个分数必然失真，指出"哪几段最像 AI"。
-     只列前 3 段（按密度降序，引擎已排）；无命中的段不出现。
-     项上带 data-para/data-excerpt，交互端可监听点击在原稿中定位该段 */
-  function paraHeatHtml(result) {
-    const heat = ((result && result.para_heat) || []).slice(0, 3);
-    if (!heat.length) return "";
-    const items = heat.map(h =>
-      `<span class="ph ph-${esc(h.level)}" data-para="${h.para}"` +
-      ` data-excerpt="${esc(h.excerpt || "")}" role="button" title="点击定位原稿">¶${h.para + 1} <b class="mono-num">${h.density.toFixed(2)}</b></span>`
-    ).join('<span class="ph-sep"> · </span>');
-    return `<div class="row heat-note">段落热度：${items}</div>`;
   }
 
   function hintsHtml(hints) {
@@ -1797,7 +1779,7 @@ html.dark mark {
     esc: esc, fmt: fmt, hiSentence: hiSentence,
     componentsText: componentsText,
     sealHtml: sealHtml, scoreNoteRow: scoreNoteRow,
-    oodHtml: oodHtml, oodLines: oodLines, paraHeatHtml: paraHeatHtml,
+    oodHtml: oodHtml, oodLines: oodLines,
     hintsHtml: hintsHtml,
     findingsHtml: findingsHtml, adviceRowsHtml: adviceRowsHtml,
     buildGroups: buildGroups, statsRows: statsRows, statsHtml: statsHtml,
@@ -1813,7 +1795,7 @@ const RULES_BY_PROFILE = {"academic": [{"id": "L-CONN-01", "name": "模板连接
 const SCORING = {"academic": {"corpus": "C-ReD paper 245 篇过 8 句门槛样本（真人 33 vs 四模型 212），2026-09", "intercept": -69.8327, "hit_density": 8.9025, "sentence_cv": -14.8899, "ttr": 83.377, "ngram_repeat": 22.6387, "auroc": 0.984, "auroc_holdout": 0.974, "human_p50": 15, "human_p90": 63, "tiers": [{"min_chars": 600, "intercept": -79.959, "hit_density": 1.7466, "sentence_cv": -6.0175, "ttr": 89.2265, "ngram_repeat": 37.0485}]}, "essay": {"corpus": "C-ReD essay 域（过 8 句门槛样本：真人 1070 vs 7 模型 7544，类平衡加权），2026-09 era 重拟合", "intercept": -44.1715, "hit_density": 9.6652, "sentence_cv": -16.2585, "ttr": 53.8539, "ngram_repeat": 3.8401, "auroc": 0.954, "auroc_holdout": 0.953, "human_p50": 5, "human_p90": 55}, "general": {"corpus": "知乎真实长回答 110 篇 vs gen2026 当季 9 模型 600 字回答 69 篇，类平衡，2026-09", "intercept": -61.9705, "hit_density": 7.239, "sentence_cv": -4.848, "ttr": 67.6841, "ngram_repeat": -107.1588, "auroc": 0.945, "auroc_holdout": 0.935, "human_p50": 2, "human_p90": 77}, "news": {"corpus": "C-ReD news 域（过 8 句门槛样本：真人 1413 vs 7 模型 15112，类平衡加权），2026-09 era 重拟合", "intercept": -62.6212, "hit_density": 7.0997, "sentence_cv": -5.1318, "ttr": 67.7646, "ngram_repeat": -3.1777, "auroc": 0.951, "auroc_holdout": 0.948, "human_p50": 6, "human_p90": 55}, "official": {"corpus": "真人事务公文 71 篇（gov.cn/部委/省门户）vs gen2026 当季 9 模型公文 70 篇，类平衡，2026-09（二轮重拟合 v0.29.0：O-INFL/O-PARA 撤出后）", "intercept": 44.4248, "hit_density": 23.6565, "sentence_cv": 3.0339, "ttr": -44.333, "ngram_repeat": -66.8477, "auroc": 0.957, "auroc_holdout": 0.934, "human_p50": 4, "human_p90": 58, "genre_ood": true, "genre_scoring": {"issuance-notice": {"suppress": true}, "approval-reply": {"suppress": true}}}, "personal": null, "review": null};
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/评分行/发现卡/建议行/常量 */
-const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
         findingsHtml, adviceRowsHtml, statsRows, statsHtml,
         reportToMarkdown, adviceToMarkdown,
         PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = HvARender;
@@ -1963,7 +1945,7 @@ function toast(msg, ms = 1600, action) {
   toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
 }
 
-// 报告组装：统计块本端排布（印章/统计行/域外/段落热度），发现卡/弱命中/
+// 报告组装：统计块本端排布（印章/统计行/域外），发现卡/弱命中/
 // 免责走共享层（render.js）
 function renderReport(result) {
   if (!result) return;
@@ -1972,7 +1954,7 @@ function renderReport(result) {
   shouldAnimate = false;
   const parts = [];
 
-  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}</div>`);
 
   parts.push(findingsHtml(result, { locate: true }));
 
@@ -2284,7 +2266,7 @@ reportEl.addEventListener("focus", () => {
   document.getElementById("reportPane").classList.add("active");
 }, true);
 
-/* 段落热度 / 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
+/* 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
    含行内标记的段落清洗后失配，静默不动 */
 reportEl.addEventListener("click", (e) => {
   const item = e.target.closest("[data-excerpt]");

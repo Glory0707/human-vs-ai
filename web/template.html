@@ -299,7 +299,6 @@ body.resizing .pane { transition: none; }
 .row.score .comp { color: var(--ink-3); }
 .stats .row.ood-note { font-size: var(--fs-xs); color: var(--vermilion); margin-top: 8px; }
 .ood-note::before { content: '※ '; }
-.stats .row.heat-note { font-size: var(--fs-xs); color: var(--ink-3); margin-top: 6px; }
 .ph b { font-weight: 650; }
 .ph[data-para] { cursor: pointer; }
 .ph[data-para]:hover { text-decoration: underline; text-underline-offset: 3px; }
@@ -395,7 +394,7 @@ html.dark mark {
 .empty-block .e-sub { font-size: var(--fs-md); color: var(--ink-3); }
 /* 折叠的弱命中展开时轻浮入场（summary 展开是瞬时动作，补一点反馈） */
 .hints[open] .h { animation: popIn var(--t-fast) var(--ease-out) backwards; }
-/* 发现卡原句 hover 可点定位（与段落热度同一交互） */
+/* 发现卡原句 hover 可点定位 */
 .found[data-excerpt] blockquote { cursor: pointer; }
 .found[data-excerpt] blockquote:hover { border-left-color: var(--accent-line); }
 
@@ -536,7 +535,7 @@ const RULES_BY_PROFILE = __RULES_JSON__;
 const SCORING = __SCORING_JSON__;
 const PROFILES = Object.keys(RULES_BY_PROFILE);
 /* 渲染共享层（web/render.js，构建注入）：转义/评分行/发现卡/建议行/常量 */
-const { esc, sealHtml, scoreNoteRow, oodHtml, paraHeatHtml, hintsHtml,
+const { esc, sealHtml, scoreNoteRow, oodHtml, hintsHtml,
         findingsHtml, adviceRowsHtml, statsRows, statsHtml,
         reportToMarkdown, adviceToMarkdown,
         PROFILE_META, DISCLAIMER, ADVICE_FOOTER } = HvARender;
@@ -686,7 +685,7 @@ function toast(msg, ms = 1600, action) {
   toastTimer = setTimeout(() => toastEl.classList.remove("show"), ms);
 }
 
-// 报告组装：统计块本端排布（印章/统计行/域外/段落热度），发现卡/弱命中/
+// 报告组装：统计块本端排布（印章/统计行/域外），发现卡/弱命中/
 // 免责走共享层（render.js）
 function renderReport(result) {
   if (!result) return;
@@ -695,7 +694,7 @@ function renderReport(result) {
   shouldAnimate = false;
   const parts = [];
 
-  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}${paraHeatHtml(result)}</div>`);
+  parts.push(`<div class="stats">${sealHtml(result.score)}${scoreNoteRow(result.score_note)}${statsHtml(result.stats)}${oodHtml(result.ood)}</div>`);
 
   parts.push(findingsHtml(result, { locate: true }));
 
@@ -1007,7 +1006,7 @@ reportEl.addEventListener("focus", () => {
   document.getElementById("reportPane").classList.add("active");
 }, true);
 
-/* 段落热度 / 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
+/* 发现卡原句 → 原稿定位：选中对应片段，编辑框自动滚过去。
    含行内标记的段落清洗后失配，静默不动 */
 reportEl.addEventListener("click", (e) => {
   const item = e.target.closest("[data-excerpt]");

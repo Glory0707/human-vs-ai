@@ -147,10 +147,15 @@ class TestParaHeat:
         data = _json.loads(report.render_json(r))
         assert data["para_heat"] and data["para_heat"][0]["para"] == 0
 
-    def test_terminal_report_heat_line(self):
+    def test_heat_retired_from_report_kept_in_json(self):
+        # v0.29.2 面板减法：段落热度退出人类可读报告（用户反馈看不懂），
+        # JSON 导出保留 para_heat 字段供程序化使用
         from human_vs_ai import report
-        out = report.render_terminal(engine.analyze(MIXED, "general"))
-        assert "段落热度" in out and "¶1" in out
+        r = engine.analyze(MIXED, "general")
+        out = report.render_terminal(r)
+        assert "段落热度" not in out
+        import json as _json
+        assert _json.loads(report.render_json(r))["para_heat"]
 
     def test_doc_level_findings_not_in_heat(self):
         # doc 级发现（para=-1）是全文属性，不摊进任何段落

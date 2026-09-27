@@ -62,26 +62,9 @@ def _ood_lines(result: AnalysisResult) -> list[str]:
     return lines
 
 
-def _band_text(score: Score) -> str:
-    """分数读数：相对校准语料真人分布的位置，比裸 p50/p90 数字可读。"""
-    if score.index > score.human_p90:
-        return "超过 90% 校准真人"
-    if score.index > score.human_p50:
-        return "超过半数校准真人"
-    return "低于半数校准真人"
-
-
-def _heat_line(result: AnalysisResult) -> str:
-    if not result.para_heat:
-        return ""
-    shown = result.para_heat[:3]
-    parts = " · ".join(f"¶{h['para'] + 1} {h['density']:.2f}" for h in shown)
-    return f"段落热度：{parts}"
-
-
 def _score_line(score: Score) -> str:
     # 整数显示：逻辑回归压到 0-100 后小数位是假精度（网页端同口径）
-    return f"AI 味指数：{round(score.index)} / 100（{_band_text(score)}）"
+    return f"AI 味指数：{round(score.index)} / 100"
 
 
 def _score_components(score: Score) -> str:
@@ -107,7 +90,6 @@ def stats_lines(result: AnalysisResult) -> list[str]:
         # 够 8 句却没分：给一行原因，免得用户在各文体间切换时纳闷分去哪了
         rows.append(f"AI 味指数：—（{result.scoring_note}）")
     rows.extend(_ood_lines(result))
-    rows.append(_heat_line(result))
     rows.append(f"{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
     # 统计三行只在样本够判定时展示（口径与 doc 规则的 min_sentences 一致）：
     # 一两句话的文本里 CV 全是"—"、TTR 恒为 1，展示出来全是噪音
