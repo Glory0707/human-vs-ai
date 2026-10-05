@@ -1,0 +1,56 @@
+name: 校准样本提交（collect 导出）
+description: 用 human-vs-ai collect 导出的脱敏 JSONL，帮词表在真实文本上进化
+title: "[样本] "
+labels: ["calibration-sample"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请**只提交 `human-vs-ai collect` 导出的 JSONL**——它已自动给手机号/邮箱/证件/卡号打码。
+        不要直接粘贴未脱敏的原文；提交即表示同意该文本（脱敏后）被用于开源规则库的校准评测。
+  - type: dropdown
+    id: label
+    attributes:
+      label: 判定标签
+      description: collect --label 的取值
+      options:
+        - "fp：误报（真人被高分误伤）"
+        - "miss：漏报（AI 文未检出）"
+        - "hit：判定准确"
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: 场景（profile）
+      description: 分析时使用的场景
+      options:
+        - general
+        - academic
+        - official
+        - essay
+        - news
+        - review
+        - personal
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 引擎版本
+      description: JSONL 里 version 字段的值（或 human-vs-ai --version 的输出）
+      placeholder: "v0.30.5"
+    validations:
+      required: true
+  - type: textarea
+    id: sample
+    attributes:
+      label: 样本 JSONL
+      description: collect 命令输出的整段内容（已脱敏，每行一条样本）
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: 补充说明（可选）
+      description: 文本的真实来源/文体、你预期的判定、误伤对你的影响等

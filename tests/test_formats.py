@@ -299,6 +299,52 @@ class TestHtmlReport:
         assert "html" in str(ei.value)
 
 
+# ---------- 被误伤自证文书（appeal） ----------
+
+class TestAppealReport:
+    def test_appeal_is_reproducible_evidence(self, tmp_path):
+        from human_vs_ai import __version__
+        f = tmp_path / "稿件.md"
+        f.write_text(AI_TEXT, encoding="utf-8")
+        out = tmp_path / "自证.md"
+        cli.main(["check", str(f), "-f", "appeal", "-o", str(out)])
+        doc = out.read_text(encoding="utf-8")
+        assert "# 写作风格自查说明" in doc
+        assert f"human-vs-ai v{__version__}" in doc
+        assert "风格分析器，不是 AI 检测器" in doc
+        # 可复现：命令引用原文件完整路径（tmp 路径形状不定，只断结构），规则可 explain，仓库公开
+        assert "-p academic -f appeal" in doc and "check" in doc
+        assert "human-vs-ai explain" in doc
+        assert "https://github.com/Glory0707/human-vs-ai" in doc
+        # 逐句可解释：原句 + 为什么被标记
+        assert "## 二、逐句发现与解释" in doc
+        assert "为什么被标记" in doc
+        # 已知边界：公开误伤案例入文
+        assert "老舍" in doc and "61.3%" in doc
+
+    def test_appeal_unscored_shows_reason(self, tmp_path):
+        f = tmp_path / "short.txt"
+        f.write_text("首先，随着人工智能的快速发展。", encoding="utf-8")
+        out = tmp_path / "自证.md"
+        cli.main(["check", str(f), "-f", "appeal", "-o", str(out)])
+        assert "未出分" in out.read_text(encoding="utf-8")
+
+    def test_appeal_stdin_rejected_cleanly(self, monkeypatch):
+        # 复现命令要引用文件路径，管道输入出不了可复现文书——干净拒绝
+        import io
+        monkeypatch.setattr("sys.stdin", io.StringIO(AI_TEXT))
+        with pytest.raises(SystemExit) as ei:
+            cli.main(["check", "-", "-f", "appeal"])
+        assert "appeal" in str(ei.value)
+
+    def test_appeal_batch_rejected_cleanly(self, tmp_path):
+        (tmp_path / "a.md").write_text("内容。", encoding="utf-8")
+        (tmp_path / "b.md").write_text("内容。", encoding="utf-8")
+        with pytest.raises(SystemExit) as ei:
+            cli.main(["check", str(tmp_path), "-f", "appeal"])
+        assert "appeal" in str(ei.value)
+
+
 class TestEdgeRegression:
     def test_bracket_filename_treated_as_literal(self, tmp_path):
         # 文件名带 [ ] 时不得被误当 glob 字符类（存在性优先于通配解释）

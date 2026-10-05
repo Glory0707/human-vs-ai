@@ -1,0 +1,4 @@
+# 打包 .vsix 只带运行所需：engine/render/rewrite/rules/scoring/extension.js + package.json + README.md + icon.png
+smoke-test.js
+*.md
+!README.md

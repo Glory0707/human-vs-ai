@@ -17,6 +17,9 @@ venv/
 # 私人语料（口味校准层）——永不入库
 corpus_private/
 
+# 语言校准室（含 API 密钥与个人语料库，永不入库；见 lang-calib/README.md）
+lang-calib/
+
 # 下载的第三方语料（版权与体积，不入库；获取方式见 docs/rules.md）
 _qa/corpus/
 _qa/walk_*.txt

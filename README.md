@@ -9,7 +9,7 @@
 
 ## 它不是什么
 
-**不是 AI 生成概率检测器。** 不输出"AI 率 87%"这类数字——那个数字既造不出来也不该被造出来：OpenAI 因"低准确率"下架了自家检测器，斯坦福实测 7 款主流检测器把中国考生真人托福作文平均误判 61%，Nature 2026 年报道《独立宣言》被判 95-100% AI。检测器测的是文风不是作者。
+**不是 AI 生成概率检测器。** 不输出"AI 率 87%"这类数字——那个数字既造不出来也不该被造出来：OpenAI 因"低准确率"下架了自家检测器；斯坦福实测 7 款主流检测器把非母语考生托福作文平均误判 61.3%（[Patterns 2023](https://doi.org/10.1016/j.patter.2023.100779)）；《独立宣言》被 ZeroGPT 判 97.93% AI（[Decrypt 2024 报道](https://decrypt.co/286121/ai-detectors-claim-the-declaration-of-independence-was-98-ai-generated)），老舍《林海》被国产检测工具判 99.9% AI（[南都大数据研究院 2025 十款工具实测](https://www.secrss.com/articles/79617)）。检测器测的是文风不是作者。
 
 human-vs-ai 只回答三个问题：**这句话像模板吗？为什么像？往哪个方向改？** 命中≠AI——人类同样会写"首先…其次…"，单独任何一条都不构成证据。
 
@@ -21,6 +21,7 @@ human-vs-ai check 论文.md            # 终端报告
 human-vs-ai check 论文.md -f md -o 报告.md
 human-vs-ai check 论文.md -f json    # 机器可读（接 CI / 编辑器插件）
 human-vs-ai check 论文.md -f html -o 报告.html   # 可分享的静态报告页（内联样式，可打印）
+human-vs-ai check 论文.md -f appeal -o 自证.md    # 被误伤自证文书：逐句解释 + 任何人可复现的命令
 human-vs-ai check 论文.md -f sarif   # SARIF 2.1.0（GitHub code scanning 直接可吃）
 human-vs-ai check docs/              # 批量扫描目录/glob：按指数排序的汇总表
 human-vs-ai check docs/ -f csv       # 批量汇总出 csv/json
@@ -49,7 +50,7 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 
 **域外提示**：文本超出校准域时四端随行提示——文言/诗行为"文体域外，指数仅供参考"；official 场景的印发/批复类公文为"文种域外"且不出指数；公文/公务文书在非 official 场景分析时提示"official 场景更准"；非中文为主的文本抑制出分——中文 AI 味分析只校准过中文（详见已知限制）。
 
-**贡献校准样本（collect）**：`human-vs-ai collect 稿件.md --label miss|fp|hit` 导出脱敏 JSONL（手机号/邮箱/证件/卡号自动打码，附判定快照），自愿提交到项目渠道，帮词表在真实文本上进化。样本进料后用 `tools/drift_monitor.py` 按月看分布漂移（p50/规则命中率变化即触发词表复审）。
+**贡献校准样本（collect）**：`human-vs-ai collect 稿件.md --label miss|fp|hit` 导出脱敏 JSONL（手机号/邮箱/证件/卡号自动打码，附判定快照），自愿提交到 [样本提交 Issue](https://github.com/Glory0707/human-vs-ai/issues/new?template=calibration-sample.yml)（已预置表单模板），帮词表在真实文本上进化。样本进料后用 `tools/drift_monitor.py` 按月看分布漂移（p50/规则命中率变化即触发词表复审）。
 
 **口味校准层（personal）**：六个公开场景校准通用 AI 味；`personal` 校准的是作者本人的文案取舍——私库标注链（被毙 31 vs 定稿 37）归纳出 12 条口味条目，配套 `rewrite` 子命令。详见 [docs/taste_zhouao.md](docs/taste_zhouao.md)，语料永不入库。
 
@@ -101,11 +102,12 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 - 词汇丰富度（TTR）用**字级 2-gram 口径**（与网页/插件端逐位一致）；不做词级切分
 - 句级困惑度是**可选弱信号**：doc 级区分度 0.6B 模型 0.633、1.7B 模型 0.657——规模 ×2.8 仅 +0.024，对规模响应平缓，放大不现实（`_qa/ppl-calibration.md`）；故默认关闭、不进评分，仅 `ppl` 子命令显式调用
 - 本工具**不能**用于证明或豁免任何"AI 代写"指控——它没有这个能力，也不该有
+- **文学散文与名作会被风格指标误伤**：老舍《林海》在本工具 essay 档同样进高分区间（公开报道里十款工具把它判到 99.9%）——名人真文回归集（tests/test_celebrity_human.py）钉住该基线防恶化；被误伤后用 `-f appeal` 导出自证文书
 
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 221 项单元+边界+评分+口味+格式+多文体+域外+模糊回归（私库层缺语料自动跳过）
+python -m pytest tests/ -q              # 229 项单元+边界+评分+口味+格式+多文体+域外+模糊回归（私库层缺语料自动跳过）
 python tools/check_web_consistency.py   # Python/JS 双引擎一致性 448 项 × 7 场景（含清理稿对拍，需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 32 项
@@ -131,7 +133,7 @@ python tools/pkg_check.py              # PyPI 发布自查：构建+产物内容
 推送后确认 CI 绿（`gh run list --limit 1`）——CI 含构建产物新鲜度守护，
 重新生成后与入库产物零 diff 才放行。
 
-设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）· [中文AI味领域深度研究.md](docs/中文AI味领域深度研究.md)（立项调研）。
+设计文档：[design.md](docs/design.md)（定位与取舍）· [rules.md](docs/rules.md)（规则库与校准）· [plan.md](docs/plan.md)（计划与走查）· [publishing.md](docs/publishing.md)（VS Code / Obsidian 上架）· [中文AI味领域深度研究.md](docs/中文AI味领域深度研究.md)（立项调研）。
 
 ## License
 

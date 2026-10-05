@@ -79,8 +79,8 @@ def main(argv: list[str] | None = None) -> None:
     p_check.add_argument("-p", "--profile", default="academic", help="场景（默认 academic）")
     p_check.add_argument(
         "-f", "--format", default="terminal",
-        choices=["terminal", "md", "json", "sarif", "csv", "html"],
-        help="出口格式（csv/sarif 需文件输入）")
+        choices=["terminal", "md", "json", "sarif", "csv", "html", "appeal"],
+        help="出口格式（csv/sarif 需文件输入；appeal=被误伤自证文书）")
     p_check.add_argument("-o", "--output", help="写入文件（默认打印）")
     p_check.add_argument(
         "--min-severity", default="hint", choices=["high", "medium", "low", "hint"],
@@ -263,8 +263,8 @@ def _check(args: argparse.Namespace) -> None:
     if paths is None:  # stdin：单文件管道
         if args.format in ("sarif", "csv"):
             sys.exit(f"错误：{args.format} 输出需要文件输入，管道不支持")
-        if args.format == "html":
-            sys.exit("错误：html 报告暂只支持文件输入；管道用 terminal/md/json")
+        if args.format in ("html", "appeal"):
+            sys.exit(f"错误：{args.format} 报告需要文件输入（复现命令要引用文件路径）；管道用 terminal/md/json")
         text = sys.stdin.read()
         result = engine.analyze(text, args.profile)
         _apply_min_severity(result, args)
@@ -278,6 +278,8 @@ def _check(args: argparse.Namespace) -> None:
             out = sarif.render([(str(paths[0]), text, result)], args.profile)
         elif args.format == "html":
             out = htreport.render_html(result)
+        elif args.format == "appeal":
+            out = report.render_appeal(result, str(paths[0]))
         elif args.format == "csv":
             # 单文件的 csv 就是只有一行的批量汇总（列结构一致，方便拼接）
             out = batch.render([batch.summarize(paths[0], result)], args.profile, "csv")
@@ -290,6 +292,8 @@ def _check(args: argparse.Namespace) -> None:
 
     if args.format == "html":
         sys.exit("错误：html 报告仅支持单文件；批量扫描用 terminal/csv/json")
+    if args.format == "appeal":
+        sys.exit("错误：appeal 自证文书仅支持单文件（一份文书对应一篇稿件）")
 
     if not paths:
         if Path(args.file).is_dir():

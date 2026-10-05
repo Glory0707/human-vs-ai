@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import sys
+import time
 from collections import OrderedDict
 
 from .engine import AnalysisResult, Score, Finding
@@ -256,6 +257,106 @@ def render_json(result: AnalysisResult) -> str:
         ensure_ascii=False,
         indent=2,
     )
+
+
+# 自证文书引用的公开误伤案例（README「它不是什么」同源，改措辞须两边同步）
+_APPEAL_CASES = (
+    "老舍《林海》被商业检测工具判 99.9% AI（南都大数据研究院 2025 十款工具实测），"
+    "朱自清《荷塘月色》被判 62.88% AI（南都湾财社 2024 报道），"
+    "斯坦福实测七款英文检测器把非母语者托福作文平均误判 61.3%（Patterns 2023）"
+)
+
+
+def render_appeal(result: AnalysisResult, source: str) -> str:
+    """被误伤自证文书（Markdown）：结论 → 逐句解释 → 复现命令 → 已知边界。
+
+    给被 AIGC 检测误伤的作者拿去沟通用的：每处命中都可逐句对照原文自证，
+    全部数字任何人都可在本地复现，文书自身就把"指数高≠AI 写的"讲清楚。
+    """
+    s = result.doc_stats
+    cmd = f"human-vs-ai check {source} -p {result.profile} -f appeal"
+    out: list[str] = []
+    out.append("# 写作风格自查说明")
+    out.append("")
+    out.append(f"> 本文档由 human-vs-ai v{__version__} 本地引擎生成于 {time.strftime('%Y-%m-%d')}，"
+               f"分析对象：`{source}`。")
+    out.append("> human-vs-ai 是**风格分析器，不是 AI 检测器**：它只指出哪些句子"
+               "用了高频写作模板，不判定、也无法判定文本是否由 AI 生成。")
+    out.append("")
+    out.append("## 一、检查结论")
+    out.append("")
+    if result.score:
+        out.append(f"- AI 味指数：{round(result.score.index)} / 100（{result.profile} 场景）")
+        out.append(f"- {_score_components(result.score)}")
+    elif result.scoring_note:
+        out.append(f"- AI 味指数：未出分（{result.scoring_note}）")
+    else:
+        out.append("- AI 味指数：未出分（文本不足 8 句，样本不够判定）")
+    for line in _ood_lines(result):
+        out.append(f"- {line}")
+    out.append(f"- 规模：{s.n_paragraphs} 段 · {s.n_sentences} 句 · {s.n_chars} 字")
+    if s.n_sentences >= 8:
+        out.append(f"- 统计：句长 CV {_fmt(s.sentence_cv)} · 段长 CV {_fmt(s.para_len_cv)}"
+                   f" · TTR {_fmt(s.ttr)} · 连接词 {_fmt(s.conn_density)} · 重复率 {_fmt(s.ngram_repeat)}")
+    out.append("")
+    out.append("## 二、逐句发现与解释")
+    out.append("")
+    if not result.findings:
+        out.append("未发现模板化写作。")
+    else:
+        explained: set[str] = set()
+        groups, doc_level = group_by_sentence(result.findings)
+        out.append(f"共 {len(result.findings)} 处风格层命中（高 {result.n_high}"
+                   f" · 中 {result.n_medium} · 低 {result.n_low}）。"
+                   "每处含义：该句使用了某类高频写作模式——是文风特征，不是作者身份的证据。")
+        out.append("")
+        for group in groups:
+            out.append(f"### {_group_title(group)}")
+            out.append("")
+            out.append(f"> {group[0].sentence}")
+            out.append("")
+            matches = [m for f in group for m in f.matches]
+            out.append(f"命中模板词：{'、'.join(dict.fromkeys(matches))}")
+            out.append("")
+            for f in group:
+                if f.rule_id in explained:
+                    continue
+                explained.add(f.rule_id)
+                out.append(f"**为什么被标记（{f.rule_id}）**：{f.explanation}")
+                if f.suggestion:
+                    out.append("")
+                    out.append(f"修改方向：{f.suggestion}")
+                out.append("")
+        for f in doc_level:
+            out.append(f"### [{SEV_LABEL[f.severity]}] {f.rule_id} {f.rule_name}（全文层）")
+            out.append("")
+            out.append(f"命中特征：{f.matches[0]}")
+            out.append("")
+            out.append(f"**为什么被标记**：{f.explanation}")
+            if f.suggestion:
+                out.append("")
+                out.append(f"修改方向：{f.suggestion}")
+            out.append("")
+    out.append("## 三、如何复核（可复现）")
+    out.append("")
+    out.append("本文档的全部数字可以在任何电脑上逐位复现：")
+    out.append("")
+    out.append("1. 安装：`pip install human-vs-ai`（纯本地运行，零网络调用）")
+    out.append(f"2. 复现：`{cmd}`")
+    out.append("3. 查每条规则的全套解释与出处：`human-vs-ai explain <规则ID>`"
+               "（如 `human-vs-ai explain E-NEGA-01`）")
+    out.append("4. 规则库、系数与校准数据全部公开：https://github.com/Glory0707/human-vs-ai")
+    out.append("")
+    out.append("## 四、已知边界（指数高不等于 AI 写的）")
+    out.append("")
+    out.append(f"- {_APPEAL_CASES}——文风工整的真文在风格指标上天然偏高，这是所有"
+               "风格类工具的共同边界。")
+    out.append("- 命中≠AI：真人同样会写「首先…其次…」「不仅…更是…」；"
+               "单独任何一条都不构成作者身份的证据。")
+    out.append("- 本工具不输出「AI 生成概率」，本文档也不能用于证明或豁免"
+               "任何「AI 代写」指控——它给的是可人工复核的风格证据。")
+    out.append("")
+    return "\n".join(out)
 
 
 def render(result: AnalysisResult, fmt: str) -> str:

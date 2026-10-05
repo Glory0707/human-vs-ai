@@ -29,7 +29,7 @@
 
 | 砍掉项 | 理由 | 实测依据 |
 |---|---|---|
-| AI 生成概率分数 / "能过知网"承诺 | 检测器不可靠是 OpenAI/斯坦福/法院/Nature 的共同结论；给分数等于自欺 | OpenAI 2023-07 下架 classifier；斯坦福 61% 误判；Newby v. Adelphi 判"devoid of reason" |
+| AI 生成概率分数 / "能过知网"承诺 | 检测器不可靠是 OpenAI/斯坦福/法院/媒体实测的共同结论；给分数等于自欺 | OpenAI 2023-07 下架 classifier；斯坦福 61% 误判；Newby v. Adelphi 判"devoid of reason" |
 | S-TRIAD-01 三连排比（学术 profile） | 学术摘要是真人的方法条件列举 | C-ReD 区分度 -0.17；问答文体 +0.22 有效，留待 general |
 | D-TTR-01 词汇丰富度（学术 profile） | 方向随文体反转，单一方向判定会误导 | C-ReD：AI 0.715 **>** 真人 0.649（真人摘要术语重复是精确性）；HC3：AI 0.610 **<** 人类 0.696 |
 | L-SAFE-01 万金油对冲 | 零区分度 | C-ReD ±0.00 |
@@ -54,7 +54,7 @@ CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / ex
         │                   └ para_heat（段落热度：混写文本定位哪几段最像 AI）
         │
 报告 report（terminal ANSI / markdown / json，同一份内容多出口；
-        sarif / html 由 sarif.py、htreport.py 供 CLI 直接调用）
+        sarif / html / appeal（被误伤自证文书）分别由 sarif.py、htreport.py、report.render_appeal 供 CLI 直接调用）
 
 网页版：web/index.html（单文件；engine.js 同构引擎 + render.js 共享渲染层 +
 规则 JSON 注入；tools/build_web.py 构建，tools/check_web_consistency.py 守护）
@@ -75,7 +75,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 ## 6. 验证基线（当前值，复现命令见 README「开发」）
 
-- **单元测试**：202 项（切分/统计/引擎/边界/评分/口味与改写/格式/多文体 profile/域外与漂移/模糊回归/私库——私库层缺语料自动跳过）
+- **单元测试**：229 项（切分/统计/引擎/边界/评分/口味与改写/格式/多文体 profile/域外与漂移/模糊回归/私库——私库层缺语料自动跳过）
 - **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.051 vs AI 0.254–0.407，AUROC **0.888**（v0.25.0 era 指纹入表前 0.804）；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
 - **HC3-Chinese 校准**：词表 AUROC 0.476（学术词表在问答文体失效——profile 分治的实证）；CV 0.763；字级 2-gram TTR 0.684
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.31.0 | 误伤自证与上架准备轮：①新增 `-f appeal` 被误伤自证文书（结论/逐句解释/可复现命令/已知边界四节，公开误伤案例入文，stdin 与批量干净拒绝）；②名人真文回归集 tests/test_celebrity_human.py——老舍《林海》（南都十款工具 99.9% 实测事件）与朱自清《荷塘月色》（62.88% 事件）公版原文入库钉基线（essay 档 60-85 误报区间），斯坦福 61.3% 事件钉非中文抑制行为；③README「它不是什么」三处来源换可查证（Patterns 2023 / Decrypt 2024 / 南都 2025，__init__.py docstring 与 §3 同步去 Nature 2026 未证实表述）；④样本提交 issue 模板（.github/ISSUE_TEMPLATE）；⑤check_private_leak 默认目标 5 文件 → 全量 git tracked（-z 防中文文件名转义，errors=ignore 兜底）；⑥上架准备：vscode icon.png（印章 128px）/.vscodeignore/README（列表页）/repository 字段，docs/publishing.md （VS Code marketplace + Obsidian 社区目录全流程，id 已核查可用）；测试 221→229 |
 | v0.30.5 | 文档收敛轮（全仓 md/配置复核）：陈旧计数统一——README 测试 217→221、一致性 441→448，ci.yml 步骤名 434→448；rules.md §8 拟合脚本指引补全（fit_general/fit_official 按场景点名）；taste_zhouao.md 去"同一条免责"过时表述（免责已退出渲染）。核查确认无其它陈旧：pyproject 动态版本、_qa 时点证据、plan.md 里程碑历史、研究文档落地注记均保持不动 |
 | v0.30.4b | 发布纪律补丁：版本号改动必须立即跟三端重建再提交——v0.30.1 与 v0.30.4 两次因"先提交后重建"被新鲜度守护/冒烟版本断言拦下。正确顺序固化为：改版本号 → build_web/vscode/obsidian → pytest/一致性/冒烟 → 提交推送 |
 | v0.30.4 | 端到端+超清视觉验收轮（computer use × DPR3，13 状态截图 + visual-judge 验收）：7 pass / 6 fail，修复三根因——①改写建议持久化筛选（如"留"）遇到无该类条目的新文本时首屏空态：自动回落"全部"并回写持久化（web 端独有过滤器）；②规则解释自引用内部 ID 泄漏 UI 4 处（D-CONN-01/L-CONN-01/L-FORM-01/O-STK-01 词表括注），YAML 源头改写；③scoreNoteRow 的 .sub 块级样式在 v0.30.1 清理中误删致"指数 —"与原因挤一行，三端恢复。误判两处：公文场景提示行"缺失"实为验收简报预期写错（official 本就不出该提示）；CLI 短文无分数区为既定"短文不出分"口径。补拍暗色带命中卡验证对比度（亮朱砂高亮可读）。流程教训：无头浏览器 DPR3 下截图可能抢在动画合成帧之前拍出空白——截图前双 rAF 等待；动 DOM 前缀 node --check 已拦截过一次语法损伤 |
