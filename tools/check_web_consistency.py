@@ -195,7 +195,6 @@ def normalize(result: dict) -> dict:
         "hints": fs(result["hints"]),
         "stats": {k: norm_num(v) for k, v in s.items() if k != "tokenizer"},
         "score": norm_score,
-        "score_note": result.get("score_note", ""),
         "ood": sorted(result.get("ood") or []),
         "score_note": result.get("score_note") or "",
         "para_heat": [

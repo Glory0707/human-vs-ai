@@ -131,6 +131,15 @@ def _group_title(group: list[Finding]) -> str:
     return f"[{SEV_LABEL[group_top(group)]}] {ids}{rep} {names} · {loc}"
 
 
+def _unseen_rules(findings: list[Finding], explained: set[str]):
+    """同句聚合与跨组去重共用：同一规则的解释全文只讲一次——第 6 次"首先"不需要重读同一段话。"""
+    for f in findings:
+        if f.rule_id in explained:
+            continue
+        explained.add(f.rule_id)
+        yield f
+
+
 def render_terminal(result: AnalysisResult) -> str:
     use_color = sys.stdout.isatty()
     C = (
@@ -162,11 +171,7 @@ def render_terminal(result: AnalysisResult) -> str:
             out.append(f"  「{show}」")
             matches = [m for f in group for m in f.matches]
             out.append(C("90", f"  命中：{'、'.join(dict.fromkeys(matches))}"))
-            for f in group:
-                # 同一规则的解释全文只讲一次——第 6 次"首先"不需要重读同一段话
-                if f.rule_id in explained:
-                    continue
-                explained.add(f.rule_id)
+            for f in _unseen_rules(group, explained):
                 out.append(f"  · {f.explanation}")
                 if f.suggestion:
                     out.append(C("32", f"    → {f.suggestion}"))
@@ -212,10 +217,7 @@ def render_markdown(result: AnalysisResult) -> str:
         matches = [m for f in group for m in f.matches]
         out.append(f"**命中**：{'、'.join(dict.fromkeys(matches))}")
         out.append("")
-        for f in group:
-            if f.rule_id in explained:
-                continue  # 同一规则的解释全文只讲一次（与 terminal 口径一致）
-            explained.add(f.rule_id)
+        for f in _unseen_rules(group, explained):
             out.append(f"**{f.rule_id}** {f.explanation}")
             if f.suggestion:
                 out.append("")
@@ -327,10 +329,7 @@ def render_appeal(result: AnalysisResult, source: str) -> str:
             matches = [m for f in group for m in f.matches]
             out.append(f"命中模板词：{'、'.join(dict.fromkeys(matches))}")
             out.append("")
-            for f in group:
-                if f.rule_id in explained:
-                    continue
-                explained.add(f.rule_id)
+            for f in _unseen_rules(group, explained):
                 out.append(f"**为什么被标记（{f.rule_id}）**：{f.explanation}")
                 if f.suggestion:
                     out.append("")

@@ -51,7 +51,7 @@ for f in targets:
         print(f"✗ {f}: 无法读取（{e.strerror}）")
         bad.append(f)
         continue
-    hits = sorted(b for b in BAD if b in flat)
+    hits = sorted({flat[i:i+6] for i in range(len(flat) - 5)} & BAD)
     if hits:
         print(f"✗ {f}: 泄漏 {hits}")
         bad.append(f)

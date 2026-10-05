@@ -35,6 +35,11 @@ def _read_file(path: str) -> str:
         sys.exit(f"错误：无法读取 {path}（{e.strerror}）")
 
 
+def _read_input(file_arg: str) -> str:
+    """stdin（-）与文件输入的统一入口。"""
+    return sys.stdin.read() if file_arg == "-" else _read_file(file_arg)
+
+
 _PROFILE_DESC = {
     "academic": ("学术", "论文、摘要、实验报告"),
     "general": ("问答", "知乎、公众号、科普"),
@@ -179,7 +184,7 @@ def _dispatch(args: argparse.Namespace) -> None:
 
     if args.command == "rewrite":
         _require_profile(args.profile)
-        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        text = _read_input(args.file)
         result = rewrite.rewrite_text(text, args.profile)
         if args.apply:
             # 清理稿是纯文本出口：终端打印时提示一句它是草稿（stderr，不污染管道）
@@ -199,7 +204,7 @@ def _dispatch(args: argparse.Namespace) -> None:
 
     if args.command == "collect":
         _require_profile(args.profile)
-        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        text = _read_input(args.file)
         if not text.strip():
             sys.exit("错误：文件为空，没有可导出的样本")
         sample = collect.build_sample(text, args.profile, args.label)
@@ -213,7 +218,7 @@ def _dispatch(args: argparse.Namespace) -> None:
         return
 
     if args.command == "ppl":
-        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        text = _read_input(args.file)
         sentences = [s.text for blk in segment.split_document(text) for s in blk.sents]
         try:
             scorer = ppl.SentenceScorer(args.model, args.device)
@@ -233,7 +238,7 @@ def _dispatch(args: argparse.Namespace) -> None:
 
     _require_profile(args.profile)
     if args.command == "stats":
-        text = sys.stdin.read() if args.file == "-" else _read_file(args.file)
+        text = _read_input(args.file)
         result = engine.analyze(text, args.profile)
         # 契约是"只看统计特征"：只出 stats，不夹带 findings
         print(json.dumps(

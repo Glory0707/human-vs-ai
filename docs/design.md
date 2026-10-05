@@ -47,7 +47,7 @@
 ## 5. 架构（已验证）
 
 ```
-CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / explain / profiles）
+CLI（argparse，七个子命令：check / diff / collect / stats / rewrite / explain / profiles；另有 ppl 句级困惑度，可选依赖）
         │
 引擎 engine.analyze() ── 规则库 YAML（七 profile）+ 统计 stats + 切分 segment
         │                   ├ ood.detect（域外文体：文言/诗行 → 报告随行提示）
@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.31.3 | 清理优化轮（零功能变化，351 项 CLI 出口快照逐字节对拍零漂移）：①report.py 三处渲染器的规则解释去重循环收敛为 _unseen_rules 生成器（terminal/md/appeal 共用一处口径）；②cli.py 四处 stdin/文件读取收敛为 _read_input；③check_web_consistency 修 F601 重复字典键 score_note（死键与生效键默认语义不同，留下掩盖面）；④死 CSS 两处（web .row.score .comp——v0.29.1 删构成列遗留；obsidian .mono-num——仅 web 用）；⑤check_private_leak 逐片段全文扫描改 6 字滑窗集合交（O(|BAD|×len)→O(len)，投毒样例新旧对拍等价）；⑥expand_gov_corpus 补进 README（在役校准工具此前零引用形同死文件，决定/表彰类校准会再用）；⑦design §5 子命令枚举补 ppl。全模块未引用函数扫描（human_vs_ai / 三端 JS / lang-calib）零死代码，render.js 13 项导出全部有消费 | 
 | v0.31.2 | 全功能 UI 打磨轮（DPR3 全状态截图 17+3 张 × visual-judge 两轮验收）：①唯一产品改动——重复句折叠计数披露：同段相同句折叠进一张卡后标题给 ×N 徽章（此前"发现 8 处"只有 2 张 ¶1 卡、对不上账），四端同构（render.js 发现卡 / extension.js / styles.css / report.py terminal+md 共用 _group_title），回归 ×2（折叠给 ×4、异规则组不给）；②证据链修复：一审 7 张图主题标签颠倒系截图脚本 themeBtn toggle 时序错位（非产品 bug），重拍改程序化断言主题/场景/模式后 15/17 pass；③补拍闭环：长文折叠态旧构建缺徽章重拍 pass；VS Code 预览暗色 fail 根因=预览页缺 --vscode-* 宿主变量落亮色 fallback（扩展暗色适配本身真实存在，v0.28.5 宿主内已验证），按 Dark Modern 真实值 shim 宿主变量后 pass；④程序化体检：桌面/390px 零横向溢出（唯一越界元素 .tran-line i 为 overflow:hidden 裁剪的动画件）；⑤边界形态复核确认：短文本静默无印章、personal 无指数、改写锁口味均为设计正确 |
 | v0.31.1 | v0.31.0 加固轮（联网复核全部新增面）：①appeal 修真 bug——路径含空格时复现命令被拆参数，现对路径加引号；输入文件指纹（sha256 前 16 位）入文书，复现对象可核对；②62.88% 出处纠正——原始链路为大河报 2025-05（人民日报/新京报/中青报跟进，同例《流浪地球》52.88%），v0.31.0 误写"南都湾财社 2024"，appeal 文书与回归集 docstring 同步；③《荷塘月色》fixture 补第二源交叉（清华官网节选/维基文库/中大人文电算库）；④publishing.md Obsidian 节重写——2026-05-12 起提交走 community.obsidian.md 开发者面板（PR 流程废弃，obsidian-releases README 2026-05-15 移除提交说明），自动审查改扫每个版本、过审 24h 上架、新项目须开源，release 三附件要求不变；⑤vscode-extension 补 LICENSE（消 vsce 打包警告）；⑥check_private_leak 不可读文件从静默改为显式失败（边界不留洞）；VS Code PAT 流程与 marketplace 重名已核实无碍；测试 229→230 |
 | v0.31.0 | 误伤自证与上架准备轮：①新增 `-f appeal` 被误伤自证文书（结论/逐句解释/可复现命令/已知边界四节，公开误伤案例入文，stdin 与批量干净拒绝）；②名人真文回归集 tests/test_celebrity_human.py——老舍《林海》（南都十款工具 99.9% 实测事件）与朱自清《荷塘月色》（62.88% 事件）公版原文入库钉基线（essay 档 60-85 误报区间），斯坦福 61.3% 事件钉非中文抑制行为；③README「它不是什么」三处来源换可查证（Patterns 2023 / Decrypt 2024 / 南都 2025，__init__.py docstring 与 §3 同步去 Nature 2026 未证实表述）；④样本提交 issue 模板（.github/ISSUE_TEMPLATE）；⑤check_private_leak 默认目标 5 文件 → 全量 git tracked（-z 防中文文件名转义，errors=ignore 兜底）；⑥上架准备：vscode icon.png（印章 128px）/.vscodeignore/README（列表页）/repository 字段，docs/publishing.md （VS Code marketplace + Obsidian 社区目录全流程，id 已核查可用）；测试 221→229 |

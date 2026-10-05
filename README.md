@@ -123,6 +123,7 @@ python tools/adversarial_eval.py        # 对抗自评测：改写器/LLM 当攻
 python tools/oos_check.py               # 泛化体检：冻结系数跑样本外语料（语料见 _qa/corpus/）
 python tools/genre_check.py             # 文种切片判定：冻结 AUROC + 分层 CV + 渠道 LOCO
 python tools/scrape_genre_corpus.py     # 抓省门户印发/批复真人语料（文种校准用，不入库）
+python tools/expand_gov_corpus.py      # 扩充事务公文真人评测集（多来源礼貌抓取，不入库）
 python tools/drift_monitor.py --input corpus_private/*.jsonl  # collect 样本漂移监测
 python tools/domain_recon.py           # 新语料域侦察：词表/统计底盘区分度盘点（新场景校准前置）
 python tools/era_remine.py             # C-ReD 词频重挖：新指纹候选 + 现役词表体检（报告 _qa/era-remine-*.md）
