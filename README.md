@@ -107,7 +107,7 @@ human-vs-ai ppl 文案.txt               # 句级困惑度（可选：pip instal
 ## 开发
 
 ```bash
-python -m pytest tests/ -q              # 230 项单元+边界+评分+口味+格式+多文体+域外+模糊回归（私库层缺语料自动跳过）
+python -m pytest tests/ -q              # 233 项单元+边界+评分+口味+格式+多文体+域外+模糊回归（私库层缺语料自动跳过）
 python tools/check_web_consistency.py   # Python/JS 双引擎一致性 448 项 × 7 场景（含清理稿对拍，需 node）
 python _qa/drift_battery.py             # Py/JS 53 探针对抗对拍（跑完自清理）
 node vscode-extension/smoke-test.js     # VS Code 扩展冒烟 32 项
