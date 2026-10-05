@@ -60,7 +60,7 @@ def _ood_lines(result: AnalysisResult) -> list[str]:
     lines = [f"※ {k}域外（{'、'.join(groups[k])}）：{_OOD_WHY[k]}"
              for k in ("文体", "文种") if k in groups]
     if "officialese" in result.ood:
-        lines.append("※ 公文/公务文书风格：official 场景更准")
+        lines.append("※ 公文风格：official 场景更准")
     return lines
 
 

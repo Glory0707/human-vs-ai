@@ -117,7 +117,7 @@
       .filter(kind => groups[kind])
       .map(kind => `${kind}域外（${groups[kind].join("、")}）：${OOD_WHY[kind]}`);
     /* 公文风格切场景提示（与 Python report._ood_lines 同构） */
-    if (ood.indexOf("officialese") >= 0) lines.push("公文/公务文书风格：official 场景更准");
+    if (ood.indexOf("officialese") >= 0) lines.push("公文风格：official 场景更准");
     return lines;
   }
   function oodHtml(ood) {
@@ -163,7 +163,7 @@
       const why = g.items.find(i => !explained.has(i.rule_id));
       g.items.forEach(i => explained.add(i.rule_id));
       parts.push(`<div class="found sev-${top.severity}"${g.sentence && locate ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
-        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span>${folded > 0 ? `<span class="rep" title="此句模式共命中 ${g.items.length} 次，重复句已折叠计数">×${g.items.length}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
+        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span>${folded > 0 ? `<span class="rep" title="此句模式共命中 ${g.items.length} 次">×${g.items.length}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
         ${g.sentence ? `<blockquote${locate ? ` title="点击定位原稿"` : ""}>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
         ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
@@ -325,7 +325,7 @@
     });
     if (typeof draft === "string" && draft.trim()) {
       L.push("## 清理稿（草稿）", "", "```", draft, "```", "",
-        "清理稿只落地了删行与换候选；带「→ 方向」的条目要人来改。", "");
+        "只落地了删行与换候选，其余要人来改。", "");
     }
     return L.join("\n");
   }

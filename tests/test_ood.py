@@ -320,7 +320,7 @@ class TestOfficialese:
     def test_terminal_report_hint_line(self):
         from human_vs_ai import report
         out = report.render_terminal(engine.analyze(SHIWU, "general"))
-        assert "公文/公务文书风格：official 场景更准" in out
+        assert "公文风格：official 场景更准" in out
 
     def test_official_lexical_rules_pruned(self):
         # v0.29.0 撤出 O-INFL-01/O-PARA-01：gen2026 当代语料上反向
