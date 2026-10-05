@@ -129,6 +129,7 @@ b { font-variant-numeric: tabular-nums; }
 .sev-low .mg-kind { color: var(--sev-low); }
 .rname { font-weight: 600; font-size: 12px; }
 .found .head .loc, .loc { color: var(--ink-3); font-weight: 400; font-size: 10.5px; margin-left: auto; font-family: var(--mono, Consolas); }
+.rep { font-family: var(--mono, Consolas); font-size: 10.5px; color: var(--ink-3); border: 1px solid var(--accent-line, rgba(120,120,120,.35)); border-radius: 999px; padding: 0 6px; line-height: 1.6; }
 blockquote { margin: 6px 0 4px; padding: 2px 0 2px 12px; border-left: 2px solid var(--hairline); color: var(--ink-2); }
 .match { font-size: 12px; color: var(--ink-3); margin: 2px 0 6px; }
 .match code { background: var(--accent-soft, var(--chip)); border: 1px solid var(--accent-line, var(--chip)); padding: 0 4px; border-radius: 2px; }

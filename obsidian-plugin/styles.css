@@ -100,6 +100,7 @@
 .sev-low .mg-kind { color: var(--accent); }
 .rname { font-weight: 600; font-size: 12px; }
 .loc { font-family: var(--mono); font-size: 10.5px; color: var(--ink-3); margin-left: auto; }
+.rep { font-family: var(--mono, Consolas); font-size: 10.5px; color: var(--ink-3); border: 1px solid var(--accent-line, rgba(120,120,120,.35)); border-radius: 999px; padding: 0 6px; line-height: 1.6; }
 blockquote {
   margin: 4px 0; padding: 2px 0 2px 10px;
   border-left: 2px solid var(--hairline-soft); color: var(--ink-2);

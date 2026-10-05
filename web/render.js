@@ -155,13 +155,15 @@
       const top = g.items.reduce((acc, i) =>
         (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
       // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
-      const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
+      const idArr = [...new Set(g.items.map(i => i.rule_id))];
+      const ids = idArr.join(" + ");
       const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
+      const folded = g.items.length - idArr.length;  // 同句重复命中的折叠数——计数披露，让"发现 N 处"能对账
       const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
       const why = g.items.find(i => !explained.has(i.rule_id));
       g.items.forEach(i => explained.add(i.rule_id));
       parts.push(`<div class="found sev-${top.severity}"${g.sentence && locate ? ` data-excerpt="${esc(g.sentence)}"` : ""}>
-        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span><span class="loc">¶${g.para + 1}</span></div>
+        <div class="mg-head" title="${esc(ids)}"><span class="mg-dot"></span><span class="mg-kind">${SEV_NAME[top.severity]}</span><span class="rname">${esc(names)}</span>${folded > 0 ? `<span class="rep" title="此句模式共命中 ${g.items.length} 次，重复句已折叠计数">×${g.items.length}</span>` : ""}<span class="loc">¶${g.para + 1}</span></div>
         ${g.sentence ? `<blockquote${locate ? ` title="点击定位原稿"` : ""}>${hiSentence(g.sentence, matchArr)}</blockquote>` : ""}
         ${why ? `<div class="why">${esc(why.explanation.trim())}</div>${why.suggestion ? `<div class="tip">→ ${esc(why.suggestion.trim())}</div>` : ""}` : ""}
       </div>`);
@@ -268,8 +270,10 @@
       const top = g.items.reduce((acc, i) =>
         (sevRank[i.severity] < sevRank[acc.severity] ? i : acc), g.items[0]);
       // 重复句折叠后同一规则会出现几十次——标题去重（matches 本就已去重）
-      const ids = [...new Set(g.items.map(i => i.rule_id))].join(" + ");
+      const idArr = [...new Set(g.items.map(i => i.rule_id))];
+      const ids = idArr.join(" + ");
       const names = [...new Set(g.items.map(i => i.rule_name))].join(" + ");
+      const folded = g.items.length - idArr.length;  // 同句重复命中的折叠数——计数披露，让"发现 N 处"能对账
       const matchArr = [...new Set(g.items.flatMap(i => i.matches))];
       L.push(`### [${SEV_NAME[top.severity]}] ${ids} ${names} · ¶${g.para + 1}`, "");
       if (g.sentence) L.push(`> ${g.sentence}`, "");

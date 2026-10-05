@@ -125,7 +125,10 @@ def _group_title(group: list[Finding]) -> str:
     ids = " + ".join(dict.fromkeys(f.rule_id for f in group))
     names = " + ".join(dict.fromkeys(f.rule_name for f in group))
     loc = f"¶{group[0].para + 1}"
-    return f"[{SEV_LABEL[group_top(group)]}] {ids} {names} · {loc}"
+    # 折叠计数披露：同句模式重复命中时给 ×N，让"发现 N 处"与卡片数对得上账
+    folded = len(group) - len({f.rule_id for f in group})
+    rep = f" ×{len(group)}" if folded else ""
+    return f"[{SEV_LABEL[group_top(group)]}] {ids}{rep} {names} · {loc}"
 
 
 def render_terminal(result: AnalysisResult) -> str:

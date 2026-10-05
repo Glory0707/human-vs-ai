@@ -265,6 +265,21 @@ class TestProseQuality:
             assert "L-CONN-01 + L-CONN-01" not in out
             assert "模板连接词 + 模板连接词" not in out
 
+    def test_folded_repeats_disclose_count(self):
+        # 同段相同句折叠成一组后，标题给 ×N——"发现 N 处"要与卡片对得上账
+        result = engine.analyze("综上所述，机遇与挑战并存。" * 4, "general")
+        assert len(result.findings) == 4, "前置条件：4 次同句命中"
+        for out in (report.render_markdown(result), report.render_terminal(result)):
+            assert "×4" in out
+
+    def test_no_count_badge_on_distinct_rules(self):
+        # 一句命中多条不同规则不折叠计数——卡内逐条列了，账本来就平
+        text = ("首先，随着人工智能的快速发展，社会发生了深刻变革。"
+                "其次，我们必须正视其中的挑战。综上所述，机遇与挑战并存。")
+        result = engine.analyze(text, "general")
+        out = report.render_terminal(result)
+        assert "×2" not in out and "×3" not in out
+
     def test_dir_input_clean_error(self, tmp_path, capsys):
         # 目录当输入：干净报错，不抛裸堆栈
         from human_vs_ai import cli
