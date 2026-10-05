@@ -274,16 +274,18 @@ _APPEAL_CASES = (
 )
 
 
-def render_appeal(result: AnalysisResult, source: str) -> str:
+def render_appeal(result: AnalysisResult, source: str, text: str) -> str:
     """被误伤自证文书（Markdown）：结论 → 逐句解释 → 复现命令 → 已知边界。
 
     给被 AIGC 检测误伤的作者拿去沟通用的：每处命中都可逐句对照原文自证，
     全部数字任何人都可在本地复现，文书自身就把"指数高≠AI 写的"讲清楚。
     """
     s = result.doc_stats
-    # 路径加引号：含空格的路径不加引号会被拆成两个参数，命令直接跑不通
-    cmd = f'human-vs-ai check "{source}" -p {result.profile} -f appeal'
-    fingerprint = hashlib.sha256(Path(source).read_bytes()).hexdigest()[:16]
+    # 路径加引号（含空格不加引号会被拆成两个参数）并转义内嵌引号（Linux 文件名可含 "）
+    display = source.replace('"', '\\"')
+    cmd = f'human-vs-ai check "{display}" -p {result.profile} -f appeal'
+    # 指纹取实际分析的内容而非重读文件：文件在分析后被移动/删除/改动都不崩、不错账
+    fingerprint = hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
     out: list[str] = []
     out.append("# 写作风格自查说明")
     out.append("")
@@ -307,8 +309,8 @@ def render_appeal(result: AnalysisResult, source: str) -> str:
     if s.n_sentences >= 8:
         out.append(f"- 统计：句长 CV {_fmt(s.sentence_cv)} · 段长 CV {_fmt(s.para_len_cv)}"
                    f" · TTR {_fmt(s.ttr)} · 连接词 {_fmt(s.conn_density)} · 重复率 {_fmt(s.ngram_repeat)}")
-    out.append(f"- 输入文件指纹（sha256 前 16 位）：`{fingerprint}`——"
-               "用于核对复现者手上的文件与本文档分析的是同一份")
+    out.append(f"- 输入内容指纹（sha256 前 16 位）：`{fingerprint}`——"
+               "用于核对复现者手里的文本与本文档分析的是同一份")
     out.append("")
     out.append("## 二、逐句发现与解释")
     out.append("")

@@ -284,7 +284,7 @@ def _check(args: argparse.Namespace) -> None:
         elif args.format == "html":
             out = htreport.render_html(result)
         elif args.format == "appeal":
-            out = report.render_appeal(result, str(paths[0]))
+            out = report.render_appeal(result, str(paths[0]), text)
         elif args.format == "csv":
             # 单文件的 csv 就是只有一行的批量汇总（列结构一致，方便拼接）
             out = batch.render([batch.summarize(paths[0], result)], args.profile, "csv")

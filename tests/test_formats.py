@@ -346,6 +346,16 @@ class TestAppealReport:
             cli.main(["check", "-", "-f", "appeal"])
         assert "appeal" in str(ei.value)
 
+    def test_appeal_fingerprint_from_content_not_file_reread(self):
+        # 指纹取实际分析的内容：文件在分析后被移走/改名也不崩、指纹照样可对账
+        import re
+        from human_vs_ai import report
+        result = engine.analyze(AI_TEXT, "academic")
+        doc1 = report.render_appeal(result, "任意路径.md", AI_TEXT)
+        doc2 = report.render_appeal(result, "不存在的路径.md", AI_TEXT)  # 不重读文件
+        fp = lambda d: re.search(r"sha256 前 16 位）：`(\w+)`", d).group(1)
+        assert fp(doc1) == fp(doc2)
+
     def test_appeal_batch_rejected_cleanly(self, tmp_path):
         (tmp_path / "a.md").write_text("内容。", encoding="utf-8")
         (tmp_path / "b.md").write_text("内容。", encoding="utf-8")
