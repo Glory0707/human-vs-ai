@@ -7,10 +7,12 @@ doc 级发现独立成条。
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import sys
 import time
 from collections import OrderedDict
+from pathlib import Path
 
 from .engine import AnalysisResult, Score, Finding
 from . import __version__
@@ -262,7 +264,7 @@ def render_json(result: AnalysisResult) -> str:
 # 自证文书引用的公开误伤案例（README「它不是什么」同源，改措辞须两边同步）
 _APPEAL_CASES = (
     "老舍《林海》被商业检测工具判 99.9% AI（南都大数据研究院 2025 十款工具实测），"
-    "朱自清《荷塘月色》被判 62.88% AI（南都湾财社 2024 报道），"
+    "朱自清《荷塘月色》被论文检测系统判 62.88% AI（大河报 2025-05 报道，人民日报等跟进），"
     "斯坦福实测七款英文检测器把非母语者托福作文平均误判 61.3%（Patterns 2023）"
 )
 
@@ -274,7 +276,9 @@ def render_appeal(result: AnalysisResult, source: str) -> str:
     全部数字任何人都可在本地复现，文书自身就把"指数高≠AI 写的"讲清楚。
     """
     s = result.doc_stats
-    cmd = f"human-vs-ai check {source} -p {result.profile} -f appeal"
+    # 路径加引号：含空格的路径不加引号会被拆成两个参数，命令直接跑不通
+    cmd = f'human-vs-ai check "{source}" -p {result.profile} -f appeal'
+    fingerprint = hashlib.sha256(Path(source).read_bytes()).hexdigest()[:16]
     out: list[str] = []
     out.append("# 写作风格自查说明")
     out.append("")
@@ -298,6 +302,8 @@ def render_appeal(result: AnalysisResult, source: str) -> str:
     if s.n_sentences >= 8:
         out.append(f"- 统计：句长 CV {_fmt(s.sentence_cv)} · 段长 CV {_fmt(s.para_len_cv)}"
                    f" · TTR {_fmt(s.ttr)} · 连接词 {_fmt(s.conn_density)} · 重复率 {_fmt(s.ngram_repeat)}")
+    out.append(f"- 输入文件指纹（sha256 前 16 位）：`{fingerprint}`——"
+               "用于核对复现者手上的文件与本文档分析的是同一份")
     out.append("")
     out.append("## 二、逐句发现与解释")
     out.append("")

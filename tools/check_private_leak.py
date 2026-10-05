@@ -42,8 +42,15 @@ else:
         targets = FALLBACK_TARGETS
 bad = []
 for f in targets:
-    # errors="ignore"：非 UTF-8 字节（历史编码文件）照扫不炸
-    flat = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "", Path(f).read_text(encoding="utf-8", errors="ignore"))
+    try:
+        # errors="ignore"：非 UTF-8 字节（历史编码文件）照扫不炸
+        flat = re.sub(r"[^\u4e00-\u9fffA-Za-z0-9]", "",
+                      Path(f).read_text(encoding="utf-8", errors="ignore"))
+    except OSError as e:
+        # 读不到的文件不能静默跳过——边界检查留洞比误报更糟
+        print(f"✗ {f}: 无法读取（{e.strerror}）")
+        bad.append(f)
+        continue
     hits = sorted(b for b in BAD if b in flat)
     if hits:
         print(f"✗ {f}: 泄漏 {hits}")

@@ -75,7 +75,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 ## 6. 验证基线（当前值，复现命令见 README「开发」）
 
-- **单元测试**：229 项（切分/统计/引擎/边界/评分/口味与改写/格式/多文体 profile/域外与漂移/模糊回归/私库——私库层缺语料自动跳过）
+- **单元测试**：230 项（切分/统计/引擎/边界/评分/口味与改写/格式/多文体 profile/域外与漂移/模糊回归/私库——私库层缺语料自动跳过）
 - **C-ReD paper 校准**（真人 80 vs deepseek-v3/qwen-3/gpt-4o/deepseek-r1 各 80）：词表句均命中真人 0.051 vs AI 0.254–0.407，AUROC **0.888**（v0.25.0 era 指纹入表前 0.804）；句长 CV 真人 0.483 vs AI 0.274–0.383（四模型全低），AUROC **0.799**；deepseek-r1 最难检
 - **HC3-Chinese 校准**：词表 AUROC 0.476（学术词表在问答文体失效——profile 分治的实证）；CV 0.763；字级 2-gram TTR 0.684
 - **长度分档**：真人 CV p50 短/中/长 = 0.467/0.494/0.520，D-UNIF 三档阈值 0.30/0.33/0.37（数据 `_qa/length-tiers.md`）
@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.31.1 | v0.31.0 加固轮（联网复核全部新增面）：①appeal 修真 bug——路径含空格时复现命令被拆参数，现对路径加引号；输入文件指纹（sha256 前 16 位）入文书，复现对象可核对；②62.88% 出处纠正——原始链路为大河报 2025-05（人民日报/新京报/中青报跟进，同例《流浪地球》52.88%），v0.31.0 误写"南都湾财社 2024"，appeal 文书与回归集 docstring 同步；③《荷塘月色》fixture 补第二源交叉（清华官网节选/维基文库/中大人文电算库）；④publishing.md Obsidian 节重写——2026-05-12 起提交走 community.obsidian.md 开发者面板（PR 流程废弃，obsidian-releases README 2026-05-15 移除提交说明），自动审查改扫每个版本、过审 24h 上架、新项目须开源，release 三附件要求不变；⑤vscode-extension 补 LICENSE（消 vsce 打包警告）；⑥check_private_leak 不可读文件从静默改为显式失败（边界不留洞）；VS Code PAT 流程与 marketplace 重名已核实无碍；测试 229→230 |
 | v0.31.0 | 误伤自证与上架准备轮：①新增 `-f appeal` 被误伤自证文书（结论/逐句解释/可复现命令/已知边界四节，公开误伤案例入文，stdin 与批量干净拒绝）；②名人真文回归集 tests/test_celebrity_human.py——老舍《林海》（南都十款工具 99.9% 实测事件）与朱自清《荷塘月色》（62.88% 事件）公版原文入库钉基线（essay 档 60-85 误报区间），斯坦福 61.3% 事件钉非中文抑制行为；③README「它不是什么」三处来源换可查证（Patterns 2023 / Decrypt 2024 / 南都 2025，__init__.py docstring 与 §3 同步去 Nature 2026 未证实表述）；④样本提交 issue 模板（.github/ISSUE_TEMPLATE）；⑤check_private_leak 默认目标 5 文件 → 全量 git tracked（-z 防中文文件名转义，errors=ignore 兜底）；⑥上架准备：vscode icon.png（印章 128px）/.vscodeignore/README（列表页）/repository 字段，docs/publishing.md （VS Code marketplace + Obsidian 社区目录全流程，id 已核查可用）；测试 221→229 |
 | v0.30.5 | 文档收敛轮（全仓 md/配置复核）：陈旧计数统一——README 测试 217→221、一致性 441→448，ci.yml 步骤名 434→448；rules.md §8 拟合脚本指引补全（fit_general/fit_official 按场景点名）；taste_zhouao.md 去"同一条免责"过时表述（免责已退出渲染）。核查确认无其它陈旧：pyproject 动态版本、_qa 时点证据、plan.md 里程碑历史、研究文档落地注记均保持不动 |
 | v0.30.4b | 发布纪律补丁：版本号改动必须立即跟三端重建再提交——v0.30.1 与 v0.30.4 两次因"先提交后重建"被新鲜度守护/冒烟版本断言拦下。正确顺序固化为：改版本号 → build_web/vscode/obsidian → pytest/一致性/冒烟 → 提交推送 |

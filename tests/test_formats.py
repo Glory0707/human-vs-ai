@@ -312,8 +312,9 @@ class TestAppealReport:
         assert "# 写作风格自查说明" in doc
         assert f"human-vs-ai v{__version__}" in doc
         assert "风格分析器，不是 AI 检测器" in doc
-        # 可复现：命令引用原文件完整路径（tmp 路径形状不定，只断结构），规则可 explain，仓库公开
-        assert "-p academic -f appeal" in doc and "check" in doc
+        # 可复现：命令带引号引用原文件完整路径（tmp 路径形状不定，只断结构），文件指纹可核对，规则可 explain
+        assert "-p academic -f appeal" in doc and 'check "' in doc
+        assert "sha256" in doc
         assert "human-vs-ai explain" in doc
         assert "https://github.com/Glory0707/human-vs-ai" in doc
         # 逐句可解释：原句 + 为什么被标记
@@ -321,6 +322,14 @@ class TestAppealReport:
         assert "为什么被标记" in doc
         # 已知边界：公开误伤案例入文
         assert "老舍" in doc and "61.3%" in doc
+
+    def test_appeal_command_quotes_paths_with_spaces(self, tmp_path):
+        # 路径含空格不加引号会被拆成两个参数，复现命令直接跑不通
+        f = tmp_path / "我 的 稿件.md"
+        f.write_text(AI_TEXT, encoding="utf-8")
+        out = tmp_path / "自证.md"
+        cli.main(["check", str(f), "-f", "appeal", "-o", str(out)])
+        assert f'check "{f}"' in out.read_text(encoding="utf-8")
 
     def test_appeal_unscored_shows_reason(self, tmp_path):
         f = tmp_path / "short.txt"
