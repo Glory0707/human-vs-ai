@@ -363,19 +363,12 @@ html.dark mark {
   color: var(--ink-2); position: relative;
 }
 .empty-block .mark-big { width: 104px; height: 104px; color: var(--accent); opacity: 0.94; }
-.empty-block .e-title { font-size: var(--fs-display); font-weight: 700; letter-spacing: -0.01em; }
+.empty-block .e-title { font-family: var(--brand); font-style: italic; font-weight: 600; font-size: var(--fs-display); letter-spacing: -0.01em; }
 .empty-block .e-acts { display: flex; align-items: center; gap: 18px; margin-top: 2px; }
 .empty-block .e-btn {
   border: 1px solid var(--hairline); background: var(--card-2); color: var(--ink-2);
 }
 .empty-block .e-btn:hover { color: var(--accent-deep); border-color: var(--accent-line); background: var(--accent-soft); }
-.empty-block .stamp {
-  font-family: var(--mono); font-size: var(--fs-xs); letter-spacing: 0.16em; cursor: pointer;
-  color: var(--vermilion); border: 1.5px solid var(--vermilion);
-  border-radius: 3px; padding: 4px 10px; transform: rotate(-4deg); opacity: 0.75;
-  background: transparent;
-}
-.empty-block .stamp:hover { opacity: 1; }
 .empty { color: var(--ink-3); padding: 24px 0; }
 .empty-block .e-sub { font-size: var(--fs-md); color: var(--ink-3); }
 /* 折叠的弱命中展开时轻浮入场（summary 展开是瞬时动作，补一点反馈） */
@@ -485,7 +478,7 @@ html.dark mark {
       </svg>
     </span>
     <span class="name">human-vs-ai</span>
-    <span class="head-ver">v0.31.7</span>
+    <span class="head-ver">v0.31.8</span>
   </span>
   <nav class="segmented" id="profiles" aria-label="场景"></nav>
   <nav class="segmented" id="modes" aria-label="模式"></nav>
@@ -1841,8 +1834,8 @@ const EMPTY_HTML = `<div class="empty-block">
     <rect x="2.2" y="2.2" width="27.6" height="27.6" rx="5" fill="none" stroke="currentColor" stroke-width="1.6"/>
     <path class="glyph" d="M7.2 16 c0 -4 6 -4 6 0 c0 4 6 4 6 0 H24.9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
   </svg>
-  <div class="e-title">报告随写随出</div>
-  <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button><button class="stamp" id="mottoStamp">推断不是判定</button></div>
+  <div class="e-title">human-vs-ai</div>
+  <div class="e-acts"><button class="e-btn" id="demoBtn">看个例子</button></div>
 </div>`;
 
 /* 首次体验用的合成样例（自写，AI 味浓度高，非真实语料） */
@@ -2144,10 +2137,7 @@ themeBtn.onclick = () => {
   try { localStorage.setItem("hva:theme", dark ? "dark" : "light"); } catch (e) {}
 };
 
-/* 空态铭文印章：点了让大印章蹦一下（彩蛋入口）；例子按钮一键体验 */
 function bindEmpty() {
-  const st = document.getElementById("mottoStamp");
-  if (st) st.onclick = () => markFlash("stamp", "mark-roll", 700);
   const demo = document.getElementById("demoBtn");
   if (demo) demo.onclick = () => {
     inputEl.value = DEMO_TEXT;
