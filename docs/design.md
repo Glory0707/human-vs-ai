@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.31.9 | 网页标签题收敛（用户点名）："human-vs-ai · 中文 AI 味分析"→"human-vs-ai" | 
 | v0.31.8 | 空态改版（用户点名）：空态标题"报告随写随出"→品牌名"human-vs-ai"，字体对齐左上角词标（--brand/Fraunces 斜体 600）；铭文印章"推断不是判定"整体删除（按钮/绑定/死 CSS 三处），空态收为徽记+词标+看个例子三件 | 
 | v0.31.7 | 文档收敛轮（全仓 md/配置复核）：计数同步——README/design 测试 230→233；rules.md general 当代验证节补"总而言之"补测行（C-ReD QA 全量 4.9 倍，与 YAML 校准注互指）；lang-calib 文档清出搬迁陈旧路径三处（D:\chat 启动 bat 已不存在 → scripts/start_qwen.sh 与 ~/spark-x25/start_server.sh 真实启动器；训练指南 cd 路径 → 现址），README 补生成约束（≤60 组合/单飞）与备份掩码说明；_qa/*.md 时点证据、plan.md 里程碑历史、研究文档落地注记、taste_zhouao、pyproject/ci.yml/.zcodeignore 复核无陈旧不动 | 
 | v0.31.6 | 端到端+computer-use 走查轮：①真 bug——G-SAFE-01 漏收"总而言之"（academic/news/personal 三库均收而 general 漏收，无证伪记录），C-ReD 问答域补测 AI 1.84% vs 真人 0.37%（4.9 倍，n=2956/26115）入表，E2E 确认命中与折叠对账（发现 4 处 = ×2+×2）；②上一轮修复未上线事故——lang-calib 单飞守卫的 replace 因锚点拼接错误静默 no-op（只断言了前置、未断言 replace 结果），"逻辑测试通过"测的是查询不是端点接线，本轮确定性 E2E（DB 插 running 行）才暴露并真正落地（有 running → 400、清理 → 放行）——教训：replace 后必须断言后置；③已知边界记录：陋室铭/捕蛇者说尾段不触发 classical 判据（强虚词表刻意排除之/也/者/耳，C-ReD 误报 0.005% 的标定代价），不动；④lang-calib 只读走查五页 + 引擎桥短文守卫 + providers 掩码 + backup 掩码 + cap 400 全过；⑤网页 E2E 全流（首访/样例/七场景/短文门槛/持久化/域外四类/定位/折叠/改写全链/拖拽/移动端/彩蛋）visual-judge 6+1 张全 pass | 
