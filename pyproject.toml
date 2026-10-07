@@ -42,3 +42,8 @@ version = { attr = "human_vs_ai.__version__" }
 
 [tool.setuptools.package-data]
 human_vs_ai = ["rules/*.yaml"]
+
+[tool.pytest.ini_options]
+# 限定测试目录：仓库根裸跑 pytest 时否则会递归进 gitignored 的 lang-calib/，
+# 其 scripts/train_lora.py 模块级 argparse 缺参直接 SystemExit → INTERNALERROR
+testpaths = ["tests"]

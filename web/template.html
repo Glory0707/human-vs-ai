@@ -356,7 +356,7 @@ html.dark mark {
 .hints summary.t:hover { color: var(--ink); }
 .hints .h { font-size: var(--fs-sm); color: var(--ink-3); margin-top: 2px; }
 
-/* —— 空态（eggpaper empty 语言：大徽记 + display 标题 + 朱砂印章铭文） */
+/* —— 空态（eggpaper empty 语言：大徽记 + display 标题） */
 .empty-block {
   height: 100%; min-height: 320px;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
@@ -602,7 +602,7 @@ function renderModes() {
   placeThumb(nav, activeBtn);
 }
 
-/* 印章宠物：顶栏一枚、空态一枚大的。戳一下晃一下；3 秒内戳满三下翻滚一圈；
+/* 印章宠物：顶栏一枚。戳一下晃一下；3 秒内戳满三下翻滚一圈；
    二十四分之一的概率不是常规晃，是打喷嚏或趔趄——不预告，只能被撞见。
    没人理它时（40–80 秒随机）自发歪头或轻晃。分析中盖一切：busy 按压节拍。 */
 const pet = { timer: {}, idleT: 0, pokes: 0, pokeReset: 0 };
