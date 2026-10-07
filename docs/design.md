@@ -93,6 +93,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.31.10 | 桌面快捷方式图标轮：印章 256px 重绘（同源 PIL 代码，icon.png 同步升级）+ 多分辨率 icon.ico（16-256），Windows .lnk 只认 ico 不认 png——桌面快捷方式 IconLocation 改指 icon.ico 后印章正常显示 | 
 | v0.31.9 | 网页标签题收敛（用户点名）："human-vs-ai · 中文 AI 味分析"→"human-vs-ai" | 
 | v0.31.8 | 空态改版（用户点名）：空态标题"报告随写随出"→品牌名"human-vs-ai"，字体对齐左上角词标（--brand/Fraunces 斜体 600）；铭文印章"推断不是判定"整体删除（按钮/绑定/死 CSS 三处），空态收为徽记+词标+看个例子三件 | 
 | v0.31.7 | 文档收敛轮（全仓 md/配置复核）：计数同步——README/design 测试 230→233；rules.md general 当代验证节补"总而言之"补测行（C-ReD QA 全量 4.9 倍，与 YAML 校准注互指）；lang-calib 文档清出搬迁陈旧路径三处（D:\chat 启动 bat 已不存在 → scripts/start_qwen.sh 与 ~/spark-x25/start_server.sh 真实启动器；训练指南 cd 路径 → 现址），README 补生成约束（≤60 组合/单飞）与备份掩码说明；_qa/*.md 时点证据、plan.md 里程碑历史、研究文档落地注记、taste_zhouao、pyproject/ci.yml/.zcodeignore 复核无陈旧不动 | 
