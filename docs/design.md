@@ -84,7 +84,7 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 - **多文体扩展（v0.14）**：essay/news 评分建立（C-ReD 全量类平衡）；v0.26.0 era 指纹入表重拟合后 **essay 全量 0.954/留出 0.953、news 0.951/0.948**；review 短评词表层不出分——详见 rules.md §9
 - **当代验证（v0.17）**：essay 全量重跑 AUROC **0.942** / news **0.933**（按模型分解：qwen-2.5/claude/gpt-4o 召回 95%+，gpt-3.5 旧代仅 53%）；general 词表双代际验证（C-ReD QA 全量 + gen2026 当季 9 模型 69 篇：三连排比 83% 命中仍是当代最顽固指纹）；official 词表初步验证（9 模型 AI 公文组合覆盖 100% / 真人 0 误伤）；**域外探测**判据 C-ReD 全量 10.4 万篇校准（正样本 5/5、误报 0.005%）；**对抗自评测**（LLM 洗稿削词表 89% 后仍 93.3% 超阈值——统计底盘扛住定向规避）——详见 rules.md §9 与 _qa/*.md
 - **引擎性能**：7.1 万字 Py 140ms / JS 34ms（min-of-N，2026-09 复测，含 ood/para_heat）
-- **双引擎一致性**：**427 项**逐字段 diff 全绿 × 7 profile（含 ood/para_heat/清理稿 apply 对拍与 gov_yinfa/gov_pifu 文种门控）；对抗探针含 emoji 码点/孤立低代理/行分隔符全集/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水
+- **双引擎一致性**：**448 项**逐字段 diff 全绿 × 7 profile（含 ood/para_heat/清理稿 apply 对拍与 gov_yinfa/gov_pifu 文种门控）；对抗探针含 emoji 码点/孤立低代理/行分隔符全集/闭引号吸收/未闭合围栏/双竖线表格/引号不配对/邮箱/括号洪水
 - **当代评分重拟合（v0.17.8）**：official 全量 0.957 / 留出 ×10 均值 0.923（真人事务公文 71 vs gen2026 当季公文 70，ngram/连接词在公文文体反向、模型转负权重）；general 全量 0.945 / 留出 0.935（知乎真实长回答 110 vs gen2026 69；旧 HC3 系数在同期语料仅 0.602≈失效，重拟合动机）——详见 rules.md §8/§9 与 _qa/official-contemporary.md
 - **泛化体检（v0.18.1，冻结 v0.18.0 系数只测不调）**：general 样本外 **0.923**（豆瓣/果壳真人 78 vs 未参拟合四模型 27，掉幅 0.012 PASS）；official 样本外 **0.731**——AI 侧分布正常（无特征漂移），真人不达标是**文种边界**：省级门户"印发类"（正文=规划全文附录，p50=76）与"批复"（p90=98）真人侧大面积高分，同文种对照印发类 AUROC 0.294 反转、批复 0.614 近随机——详见 _qa/generalization-check.md
 - **口味校准层**：personal 12 条口味条目 + rewrite；被毙稿召回 31/31、定稿误报 0/37、改写维度 5/6；`tools/check_private_leak.py` 守护边界
@@ -93,6 +93,8 @@ key 外读不入库）· tools/adversarial_eval.py（对抗自评测：改写器
 
 | 轮次 | 要点 |
 |---|---|
+| v0.31.11b | 工作目录整理轮（无产品源码改动，不 bump 版本）：①**git 仓库剪枝 2.1G → 20M**——v0.23.0 事故提交（`git add` 误含 `_qa/models/*.safetensors` 共 2.6GB，随即 reset 撤销、从未推送）只活在 reflog 里，连同四个旧 stash/WIP 孤儿提交一并剪除；两笔含唯一 WIP 的孤儿（general.yaml 一处、engine+eval 一处）先导出补丁存外置临时存档再 `reflog expire --expire-unreachable=now` + `repack -a -d` + `prune`——只过期不可达条目，主线 reflog 与全部可达历史不动（fsck 干净，pack 内 objects 数 = 可达集 2174）；②缓存与中间产物清盘——__pycache__×5、.pytest_cache、lang-calib/service.log、_qa/_web_* 四件一致性中间产物、两端 preview（均 gitignore 内、随用随再生成）；③全树查重零意外重复（web/engine.js 等与 vscode-extension 同名件、vscode LICENSE 均为构建产物与上架必需，保留）；fixture 零孤儿（tests/data 四项均有消费者）；④.gitignore 分组整理（模型权重与运行时产物分开）+ .zcodeignore 全量同步其新增条目（lang-calib/、_qa/models/、_qa/e2e/、_qa/obsidian-preview.html、_qa/_gov_*.json 此前漏同步）；⑤design 一致性计数 427→448（v0.30.5 轮漏改的最后一处） | 
+| v0.31.11 | 审查收口（提交 fb148bb，日志本轮补记）：根目录裸跑 pytest 收集限定 tests——此前会递归进 gitignored 的 lang-calib/，其 scripts/train_lora.py 模块级 argparse 缺参 SystemExit → INTERNALERROR；印章注释与已删行为对齐（空态铭文/空态宠物两处 ×2 文件，注释级）；桌面快捷方式创建脚本 tools/create_shortcut.ps1 入库（.lnk 此前是仓外本机状态，icon.ico 多分辨率可复现）；lang-calib 单飞守卫补启动期僵尸行清扫 + 检查占位同锁（本地目录，不入库）。无产品源码改动 → 未 bump 版本 | 
 | v0.31.10 | 桌面快捷方式图标轮：印章 256px 重绘（同源 PIL 代码，icon.png 同步升级）+ 多分辨率 icon.ico（16-256），Windows .lnk 只认 ico 不认 png——桌面快捷方式 IconLocation 改指 icon.ico 后印章正常显示 | 
 | v0.31.9 | 网页标签题收敛（用户点名）："human-vs-ai · 中文 AI 味分析"→"human-vs-ai" | 
 | v0.31.8 | 空态改版（用户点名）：空态标题"报告随写随出"→品牌名"human-vs-ai"，字体对齐左上角词标（--brand/Fraunces 斜体 600）；铭文印章"推断不是判定"整体删除（按钮/绑定/死 CSS 三处），空态收为徽记+词标+看个例子三件 | 

@@ -17,24 +17,32 @@ venv/
 # 私人语料（口味校准层）——永不入库
 corpus_private/
 
+# 语言校准室（含 API 密钥与个人语料库，永不入库；见 lang-calib/README.md）
+lang-calib/
+
 # 下载的第三方语料（版权与体积，不入库；获取方式见 docs/rules.md）
 _qa/corpus/
 _qa/walk_*.txt
 
-# 本地产物：截图 / 一致性检查与冒烟测试的中间产物（每次运行重新生成）
+# 本地模型权重（体积；句级困惑度标定用，下载方式见 tools/ppl_calibration.py）
+_qa/models/
+
+# 本地产物：截图 / 一致性检查与冒烟测试的中间产物 / GUI 端到端证据（每次运行重新生成）
 _qa/*.png
 _qa/eval-*.json
-.playwright-mcp/
+_qa/shots/
+_qa/e2e/
 _qa/_web_*.js
 _qa/_web_*.json
 _qa/vscode-preview.html
+_qa/obsidian-preview.html
 _qa/exp_rows_*.json
-
-# GUI 端到端测试证据截图（本地产物，不入库）
 gui-test-screenshots/
+.playwright-mcp/
 
 # 分档拟合特征缓存（可由公共语料重新抽取）
 _qa/_tier_rows_cache.json
+_qa/_gov_*.json
 
 # ===== ↑ 以上同步自 .gitignore（「从 .gitignore 同步」只重写以上部分）=====
 .git/
